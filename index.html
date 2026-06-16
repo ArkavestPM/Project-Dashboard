@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>داشبورد مدیریت پروژه</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Tahoma, Arial, sans-serif; background: #f5f5f5; color: #222; direction: rtl; }
+header { background: #534AB7; color: white; padding: 1rem 2rem; display: flex; align-items: center; gap: 12px; }
+header h1 { font-size: 20px; font-weight: 600; }
+.container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+.tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; border-bottom: 1px solid #ddd; }
+.tab { padding: 10px 20px; font-size: 14px; cursor: pointer; border: none; background: none; color: #666; border-bottom: 3px solid transparent; margin-bottom: -1px; font-family: Tahoma, Arial, sans-serif; }
+.tab.active { color: #534AB7; border-bottom: 3px solid #534AB7; font-weight: 600; }
+.section { display: none; }
+.section.active { display: block; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+.metric { background: #fff; border-radius: 10px; padding: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.metric-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+.metric-value { font-size: 24px; font-weight: 600; color: #534AB7; }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem; }
+@media(max-width:700px){ .chart-row { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr !important; } }
+.chart-box { background: #fff; border-radius: 10px; padding: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.chart-title { font-size: 13px; font-weight: 600; color: #555; margin-bottom: 12px; }
+.chart-full { background: #fff; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 13px; color: #555; font-weight: 500; }
+.form-group input, .form-group select { padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #222; font-size: 14px; font-family: Tahoma, Arial, sans-serif; outline: none; }
+.form-group input:focus, .form-group select:focus { border-color: #534AB7; }
+.btn { padding: 9px 20px; border: none; border-radius: 8px; background: #534AB7; color: white; font-size: 14px; cursor: pointer; font-weight: 600; font-family: Tahoma, Arial, sans-serif; }
+.btn:hover { background: #3C3489; }
+.btn-sec { background: #f0f0f0; color: #333; }
+.btn-sec:hover { background: #e0e0e0; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-green { background: #EAF3DE; color: #3B6D11; }
+.badge-amber { background: #FAEEDA; color: #854F0B; }
+.badge-red { background: #FCEBEB; color: #A32D2D; }
+.badge-blue { background: #E6F1FB; color: #185FA5; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; font-size: 13px; border-collapse: collapse; }
+th { text-align: right; font-weight: 600; color: #555; padding: 10px 14px; border-bottom: 1px solid #eee; background: #fafafa; }
+td { padding: 11px 14px; border-bottom: 1px solid #f0f0f0; color: #333; }
+tr:last-child td { border-bottom: none; }
+.upload-area { border: 2px dashed #ccc; border-radius: 10px; padding: 2.5rem; text-align: center; cursor: pointer; color: #888; font-size: 14px; transition: all 0.2s; }
+.upload-area:hover { border-color: #534AB7; background: #f5f3ff; color: #534AB7; }
+.gantt-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.gantt-label { font-size: 12px; color: #666; width: 110px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.gantt-track { flex: 1; height: 22px; background: #f0f0f0; border-radius: 4px; position: relative; overflow: hidden; }
+.gantt-bar { height: 100%; border-radius: 4px; position: absolute; display: flex; align-items: center; padding-right: 8px; font-size: 11px; color: white; font-weight: 600; }
+.ev-stat { display: flex; justify-content: space-between; font-size: 13px; padding: 7px 0; border-bottom: 1px solid #f0f0f0; }
+.ev-stat:last-child { border-bottom: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; font-size: 12px; color: #666; }
+.legend span { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.msg { margin-top: 10px; font-size: 13px; padding: 8px 12px; border-radius: 6px; }
+.msg-ok { background: #EAF3DE; color: #3B6D11; }
+.msg-err { background: #FCEBEB; color: #A32D2D; }
+code { font-family: monospace; font-size: 12px; color: #555; white-space: pre-wrap; line-height: 1.7; }
+</style>
+</head>
+<body>
+<header>
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  <h1>داشبورد مدیریت پروژه</h1>
+</header>
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('dashboard')">📊 داشبورد</button>
+    <button class="tab" onclick="showTab('add')">➕ افزودن پروژه</button>
+    <button class="tab" onclick="showTab('import')">📤 وارد کردن فایل</button>
+    <button class="tab" onclick="showTab('projects')">📁 پروژه‌ها</button>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="section active" id="tab-dashboard">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">کل پروژه‌ها</div><div class="metric-value" id="m-total">0</div></div>
+      <div class="metric"><div class="metric-label">در حال اجرا</div><div class="metric-value" id="m-active">0</div></div>
+      <div class="metric"><div class="metric-label">میانگین پیشرفت</div><div class="metric-value" id="m-avg">0%</div></div>
+      <div class="metric"><div class="metric-label">بودجه کل (M تومان)</div><div class="metric-value" id="m-budget">0</div></div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box">
+        <div class="chart-title">پیشرفت پروژه‌ها (%)</div>
+        <div class="legend"><span><span class="legend-dot" style="background:#534AB7"></span>واقعی</span><span><span class="legend-dot" style="background:#9FE1CB"></span>برنامه</span></div>
+        <div style="position:relative;height:220px;"><canvas id="barChart"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">وضعیت پروژه‌ها</div>
+        <div class="legend" id="pie-legend"></div>
+        <div style="position:relative;height:220px;"><canvas id="pieChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-full">
+      <div class="chart-title">روند هزینه ماهانه (M تومان)</div>
+      <div style="position:relative;height:220px;"><canvas id="lineChart"></canvas></div>
+    </div>
+    <div class="chart-full">
+      <div class="chart-title">گانت چارت</div>
+      <div id="gantt"><div style="text-align:center;color:#aaa;padding:2rem;font-size:14px;">پروژه‌ای وجود ندارد</div></div>
+    </div>
+    <div class="chart-full">
+      <div class="chart-title">شاخص‌های ارزش کسب‌شده (Earned Value)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div style="position:relative;height:220px;"><canvas id="evChart"></canvas></div>
+        <div id="ev-stats" style="padding-top:0.5rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add -->
+  <div class="section" id="tab-add">
+    <div style="font-size:16px;font-weight:600;margin-bottom:1rem;">اطلاعات پروژه جدید</div>
+    <div class="form-grid">
+      <div class="form-group"><label>نام پروژه *</label><input type="text" id="f-name" placeholder="مثلاً: پروژه ساختمان A"></div>
+      <div class="form-group"><label>وضعیت</label>
+        <select id="f-status"><option value="در حال اجرا">در حال اجرا</option><option value="برنامه‌ریزی">برنامه‌ریزی</option><option value="تکمیل‌شده">تکمیل‌شده</option><option value="متوقف‌شده">متوقف‌شده</option></select>
+      </div>
+      <div class="form-group"><label>تاریخ شروع</label><input type="date" id="f-start"></div>
+      <div class="form-group"><label>تاریخ پایان</label><input type="date" id="f-end"></div>
+      <div class="form-group"><label>بودجه (M تومان)</label><input type="number" id="f-budget" placeholder="مثلاً: 150"></div>
+      <div class="form-group"><label>هزینه واقعی (M تومان)</label><input type="number" id="f-actual" placeholder="مثلاً: 80"></div>
+      <div class="form-group"><label>پیشرفت واقعی (%)</label><input type="number" id="f-progress" min="0" max="100" placeholder="مثلاً: 55"></div>
+      <div class="form-group"><label>پیشرفت برنامه‌ریزی‌شده (%)</label><input type="number" id="f-planned" min="0" max="100" placeholder="مثلاً: 70"></div>
+      <div class="form-group"><label>مدیر پروژه</label><input type="text" id="f-manager" placeholder="نام مدیر"></div>
+      <div class="form-group"><label>دسته‌بندی</label>
+        <select id="f-cat"><option>عمرانی</option><option>فناوری اطلاعات</option><option>تولیدی</option><option>خدماتی</option><option>سایر</option></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" onclick="addProject()">➕ افزودن پروژه</button>
+      <button class="btn btn-sec" onclick="clearForm()">پاک کردن</button>
+    </div>
+    <div id="add-msg"></div>
+  </div>
+
+  <!-- Import -->
+  <div class="section" id="tab-import">
+    <div class="upload-area" onclick="document.getElementById('csvFile').click()">
+      <div style="font-size:40px;margin-bottom:8px;">📂</div>
+      <div style="font-weight:600;margin-bottom:4px;">برای آپلود فایل CSV کلیک کنید</div>
+      <div style="font-size:12px;">فرمت: name, status, start, end, budget, actual, progress, planned, manager, category</div>
+    </div>
+    <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="importCSV(event)">
+    <div id="import-msg"></div>
+    <div style="margin-top:1.5rem;padding:1rem;background:#f9f9f9;border-radius:10px;border:1px solid #eee;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#555;">نمونه فرمت CSV:</div>
+      <code>name,status,start,end,budget,actual,progress,planned,manager,category
+پروژه آب,در حال اجرا,2024-01-01,2024-12-31,200,120,60,70,علی رضایی,عمرانی
+پروژه راه,برنامه‌ریزی,2024-03-01,2025-06-30,350,50,15,20,مریم احمدی,عمرانی</code>
+    </div>
+  </div>
+
+  <!-- Projects -->
+  <div class="section" id="tab-projects">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <div style="font-size:16px;font-weight:600;">لیست پروژه‌ها</div>
+      <button class="btn btn-sec" style="font-size:13px;" onclick="exportCSV()">⬇️ خروجی CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>نام پروژه</th><th>وضعیت</th><th>پیشرفت</th><th>بودجه</th><th>هزینه واقعی</th><th>مدیر</th><th>عملیات</th></tr></thead>
+        <tbody id="proj-table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+let projects = [];
+
+function statusBadge(s) {
+  const map = {'در حال اجرا':'badge-blue','تکمیل‌شده':'badge-green','برنامه‌ریزی':'badge-amber','متوقف‌شده':'badge-red'};
+  return '<span class="badge '+(map[s]||'badge-blue')+'">'+s+'</span>';
+}
+
+function updateMetrics() {
+  document.getElementById('m-total').textContent = projects.length;
+  document.getElementById('m-active').textContent = projects.filter(p=>p.status==='در حال اجرا').length;
+  const avg = projects.length ? Math.round(projects.reduce((a,p)=>a+p.progress,0)/projects.length) : 0;
+  document.getElementById('m-avg').textContent = avg+'%';
+  document.getElementById('m-budget').textContent = projects.reduce((a,p)=>a+p.budget,0);
+}
+
+function updateTable() {
+  const tb = document.getElementById('proj-table');
+  if(!projects.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem;">هنوز پروژه‌ای اضافه نشده</td></tr>';return;}
+  tb.innerHTML = projects.map((p,i)=>'<tr><td style="font-weight:600">'+p.name+'</td><td>'+statusBadge(p.status)+'</td><td><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:7px;background:#f0f0f0;border-radius:4px;overflow:hidden;min-width:60px;"><div style="width:'+p.progress+'%;height:100%;background:#534AB7;border-radius:4px;"></div></div><span style="font-size:12px;color:#888;">'+p.progress+'%</span></div></td><td>'+p.budget+'M</td><td>'+p.actual+'M</td><td>'+p.manager+'</td><td><button onclick="deleteProject('+i+')" style="background:none;border:none;cursor:pointer;color:#e24b4a;font-size:18px;" title="حذف">🗑</button></td></tr>').join('');
+}
+
+function updateGantt() {
+  const g = document.getElementById('gantt');
+  if(!projects.length){g.innerHTML='<div style="text-align:center;color:#aaa;padding:2rem;font-size:14px;">پروژه‌ای وجود ندارد</div>';return;}
+  const starts = projects.map(p=>new Date(p.start).getTime());
+  const ends = projects.map(p=>new Date(p.end).getTime());
+  const minT = Math.min(...starts), maxT = Math.max(...ends);
+  const range = maxT - minT || 1;
+  const colors = ['#534AB7','#1D9E75','#D85A30','#378ADD','#BA7517','#A32D2D'];
+  g.innerHTML = projects.map((p,i)=>{
+    const s = (new Date(p.start).getTime()-minT)/range*100;
+    const w = Math.max(2,(new Date(p.end).getTime()-new Date(p.start).getTime())/range*100);
+    return '<div class="gantt-row"><div class="gantt-label" title="'+p.name+'">'+p.name+'</div><div class="gantt-track"><div class="gantt-bar" style="left:'+s.toFixed(1)+'%;width:'+w.toFixed(1)+'%;background:'+colors[i%colors.length]+';">'+p.progress+'%</div></div></div>';
+  }).join('');
+}
+
+function updateEV() {
+  const ev = document.getElementById('ev-stats');
+  if(!projects.length){ev.innerHTML='<div style="color:#aaa;font-size:13px;padding-top:1rem;">پروژه‌ای وجود ندارد</div>';return;}
+  const totBudget = projects.reduce((a,p)=>a+p.budget,0);
+  const ac = projects.reduce((a,p)=>a+p.actual,0);
+  const pv = projects.reduce((a,p)=>a+(p.budget*p.planned/100),0);
+  const ev_val = projects.reduce((a,p)=>a+(p.budget*p.progress/100),0);
+  const spi = pv ? (ev_val/pv).toFixed(2) : '-';
+  const cpi = ac ? (ev_val/ac).toFixed(2) : '-';
+  const sv = (ev_val-pv).toFixed(0);
+  const cv = (ev_val-ac).toFixed(0);
+  const row = (label,val,color)=>'<div class="ev-stat"><span>'+label+'</span><span style="font-weight:600;color:'+(color||'#333')+'">'+val+'</span></div>';
+  ev.innerHTML = row('بودجه کل (BAC)',totBudget+'M')+row('ارزش برنامه‌ریزی‌شده (PV)',Math.round(pv)+'M')+row('ارزش کسب‌شده (EV)',Math.round(ev_val)+'M')+row('هزینه واقعی (AC)',ac+'M')+row('انحراف زمانی (SV)',(sv>=0?'+':'')+sv+'M',sv>=0?'#3B6D11':'#A32D2D')+row('انحراف هزینه (CV)',(cv>=0?'+':'')+cv+'M',cv>=0?'#3B6D11':'#A32D2D')+row('SPI',spi,spi>=1?'#3B6D11':'#A32D2D')+row('CPI',cpi,cpi>=1?'#3B6D11':'#A32D2D');
+}
+
+let barChart, pieChart, lineChart, evChart;
+function buildCharts() {
+  if(barChart) barChart.destroy();
+  if(pieChart) pieChart.destroy();
+  if(lineChart) lineChart.destroy();
+  if(evChart) evChart.destroy();
+  if(!projects.length) return;
+  const names = projects.map(p=>p.name.length>8?p.name.slice(0,8)+'…':p.name);
+  barChart = new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:names,datasets:[{label:'واقعی',data:projects.map(p=>p.progress),backgroundColor:'#534AB7',borderRadius:4},{label:'برنامه',data:projects.map(p=>p.planned),backgroundColor:'#9FE1CB',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
+  const sc = {'در حال اجرا':0,'تکمیل‌شده':0,'برنامه‌ریزی':0,'متوقف‌شده':0};
+  projects.forEach(p=>{if(sc[p.status]!==undefined)sc[p.status]++;else sc[p.status]=1;});
+  const sLabels=Object.keys(sc).filter(k=>sc[k]>0);
+  const sColors={'در حال اجرا':'#534AB7','تکمیل‌شده':'#1D9E75','برنامه‌ریزی':'#BA7517','متوقف‌شده':'#A32D2D'};
+  document.getElementById('pie-legend').innerHTML=sLabels.map(s=>'<span><span class="legend-dot" style="background:'+(sColors[s]||'#888')+'"></span>'+s+' ('+sc[s]+')</span>').join('');
+  pieChart = new Chart(document.getElementById('pieChart'),{type:'doughnut',data:{labels:sLabels,datasets:[{data:sLabels.map(s=>sc[s]),backgroundColor:sLabels.map(s=>sColors[s]||'#888')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  const months=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور'];
+  const base=projects.reduce((a,p)=>a+p.actual,0);
+  lineChart = new Chart(document.getElementById('lineChart'),{type:'line',data:{labels:months,datasets:[{label:'واقعی',data:months.map((_,i)=>Math.round(base*0.5+base*0.1*i)),borderColor:'#534AB7',backgroundColor:'rgba(83,74,183,0.08)',tension:0.4,fill:true,pointRadius:4},{label:'برنامه',data:months.map((_,i)=>Math.round(base*0.45+base*0.12*i)),borderColor:'#1D9E75',borderDash:[5,3],tension:0.4,fill:false,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
+  const pv=projects.reduce((a,p)=>a+(p.budget*p.planned/100),0);
+  const ev_val=projects.reduce((a,p)=>a+(p.budget*p.progress/100),0);
+  const ac=projects.reduce((a,p)=>a+p.actual,0);
+  evChart = new Chart(document.getElementById('evChart'),{type:'bar',data:{labels:['PV','EV','AC'],datasets:[{data:[Math.round(pv),Math.round(ev_val),ac],backgroundColor:['#534AB7','#1D9E75','#D85A30'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
+}
+
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i)=>{const ids=['dashboard','add','import','projects'];t.classList.toggle('active',ids[i]===id);});
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='dashboard') setTimeout(buildCharts,50);
+}
+
+function addProject() {
+  const n = document.getElementById('f-name').value.trim();
+  const msg = document.getElementById('add-msg');
+  if(!n){msg.className='msg msg-err';msg.textContent='لطفاً نام پروژه را وارد کنید.';return;}
+  projects.push({name:n,status:document.getElementById('f-status').value,start:document.getElementById('f-start').value||new Date().toISOString().slice(0,10),end:document.getElementById('f-end').value||(new Date(Date.now()+365*864e5)).toISOString().slice(0,10),budget:+document.getElementById('f-budget').value||0,actual:+document.getElementById('f-actual').value||0,progress:+document.getElementById('f-progress').value||0,planned:+document.getElementById('f-planned').value||0,manager:document.getElementById('f-manager').value||'—',category:document.getElementById('f-cat').value});
+  msg.className='msg msg-ok';msg.textContent='✓ پروژه با موفقیت اضافه شد!';
+  clearForm();refreshAll();
+  setTimeout(()=>showTab('dashboard'),900);
+}
+
+function clearForm() {
+  ['f-name','f-start','f-end','f-budget','f-actual','f-progress','f-planned','f-manager'].forEach(id=>{document.getElementById(id).value='';});
+}
+
+function deleteProject(i) {projects.splice(i,1);refreshAll();}
+
+function importCSV(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const lines = ev.target.result.trim().split('\n');
+    const headers = lines[0].split(',').map(h=>h.trim());
+    let count = 0;
+    for(let i=1;i<lines.length;i++){
+      const vals = lines[i].split(',').map(v=>v.trim());
+      if(vals.length<3) continue;
+      const obj={};headers.forEach((h,j)=>obj[h]=vals[j]||'');
+      projects.push({name:obj.name||'بدون نام',status:obj.status||'در حال اجرا',start:obj.start||'2024-01-01',end:obj.end||'2024-12-31',budget:+obj.budget||0,actual:+obj.actual||0,progress:+obj.progress||0,planned:+obj.planned||0,manager:obj.manager||'—',category:obj.category||'سایر'});
+      count++;
+    }
+    const msg=document.getElementById('import-msg');
+    msg.className='msg msg-ok';msg.textContent='✓ '+count+' پروژه با موفقیت وارد شد!';
+    refreshAll();setTimeout(()=>showTab('dashboard'),1000);
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function exportCSV() {
+  const headers='name,status,start,end,budget,actual,progress,planned,manager,category';
+  const rows=projects.map(p=>[p.name,p.status,p.start,p.end,p.budget,p.actual,p.progress,p.planned,p.manager,p.category].join(','));
+  const csv=[headers,...rows].join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='projects.csv';a.click();URL.revokeObjectURL(url);
+}
+
+function refreshAll(){updateMetrics();updateTable();updateGantt();updateEV();if(document.getElementById('tab-dashboard').classList.contains('active'))setTimeout(buildCharts,50);}
+</script>
+</body>
+</html>
