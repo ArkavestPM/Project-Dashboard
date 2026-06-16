@@ -5,14 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>داشبورد مدیریت پروژه</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: Tahoma, Arial, sans-serif; background: #f5f5f5; color: #222; direction: rtl; }
-header { background: #534AB7; color: white; padding: 1rem 2rem; display: flex; align-items: center; gap: 12px; }
-header h1 { font-size: 20px; font-weight: 600; }
+body { font-family: Tahoma, Arial, sans-serif; background: #f5f5f5; color: #222; direction: rtl; min-height: 100vh; }
+header { background: #534AB7; color: white; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+header h1 { font-size: 18px; font-weight: 600; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.user-info { font-size: 13px; opacity: 0.85; }
+.btn-logout { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-family: Tahoma; font-size: 13px; }
+.btn-logout:hover { background: rgba(255,255,255,0.3); }
 .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
-.tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; border-bottom: 1px solid #ddd; }
-.tab { padding: 10px 20px; font-size: 14px; cursor: pointer; border: none; background: none; color: #666; border-bottom: 3px solid transparent; margin-bottom: -1px; font-family: Tahoma, Arial, sans-serif; }
+
+/* Auth */
+.auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #534AB7 0%, #3C3489 100%); }
+.auth-box { background: white; border-radius: 16px; padding: 2rem; width: 100%; max-width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+.auth-logo { text-align: center; margin-bottom: 1.5rem; }
+.auth-logo div { font-size: 22px; font-weight: 700; color: #534AB7; margin-top: 8px; }
+.auth-logo span { font-size: 13px; color: #888; }
+.auth-tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border: 1px solid #eee; border-radius: 8px; overflow: hidden; }
+.auth-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-size: 14px; background: #f9f9f9; color: #666; border: none; font-family: Tahoma; transition: all 0.2s; }
+.auth-tab.active { background: #534AB7; color: white; font-weight: 600; }
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+.form-group input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: Tahoma; outline: none; transition: border 0.2s; }
+.form-group input:focus { border-color: #534AB7; }
+.btn-primary { width: 100%; padding: 11px; background: #534AB7; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: Tahoma; transition: background 0.2s; }
+.btn-primary:hover { background: #3C3489; }
+.msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; text-align: center; }
+.msg-ok { background: #EAF3DE; color: #3B6D11; }
+.msg-err { background: #FCEBEB; color: #A32D2D; }
+.msg-info { background: #E6F1FB; color: #185FA5; }
+.pending-box { text-align: center; padding: 2rem; }
+.pending-box .icon { font-size: 48px; margin-bottom: 1rem; }
+
+/* Dashboard */
+.tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; border-bottom: 1px solid #ddd; overflow-x: auto; }
+.tab { padding: 10px 18px; font-size: 14px; cursor: pointer; border: none; background: none; color: #666; border-bottom: 3px solid transparent; margin-bottom: -1px; font-family: Tahoma; white-space: nowrap; }
 .tab.active { color: #534AB7; border-bottom: 3px solid #534AB7; font-weight: 600; }
 .section { display: none; }
 .section.active { display: block; }
@@ -26,24 +55,25 @@ header h1 { font-size: 20px; font-weight: 600; }
 .chart-title { font-size: 13px; font-weight: 600; color: #555; margin-bottom: 12px; }
 .chart-full { background: #fff; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 13px; color: #555; font-weight: 500; }
-.form-group input, .form-group select { padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #222; font-size: 14px; font-family: Tahoma, Arial, sans-serif; outline: none; }
-.form-group input:focus, .form-group select:focus { border-color: #534AB7; }
-.btn { padding: 9px 20px; border: none; border-radius: 8px; background: #534AB7; color: white; font-size: 14px; cursor: pointer; font-weight: 600; font-family: Tahoma, Arial, sans-serif; }
+.form-group-sm { display: flex; flex-direction: column; gap: 6px; }
+.form-group-sm label { font-size: 13px; color: #555; font-weight: 500; }
+.form-group-sm input, .form-group-sm select { padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: Tahoma; outline: none; }
+.form-group-sm input:focus, .form-group-sm select:focus { border-color: #534AB7; }
+.btn { padding: 9px 20px; border: none; border-radius: 8px; background: #534AB7; color: white; font-size: 14px; cursor: pointer; font-weight: 600; font-family: Tahoma; }
 .btn:hover { background: #3C3489; }
 .btn-sec { background: #f0f0f0; color: #333; }
 .btn-sec:hover { background: #e0e0e0; }
+.btn-danger { background: #FCEBEB; color: #A32D2D; }
 .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 .badge-green { background: #EAF3DE; color: #3B6D11; }
 .badge-amber { background: #FAEEDA; color: #854F0B; }
 .badge-red { background: #FCEBEB; color: #A32D2D; }
 .badge-blue { background: #E6F1FB; color: #185FA5; }
+.badge-gray { background: #f0f0f0; color: #555; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; font-size: 13px; border-collapse: collapse; }
 th { text-align: right; font-weight: 600; color: #555; padding: 10px 14px; border-bottom: 1px solid #eee; background: #fafafa; }
 td { padding: 11px 14px; border-bottom: 1px solid #f0f0f0; color: #333; }
-tr:last-child td { border-bottom: none; }
 .upload-area { border: 2px dashed #ccc; border-radius: 10px; padding: 2.5rem; text-align: center; cursor: pointer; color: #888; font-size: 14px; transition: all 0.2s; }
 .upload-area:hover { border-color: #534AB7; background: #f5f3ff; color: #534AB7; }
 .gantt-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
@@ -55,248 +85,445 @@ tr:last-child td { border-bottom: none; }
 .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; font-size: 12px; color: #666; }
 .legend span { display: flex; align-items: center; gap: 5px; }
 .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-.msg { margin-top: 10px; font-size: 13px; padding: 8px 12px; border-radius: 6px; }
-.msg-ok { background: #EAF3DE; color: #3B6D11; }
-.msg-err { background: #FCEBEB; color: #A32D2D; }
 code { font-family: monospace; font-size: 12px; color: #555; white-space: pre-wrap; line-height: 1.7; }
+.admin-card { background: white; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.admin-card-info { font-size: 14px; }
+.admin-card-info span { font-size: 12px; color: #888; display: block; margin-top: 2px; }
+.admin-actions { display: flex; gap: 8px; }
+.loading { text-align: center; padding: 3rem; color: #aaa; font-size: 14px; }
 </style>
 </head>
 <body>
-<header>
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-  <h1>داشبورد مدیریت پروژه</h1>
-</header>
-<div class="container">
-  <div class="tabs">
-    <button class="tab active" onclick="showTab('dashboard')">📊 داشبورد</button>
-    <button class="tab" onclick="showTab('add')">➕ افزودن پروژه</button>
-    <button class="tab" onclick="showTab('import')">📤 وارد کردن فایل</button>
-    <button class="tab" onclick="showTab('projects')">📁 پروژه‌ها</button>
-  </div>
 
-  <!-- Dashboard -->
-  <div class="section active" id="tab-dashboard">
-    <div class="metrics">
-      <div class="metric"><div class="metric-label">کل پروژه‌ها</div><div class="metric-value" id="m-total">0</div></div>
-      <div class="metric"><div class="metric-label">در حال اجرا</div><div class="metric-value" id="m-active">0</div></div>
-      <div class="metric"><div class="metric-label">میانگین پیشرفت</div><div class="metric-value" id="m-avg">0%</div></div>
-      <div class="metric"><div class="metric-label">بودجه کل (M تومان)</div><div class="metric-value" id="m-budget">0</div></div>
+<!-- Auth Screen -->
+<div id="auth-screen" class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div>📊 داشبورد پروژه</div>
+      <span>سیستم مدیریت پروژه‌ها</span>
     </div>
-    <div class="chart-row">
-      <div class="chart-box">
-        <div class="chart-title">پیشرفت پروژه‌ها (%)</div>
-        <div class="legend"><span><span class="legend-dot" style="background:#534AB7"></span>واقعی</span><span><span class="legend-dot" style="background:#9FE1CB"></span>برنامه</span></div>
-        <div style="position:relative;height:220px;"><canvas id="barChart"></canvas></div>
-      </div>
-      <div class="chart-box">
-        <div class="chart-title">وضعیت پروژه‌ها</div>
-        <div class="legend" id="pie-legend"></div>
-        <div style="position:relative;height:220px;"><canvas id="pieChart"></canvas></div>
-      </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuth('login')">ورود</button>
+      <button class="auth-tab" onclick="switchAuth('register')">ثبت‌نام</button>
     </div>
-    <div class="chart-full">
-      <div class="chart-title">روند هزینه ماهانه (M تومان)</div>
-      <div style="position:relative;height:220px;"><canvas id="lineChart"></canvas></div>
+    <div id="login-form">
+      <div class="form-group"><label>ایمیل</label><input type="email" id="login-email" placeholder="example@email.com"></div>
+      <div class="form-group"><label>پسورد</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+      <button class="btn-primary" onclick="login()">ورود به سیستم</button>
     </div>
-    <div class="chart-full">
-      <div class="chart-title">گانت چارت</div>
-      <div id="gantt"><div style="text-align:center;color:#aaa;padding:2rem;font-size:14px;">پروژه‌ای وجود ندارد</div></div>
+    <div id="register-form" style="display:none">
+      <div class="form-group"><label>نام و نام خانوادگی</label><input type="text" id="reg-name" placeholder="علی رضایی"></div>
+      <div class="form-group"><label>ایمیل</label><input type="email" id="reg-email" placeholder="example@email.com"></div>
+      <div class="form-group"><label>پسورد</label><input type="password" id="reg-pass" placeholder="حداقل ۸ کاراکتر"></div>
+      <button class="btn-primary" onclick="register()">ثبت‌نام</button>
     </div>
-    <div class="chart-full">
-      <div class="chart-title">شاخص‌های ارزش کسب‌شده (Earned Value)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-        <div style="position:relative;height:220px;"><canvas id="evChart"></canvas></div>
-        <div id="ev-stats" style="padding-top:0.5rem;"></div>
-      </div>
+    <div id="auth-msg"></div>
+  </div>
+</div>
+
+<!-- Pending Approval -->
+<div id="pending-screen" style="display:none" class="auth-wrap">
+  <div class="auth-box">
+    <div class="pending-box">
+      <div class="icon">⏳</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:8px;">در انتظار تأیید ادمین</div>
+      <div style="font-size:13px;color:#888;margin-bottom:1.5rem;">حساب شما ثبت شده و منتظر تأیید مدیر سیستم است.</div>
+      <button class="btn-primary" onclick="logout()">خروج</button>
     </div>
   </div>
+</div>
 
-  <!-- Add -->
-  <div class="section" id="tab-add">
-    <div style="font-size:16px;font-weight:600;margin-bottom:1rem;">اطلاعات پروژه جدید</div>
-    <div class="form-grid">
-      <div class="form-group"><label>نام پروژه *</label><input type="text" id="f-name" placeholder="مثلاً: پروژه ساختمان A"></div>
-      <div class="form-group"><label>وضعیت</label>
-        <select id="f-status"><option value="در حال اجرا">در حال اجرا</option><option value="برنامه‌ریزی">برنامه‌ریزی</option><option value="تکمیل‌شده">تکمیل‌شده</option><option value="متوقف‌شده">متوقف‌شده</option></select>
+<!-- Main App -->
+<div id="main-app" style="display:none">
+  <header>
+    <div class="header-left">
+      <div>📊</div>
+      <h1>داشبورد مدیریت پروژه</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="user-info" id="header-user"></div>
+      <button class="btn-logout" onclick="logout()">خروج</button>
+    </div>
+  </header>
+  <div class="container">
+    <div class="tabs" id="main-tabs">
+      <button class="tab active" onclick="showTab('dashboard')">📊 داشبورد</button>
+      <button class="tab" onclick="showTab('add')">➕ افزودن پروژه</button>
+      <button class="tab" onclick="showTab('import')">📤 وارد کردن فایل</button>
+      <button class="tab" onclick="showTab('projects')">📁 پروژه‌ها</button>
+      <button class="tab" id="admin-tab" style="display:none" onclick="showTab('admin')">⚙️ مدیریت کاربران</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="section active" id="tab-dashboard">
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">کل پروژه‌ها</div><div class="metric-value" id="m-total">0</div></div>
+        <div class="metric"><div class="metric-label">در حال اجرا</div><div class="metric-value" id="m-active">0</div></div>
+        <div class="metric"><div class="metric-label">میانگین پیشرفت</div><div class="metric-value" id="m-avg">0%</div></div>
+        <div class="metric"><div class="metric-label">بودجه کل (M تومان)</div><div class="metric-value" id="m-budget">0</div></div>
       </div>
-      <div class="form-group"><label>تاریخ شروع</label><input type="date" id="f-start"></div>
-      <div class="form-group"><label>تاریخ پایان</label><input type="date" id="f-end"></div>
-      <div class="form-group"><label>بودجه (M تومان)</label><input type="number" id="f-budget" placeholder="مثلاً: 150"></div>
-      <div class="form-group"><label>هزینه واقعی (M تومان)</label><input type="number" id="f-actual" placeholder="مثلاً: 80"></div>
-      <div class="form-group"><label>پیشرفت واقعی (%)</label><input type="number" id="f-progress" min="0" max="100" placeholder="مثلاً: 55"></div>
-      <div class="form-group"><label>پیشرفت برنامه‌ریزی‌شده (%)</label><input type="number" id="f-planned" min="0" max="100" placeholder="مثلاً: 70"></div>
-      <div class="form-group"><label>مدیر پروژه</label><input type="text" id="f-manager" placeholder="نام مدیر"></div>
-      <div class="form-group"><label>دسته‌بندی</label>
-        <select id="f-cat"><option>عمرانی</option><option>فناوری اطلاعات</option><option>تولیدی</option><option>خدماتی</option><option>سایر</option></select>
+      <div class="chart-row">
+        <div class="chart-box">
+          <div class="chart-title">پیشرفت پروژه‌ها (%)</div>
+          <div class="legend"><span><span class="legend-dot" style="background:#534AB7"></span>واقعی</span><span><span class="legend-dot" style="background:#9FE1CB"></span>برنامه</span></div>
+          <div style="position:relative;height:220px;"><canvas id="barChart"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">وضعیت پروژه‌ها</div>
+          <div class="legend" id="pie-legend"></div>
+          <div style="position:relative;height:220px;"><canvas id="pieChart"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-full">
+        <div class="chart-title">روند هزینه ماهانه (M تومان)</div>
+        <div style="position:relative;height:220px;"><canvas id="lineChart"></canvas></div>
+      </div>
+      <div class="chart-full">
+        <div class="chart-title">گانت چارت</div>
+        <div id="gantt"><div class="loading">پروژه‌ای وجود ندارد</div></div>
+      </div>
+      <div class="chart-full">
+        <div class="chart-title">شاخص‌های ارزش کسب‌شده (EV)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div style="position:relative;height:220px;"><canvas id="evChart"></canvas></div>
+          <div id="ev-stats" style="padding-top:0.5rem;"></div>
+        </div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn" onclick="addProject()">➕ افزودن پروژه</button>
-      <button class="btn btn-sec" onclick="clearForm()">پاک کردن</button>
-    </div>
-    <div id="add-msg"></div>
-  </div>
 
-  <!-- Import -->
-  <div class="section" id="tab-import">
-    <div class="upload-area" onclick="document.getElementById('csvFile').click()">
-      <div style="font-size:40px;margin-bottom:8px;">📂</div>
-      <div style="font-weight:600;margin-bottom:4px;">برای آپلود فایل CSV کلیک کنید</div>
-      <div style="font-size:12px;">فرمت: name, status, start, end, budget, actual, progress, planned, manager, category</div>
+    <!-- Add -->
+    <div class="section" id="tab-add">
+      <div style="font-size:16px;font-weight:600;margin-bottom:1rem;">اطلاعات پروژه جدید</div>
+      <div class="form-grid">
+        <div class="form-group-sm"><label>نام پروژه *</label><input type="text" id="f-name" placeholder="پروژه ساختمان A"></div>
+        <div class="form-group-sm"><label>وضعیت</label><select id="f-status"><option value="در حال اجرا">در حال اجرا</option><option value="برنامه‌ریزی">برنامه‌ریزی</option><option value="تکمیل‌شده">تکمیل‌شده</option><option value="متوقف‌شده">متوقف‌شده</option></select></div>
+        <div class="form-group-sm"><label>تاریخ شروع</label><input type="date" id="f-start"></div>
+        <div class="form-group-sm"><label>تاریخ پایان</label><input type="date" id="f-end"></div>
+        <div class="form-group-sm"><label>بودجه (M تومان)</label><input type="number" id="f-budget" placeholder="150"></div>
+        <div class="form-group-sm"><label>هزینه واقعی (M تومان)</label><input type="number" id="f-actual" placeholder="80"></div>
+        <div class="form-group-sm"><label>پیشرفت واقعی (%)</label><input type="number" id="f-progress" min="0" max="100" placeholder="55"></div>
+        <div class="form-group-sm"><label>پیشرفت برنامه (%)</label><input type="number" id="f-planned" min="0" max="100" placeholder="70"></div>
+        <div class="form-group-sm"><label>مدیر پروژه</label><input type="text" id="f-manager" placeholder="نام مدیر"></div>
+        <div class="form-group-sm"><label>دسته‌بندی</label><select id="f-cat"><option>عمرانی</option><option>فناوری اطلاعات</option><option>تولیدی</option><option>خدماتی</option><option>سایر</option></select></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="addProject()">➕ افزودن</button>
+        <button class="btn btn-sec" onclick="clearForm()">پاک کردن</button>
+      </div>
+      <div id="add-msg" style="margin-top:12px;"></div>
     </div>
-    <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="importCSV(event)">
-    <div id="import-msg"></div>
-    <div style="margin-top:1.5rem;padding:1rem;background:#f9f9f9;border-radius:10px;border:1px solid #eee;">
-      <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#555;">نمونه فرمت CSV:</div>
-      <code>name,status,start,end,budget,actual,progress,planned,manager,category
-پروژه آب,در حال اجرا,2024-01-01,2024-12-31,200,120,60,70,علی رضایی,عمرانی
-پروژه راه,برنامه‌ریزی,2024-03-01,2025-06-30,350,50,15,20,مریم احمدی,عمرانی</code>
-    </div>
-  </div>
 
-  <!-- Projects -->
-  <div class="section" id="tab-projects">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-      <div style="font-size:16px;font-weight:600;">لیست پروژه‌ها</div>
-      <button class="btn btn-sec" style="font-size:13px;" onclick="exportCSV()">⬇️ خروجی CSV</button>
+    <!-- Import -->
+    <div class="section" id="tab-import">
+      <div class="upload-area" onclick="document.getElementById('csvFile').click()">
+        <div style="font-size:40px;margin-bottom:8px;">📂</div>
+        <div style="font-weight:600;margin-bottom:4px;">برای آپلود فایل CSV کلیک کنید</div>
+        <div style="font-size:12px;">فرمت: name, status, start, end, budget, actual, progress, planned, manager, category</div>
+      </div>
+      <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="importCSV(event)">
+      <div id="import-msg" style="margin-top:12px;"></div>
+      <div style="margin-top:1.5rem;padding:1rem;background:#f9f9f9;border-radius:10px;border:1px solid #eee;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#555;">نمونه فرمت CSV:</div>
+        <code>name,status,start,end,budget,actual,progress,planned,manager,category
+پروژه آب,در حال اجرا,2024-01-01,2024-12-31,200,120,60,70,علی رضایی,عمرانی</code>
+      </div>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>نام پروژه</th><th>وضعیت</th><th>پیشرفت</th><th>بودجه</th><th>هزینه واقعی</th><th>مدیر</th><th>عملیات</th></tr></thead>
-        <tbody id="proj-table"></tbody>
-      </table>
+
+    <!-- Projects -->
+    <div class="section" id="tab-projects">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div style="font-size:16px;font-weight:600;">لیست پروژه‌ها</div>
+        <button class="btn btn-sec" style="font-size:13px;" onclick="exportCSV()">⬇️ خروجی CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>نام پروژه</th><th>وضعیت</th><th>پیشرفت</th><th>بودجه</th><th>هزینه واقعی</th><th>مدیر</th><th>عملیات</th></tr></thead>
+          <tbody id="proj-table"><tr><td colspan="7" class="loading">در حال بارگذاری...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Admin -->
+    <div class="section" id="tab-admin">
+      <div style="font-size:16px;font-weight:600;margin-bottom:1rem;">⚙️ مدیریت کاربران</div>
+      <div id="admin-pending">
+        <div style="font-size:14px;font-weight:600;color:#555;margin-bottom:12px;">در انتظار تأیید</div>
+        <div id="pending-list"><div class="loading">در حال بارگذاری...</div></div>
+      </div>
+      <div style="margin-top:1.5rem;">
+        <div style="font-size:14px;font-weight:600;color:#555;margin-bottom:12px;">کاربران تأیید شده</div>
+        <div id="approved-list"><div class="loading">در حال بارگذاری...</div></div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
+const SUPABASE_URL = 'https://lxcyhrkhpvgrojmygkli.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_scr-leP70exRtxBB0Jz8Ng_EPe4_2el';
+const ADMIN_EMAIL = 'admin@dashboard.com';
+const ADMIN_PASS = 'Arkavest@1234567';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
 let projects = [];
-
-function statusBadge(s) {
-  const map = {'در حال اجرا':'badge-blue','تکمیل‌شده':'badge-green','برنامه‌ریزی':'badge-amber','متوقف‌شده':'badge-red'};
-  return '<span class="badge '+(map[s]||'badge-blue')+'">'+s+'</span>';
-}
-
-function updateMetrics() {
-  document.getElementById('m-total').textContent = projects.length;
-  document.getElementById('m-active').textContent = projects.filter(p=>p.status==='در حال اجرا').length;
-  const avg = projects.length ? Math.round(projects.reduce((a,p)=>a+p.progress,0)/projects.length) : 0;
-  document.getElementById('m-avg').textContent = avg+'%';
-  document.getElementById('m-budget').textContent = projects.reduce((a,p)=>a+p.budget,0);
-}
-
-function updateTable() {
-  const tb = document.getElementById('proj-table');
-  if(!projects.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem;">هنوز پروژه‌ای اضافه نشده</td></tr>';return;}
-  tb.innerHTML = projects.map((p,i)=>'<tr><td style="font-weight:600">'+p.name+'</td><td>'+statusBadge(p.status)+'</td><td><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:7px;background:#f0f0f0;border-radius:4px;overflow:hidden;min-width:60px;"><div style="width:'+p.progress+'%;height:100%;background:#534AB7;border-radius:4px;"></div></div><span style="font-size:12px;color:#888;">'+p.progress+'%</span></div></td><td>'+p.budget+'M</td><td>'+p.actual+'M</td><td>'+p.manager+'</td><td><button onclick="deleteProject('+i+')" style="background:none;border:none;cursor:pointer;color:#e24b4a;font-size:18px;" title="حذف">🗑</button></td></tr>').join('');
-}
-
-function updateGantt() {
-  const g = document.getElementById('gantt');
-  if(!projects.length){g.innerHTML='<div style="text-align:center;color:#aaa;padding:2rem;font-size:14px;">پروژه‌ای وجود ندارد</div>';return;}
-  const starts = projects.map(p=>new Date(p.start).getTime());
-  const ends = projects.map(p=>new Date(p.end).getTime());
-  const minT = Math.min(...starts), maxT = Math.max(...ends);
-  const range = maxT - minT || 1;
-  const colors = ['#534AB7','#1D9E75','#D85A30','#378ADD','#BA7517','#A32D2D'];
-  g.innerHTML = projects.map((p,i)=>{
-    const s = (new Date(p.start).getTime()-minT)/range*100;
-    const w = Math.max(2,(new Date(p.end).getTime()-new Date(p.start).getTime())/range*100);
-    return '<div class="gantt-row"><div class="gantt-label" title="'+p.name+'">'+p.name+'</div><div class="gantt-track"><div class="gantt-bar" style="left:'+s.toFixed(1)+'%;width:'+w.toFixed(1)+'%;background:'+colors[i%colors.length]+';">'+p.progress+'%</div></div></div>';
-  }).join('');
-}
-
-function updateEV() {
-  const ev = document.getElementById('ev-stats');
-  if(!projects.length){ev.innerHTML='<div style="color:#aaa;font-size:13px;padding-top:1rem;">پروژه‌ای وجود ندارد</div>';return;}
-  const totBudget = projects.reduce((a,p)=>a+p.budget,0);
-  const ac = projects.reduce((a,p)=>a+p.actual,0);
-  const pv = projects.reduce((a,p)=>a+(p.budget*p.planned/100),0);
-  const ev_val = projects.reduce((a,p)=>a+(p.budget*p.progress/100),0);
-  const spi = pv ? (ev_val/pv).toFixed(2) : '-';
-  const cpi = ac ? (ev_val/ac).toFixed(2) : '-';
-  const sv = (ev_val-pv).toFixed(0);
-  const cv = (ev_val-ac).toFixed(0);
-  const row = (label,val,color)=>'<div class="ev-stat"><span>'+label+'</span><span style="font-weight:600;color:'+(color||'#333')+'">'+val+'</span></div>';
-  ev.innerHTML = row('بودجه کل (BAC)',totBudget+'M')+row('ارزش برنامه‌ریزی‌شده (PV)',Math.round(pv)+'M')+row('ارزش کسب‌شده (EV)',Math.round(ev_val)+'M')+row('هزینه واقعی (AC)',ac+'M')+row('انحراف زمانی (SV)',(sv>=0?'+':'')+sv+'M',sv>=0?'#3B6D11':'#A32D2D')+row('انحراف هزینه (CV)',(cv>=0?'+':'')+cv+'M',cv>=0?'#3B6D11':'#A32D2D')+row('SPI',spi,spi>=1?'#3B6D11':'#A32D2D')+row('CPI',cpi,cpi>=1?'#3B6D11':'#A32D2D');
-}
-
 let barChart, pieChart, lineChart, evChart;
-function buildCharts() {
-  if(barChart) barChart.destroy();
-  if(pieChart) pieChart.destroy();
-  if(lineChart) lineChart.destroy();
-  if(evChart) evChart.destroy();
-  if(!projects.length) return;
-  const names = projects.map(p=>p.name.length>8?p.name.slice(0,8)+'…':p.name);
-  barChart = new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:names,datasets:[{label:'واقعی',data:projects.map(p=>p.progress),backgroundColor:'#534AB7',borderRadius:4},{label:'برنامه',data:projects.map(p=>p.planned),backgroundColor:'#9FE1CB',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
-  const sc = {'در حال اجرا':0,'تکمیل‌شده':0,'برنامه‌ریزی':0,'متوقف‌شده':0};
-  projects.forEach(p=>{if(sc[p.status]!==undefined)sc[p.status]++;else sc[p.status]=1;});
-  const sLabels=Object.keys(sc).filter(k=>sc[k]>0);
-  const sColors={'در حال اجرا':'#534AB7','تکمیل‌شده':'#1D9E75','برنامه‌ریزی':'#BA7517','متوقف‌شده':'#A32D2D'};
-  document.getElementById('pie-legend').innerHTML=sLabels.map(s=>'<span><span class="legend-dot" style="background:'+(sColors[s]||'#888')+'"></span>'+s+' ('+sc[s]+')</span>').join('');
-  pieChart = new Chart(document.getElementById('pieChart'),{type:'doughnut',data:{labels:sLabels,datasets:[{data:sLabels.map(s=>sc[s]),backgroundColor:sLabels.map(s=>sColors[s]||'#888')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
-  const months=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور'];
-  const base=projects.reduce((a,p)=>a+p.actual,0);
-  lineChart = new Chart(document.getElementById('lineChart'),{type:'line',data:{labels:months,datasets:[{label:'واقعی',data:months.map((_,i)=>Math.round(base*0.5+base*0.1*i)),borderColor:'#534AB7',backgroundColor:'rgba(83,74,183,0.08)',tension:0.4,fill:true,pointRadius:4},{label:'برنامه',data:months.map((_,i)=>Math.round(base*0.45+base*0.12*i)),borderColor:'#1D9E75',borderDash:[5,3],tension:0.4,fill:false,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
-  const pv=projects.reduce((a,p)=>a+(p.budget*p.planned/100),0);
-  const ev_val=projects.reduce((a,p)=>a+(p.budget*p.progress/100),0);
-  const ac=projects.reduce((a,p)=>a+p.actual,0);
-  evChart = new Chart(document.getElementById('evChart'),{type:'bar',data:{labels:['PV','EV','AC'],datasets:[{data:[Math.round(pv),Math.round(ev_val),ac],backgroundColor:['#534AB7','#1D9E75','#D85A30'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
+
+// ---- AUTH ----
+function switchAuth(tab) {
+  document.getElementById('login-form').style.display = tab==='login'?'block':'none';
+  document.getElementById('register-form').style.display = tab==='register'?'block':'none';
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('auth-msg').innerHTML='';
 }
 
-function showTab(id) {
-  document.querySelectorAll('.tab').forEach((t,i)=>{const ids=['dashboard','add','import','projects'];t.classList.toggle('active',ids[i]===id);});
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
-  if(id==='dashboard') setTimeout(buildCharts,50);
+function showMsg(id, text, type) {
+  document.getElementById(id).innerHTML = '<div class="msg msg-'+type+'">'+text+'</div>';
 }
 
-function addProject() {
+async function login() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if(!email||!pass){showMsg('auth-msg','لطفاً همه فیلدها را پر کنید.','err');return;}
+
+  if(email===ADMIN_EMAIL && pass===ADMIN_PASS) {
+    currentUser = {email:ADMIN_EMAIL, name:'ادمین', role:'admin', approved:true};
+    showMainApp();
+    return;
+  }
+
+  const {data, error} = await db.from('users').select('*').eq('email',email).eq('password',pass).single();
+  if(error||!data){showMsg('auth-msg','ایمیل یا پسورد اشتباه است.','err');return;}
+  if(!data.approved){currentUser=data;showPending();return;}
+  currentUser = data;
+  showMainApp();
+}
+
+async function register() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  if(!name||!email||!pass){showMsg('auth-msg','لطفاً همه فیلدها را پر کنید.','err');return;}
+  if(pass.length<8){showMsg('auth-msg','پسورد باید حداقل ۸ کاراکتر باشد.','err');return;}
+
+  const {data:exists} = await db.from('users').select('id').eq('email',email).single();
+  if(exists){showMsg('auth-msg','این ایمیل قبلاً ثبت شده است.','err');return;}
+
+  const {error} = await db.from('users').insert({email,password:pass,role:'user',approved:false,name});
+  if(error){showMsg('auth-msg','خطا در ثبت‌نام. دوباره تلاش کنید.','err');return;}
+  showMsg('auth-msg','ثبت‌نام موفق! منتظر تأیید ادمین باشید.','ok');
+  setTimeout(()=>switchAuth('login'),2000);
+}
+
+function logout() {
+  currentUser = null;
+  projects = [];
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('pending-screen').style.display='none';
+  document.getElementById('main-app').style.display='none';
+}
+
+function showPending() {
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('pending-screen').style.display='flex';
+  document.getElementById('main-app').style.display='none';
+}
+
+function showMainApp() {
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('pending-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  document.getElementById('header-user').textContent = (currentUser.name||currentUser.email) + (currentUser.role==='admin'?' (ادمین)':'');
+  if(currentUser.role==='admin') document.getElementById('admin-tab').style.display='block';
+  loadProjects();
+}
+
+// ---- PROJECTS ----
+async function loadProjects() {
+  const {data,error} = await db.from('projects').select('*').order('id',{ascending:false});
+  if(error){console.error(error);return;}
+  projects = data||[];
+  refreshAll();
+}
+
+async function addProject() {
   const n = document.getElementById('f-name').value.trim();
   const msg = document.getElementById('add-msg');
-  if(!n){msg.className='msg msg-err';msg.textContent='لطفاً نام پروژه را وارد کنید.';return;}
-  projects.push({name:n,status:document.getElementById('f-status').value,start:document.getElementById('f-start').value||new Date().toISOString().slice(0,10),end:document.getElementById('f-end').value||(new Date(Date.now()+365*864e5)).toISOString().slice(0,10),budget:+document.getElementById('f-budget').value||0,actual:+document.getElementById('f-actual').value||0,progress:+document.getElementById('f-progress').value||0,planned:+document.getElementById('f-planned').value||0,manager:document.getElementById('f-manager').value||'—',category:document.getElementById('f-cat').value});
-  msg.className='msg msg-ok';msg.textContent='✓ پروژه با موفقیت اضافه شد!';
-  clearForm();refreshAll();
+  if(!n){msg.innerHTML='<div class="msg msg-err">لطفاً نام پروژه را وارد کنید.</div>';return;}
+  const proj = {
+    name:n, status:document.getElementById('f-status').value,
+    start_date:document.getElementById('f-start').value||new Date().toISOString().slice(0,10),
+    end_date:document.getElementById('f-end').value||(new Date(Date.now()+365*864e5)).toISOString().slice(0,10),
+    budget:+document.getElementById('f-budget').value||0,
+    actual:+document.getElementById('f-actual').value||0,
+    progress:+document.getElementById('f-progress').value||0,
+    planned:+document.getElementById('f-planned').value||0,
+    manager:document.getElementById('f-manager').value||'—',
+    category:document.getElementById('f-cat').value
+  };
+  const {error} = await db.from('projects').insert(proj);
+  if(error){msg.innerHTML='<div class="msg msg-err">خطا در ذخیره پروژه.</div>';return;}
+  msg.innerHTML='<div class="msg msg-ok">✓ پروژه با موفقیت اضافه شد!</div>';
+  clearForm();
+  await loadProjects();
   setTimeout(()=>showTab('dashboard'),900);
+}
+
+async function deleteProject(id) {
+  if(!confirm('آیا مطمئن هستید؟')) return;
+  await db.from('projects').delete().eq('id',id);
+  await loadProjects();
 }
 
 function clearForm() {
   ['f-name','f-start','f-end','f-budget','f-actual','f-progress','f-planned','f-manager'].forEach(id=>{document.getElementById(id).value='';});
 }
 
-function deleteProject(i) {projects.splice(i,1);refreshAll();}
-
-function importCSV(e) {
+async function importCSV(e) {
   const file = e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = function(ev) {
+  reader.onload = async function(ev) {
     const lines = ev.target.result.trim().split('\n');
     const headers = lines[0].split(',').map(h=>h.trim());
-    let count = 0;
+    const rows = [];
     for(let i=1;i<lines.length;i++){
       const vals = lines[i].split(',').map(v=>v.trim());
       if(vals.length<3) continue;
       const obj={};headers.forEach((h,j)=>obj[h]=vals[j]||'');
-      projects.push({name:obj.name||'بدون نام',status:obj.status||'در حال اجرا',start:obj.start||'2024-01-01',end:obj.end||'2024-12-31',budget:+obj.budget||0,actual:+obj.actual||0,progress:+obj.progress||0,planned:+obj.planned||0,manager:obj.manager||'—',category:obj.category||'سایر'});
-      count++;
+      rows.push({name:obj.name||'بدون نام',status:obj.status||'در حال اجرا',start_date:obj.start||'2024-01-01',end_date:obj.end||'2024-12-31',budget:+obj.budget||0,actual:+obj.actual||0,progress:+obj.progress||0,planned:+obj.planned||0,manager:obj.manager||'—',category:obj.category||'سایر'});
     }
-    const msg=document.getElementById('import-msg');
-    msg.className='msg msg-ok';msg.textContent='✓ '+count+' پروژه با موفقیت وارد شد!';
-    refreshAll();setTimeout(()=>showTab('dashboard'),1000);
+    const {error} = await db.from('projects').insert(rows);
+    const msg = document.getElementById('import-msg');
+    if(error){msg.innerHTML='<div class="msg msg-err">خطا در وارد کردن فایل.</div>';return;}
+    msg.innerHTML='<div class="msg msg-ok">✓ '+rows.length+' پروژه با موفقیت وارد شد!</div>';
+    await loadProjects();
+    setTimeout(()=>showTab('dashboard'),1000);
   };
   reader.readAsText(file,'UTF-8');
 }
 
 function exportCSV() {
-  const headers='name,status,start,end,budget,actual,progress,planned,manager,category';
-  const rows=projects.map(p=>[p.name,p.status,p.start,p.end,p.budget,p.actual,p.progress,p.planned,p.manager,p.category].join(','));
+  const headers='name,status,start_date,end_date,budget,actual,progress,planned,manager,category';
+  const rows=projects.map(p=>[p.name,p.status,p.start_date,p.end_date,p.budget,p.actual,p.progress,p.planned,p.manager,p.category].join(','));
   const csv=[headers,...rows].join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='projects.csv';a.click();URL.revokeObjectURL(url);
+}
+
+// ---- ADMIN ----
+async function loadAdminUsers() {
+  const {data} = await db.from('users').select('*').order('id');
+  const pending = (data||[]).filter(u=>!u.approved);
+  const approved = (data||[]).filter(u=>u.approved);
+
+  const pl = document.getElementById('pending-list');
+  pl.innerHTML = pending.length ? pending.map(u=>`
+    <div class="admin-card">
+      <div class="admin-card-info">${u.name||'بدون نام'} <span>${u.email}</span></div>
+      <div class="admin-actions">
+        <button class="btn" style="font-size:12px;padding:6px 14px;" onclick="approveUser(${u.id})">✓ تأیید</button>
+        <button class="btn btn-danger" style="font-size:12px;padding:6px 14px;" onclick="deleteUser(${u.id})">✗ رد</button>
+      </div>
+    </div>`).join('') : '<div style="color:#aaa;font-size:13px;padding:1rem;">کاربر در انتظار تأیید وجود ندارد.</div>';
+
+  const al = document.getElementById('approved-list');
+  al.innerHTML = approved.length ? approved.map(u=>`
+    <div class="admin-card">
+      <div class="admin-card-info">${u.name||'بدون نام'} <span>${u.email} — <span class="badge badge-green">تأیید شده</span></span></div>
+      <div class="admin-actions">
+        <button class="btn btn-danger" style="font-size:12px;padding:6px 14px;" onclick="deleteUser(${u.id})">حذف</button>
+      </div>
+    </div>`).join('') : '<div style="color:#aaa;font-size:13px;padding:1rem;">کاربری وجود ندارد.</div>';
+}
+
+async function approveUser(id) {
+  await db.from('users').update({approved:true}).eq('id',id);
+  loadAdminUsers();
+}
+
+async function deleteUser(id) {
+  if(!confirm('آیا مطمئن هستید؟')) return;
+  await db.from('users').delete().eq('id',id);
+  loadAdminUsers();
+}
+
+// ---- UI ----
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  const tabs = ['dashboard','add','import','projects','admin'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='dashboard') setTimeout(buildCharts,50);
+  if(id==='admin') loadAdminUsers();
+}
+
+function statusBadge(s) {
+  const map={'در حال اجرا':'badge-blue','تکمیل‌شده':'badge-green','برنامه‌ریزی':'badge-amber','متوقف‌شده':'badge-red'};
+  return '<span class="badge '+(map[s]||'badge-gray')+'">'+s+'</span>';
+}
+
+function updateMetrics() {
+  document.getElementById('m-total').textContent=projects.length;
+  document.getElementById('m-active').textContent=projects.filter(p=>p.status==='در حال اجرا').length;
+  const avg=projects.length?Math.round(projects.reduce((a,p)=>a+p.progress,0)/projects.length):0;
+  document.getElementById('m-avg').textContent=avg+'%';
+  document.getElementById('m-budget').textContent=projects.reduce((a,p)=>a+p.budget,0);
+}
+
+function updateTable() {
+  const tb=document.getElementById('proj-table');
+  if(!projects.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem;">هنوز پروژه‌ای اضافه نشده</td></tr>';return;}
+  tb.innerHTML=projects.map(p=>'<tr><td style="font-weight:600">'+p.name+'</td><td>'+statusBadge(p.status)+'</td><td><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:7px;background:#f0f0f0;border-radius:4px;overflow:hidden;min-width:60px;"><div style="width:'+p.progress+'%;height:100%;background:#534AB7;border-radius:4px;"></div></div><span style="font-size:12px;color:#888;">'+p.progress+'%</span></div></td><td>'+p.budget+'M</td><td>'+p.actual+'M</td><td>'+p.manager+'</td><td><button onclick="deleteProject('+p.id+')" style="background:none;border:none;cursor:pointer;color:#e24b4a;font-size:18px;" title="حذف">🗑</button></td></tr>').join('');
+}
+
+function updateGantt() {
+  const g=document.getElementById('gantt');
+  if(!projects.length){g.innerHTML='<div class="loading">پروژه‌ای وجود ندارد</div>';return;}
+  const starts=projects.map(p=>new Date(p.start_date).getTime());
+  const ends=projects.map(p=>new Date(p.end_date).getTime());
+  const minT=Math.min(...starts),maxT=Math.max(...ends);
+  const range=maxT-minT||1;
+  const colors=['#534AB7','#1D9E75','#D85A30','#378ADD','#BA7517','#A32D2D'];
+  g.innerHTML=projects.map((p,i)=>{const s=(new Date(p.start_date).getTime()-minT)/range*100;const w=Math.max(2,(new Date(p.end_date).getTime()-new Date(p.start_date).getTime())/range*100);return '<div class="gantt-row"><div class="gantt-label" title="'+p.name+'">'+p.name+'</div><div class="gantt-track"><div class="gantt-bar" style="left:'+s.toFixed(1)+'%;width:'+w.toFixed(1)+'%;background:'+colors[i%colors.length]+';">'+p.progress+'%</div></div></div>';}).join('');
+}
+
+function updateEV() {
+  const ev=document.getElementById('ev-stats');
+  if(!projects.length){ev.innerHTML='<div style="color:#aaa;font-size:13px;">پروژه‌ای وجود ندارد</div>';return;}
+  const totBudget=projects.reduce((a,p)=>a+p.budget,0);
+  const ac=projects.reduce((a,p)=>a+p.actual,0);
+  const pv=projects.reduce((a,p)=>a+(p.budget*p.planned/100),0);
+  const ev_val=projects.reduce((a,p)=>a+(p.budget*p.progress/100),0);
+  const spi=pv?(ev_val/pv).toFixed(2):'-';
+  const cpi=ac?(ev_val/ac).toFixed(2):'-';
+  const sv=(ev_val-pv).toFixed(0);
+  const cv=(ev_val-ac).toFixed(0);
+  const row=(l,v,c)=>'<div class="ev-stat"><span>'+l+'</span><span style="font-weight:600;color:'+(c||'#333')+'">'+v+'</span></div>';
+  ev.innerHTML=row('بودجه کل (BAC)',totBudget+'M')+row('PV',Math.round(pv)+'M')+row('EV',Math.round(ev_val)+'M')+row('AC',ac+'M')+row('انحراف زمانی (SV)',(sv>=0?'+':'')+sv+'M',sv>=0?'#3B6D11':'#A32D2D')+row('انحراف هزینه (CV)',(cv>=0?'+':'')+cv+'M',cv>=0?'#3B6D11':'#A32D2D')+row('SPI',spi,spi>=1?'#3B6D11':'#A32D2D')+row('CPI',cpi,cpi>=1?'#3B6D11':'#A32D2D');
+}
+
+function buildCharts() {
+  if(barChart)barChart.destroy();if(pieChart)pieChart.destroy();if(lineChart)lineChart.destroy();if(evChart)evChart.destroy();
+  if(!projects.length)return;
+  const names=projects.map(p=>p.name.length>8?p.name.slice(0,8)+'…':p.name);
+  barChart=new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:names,datasets:[{label:'واقعی',data:projects.map(p=>p.progress),backgroundColor:'#534AB7',borderRadius:4},{label:'برنامه',data:projects.map(p=>p.planned),backgroundColor:'#9FE1CB',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
+  const sc={};projects.forEach(p=>{sc[p.status]=(sc[p.status]||0)+1;});
+  const sLabels=Object.keys(sc);
+  const sColors={'در حال اجرا':'#534AB7','تکمیل‌شده':'#1D9E75','برنامه‌ریزی':'#BA7517','متوقف‌شده':'#A32D2D'};
+  document.getElementById('pie-legend').innerHTML=sLabels.map(s=>'<span><span class="legend-dot" style="background:'+(sColors[s]||'#888')+'"></span>'+s+' ('+sc[s]+')</span>').join('');
+  pieChart=new Chart(document.getElementById('pieChart'),{type:'doughnut',data:{labels:sLabels,datasets:[{data:sLabels.map(s=>sc[s]),backgroundColor:sLabels.map(s=>sColors[s]||'#888')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  const months=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور'];
+  const base=projects.reduce((a,p)=>a+p.actual,0);
+  lineChart=new Chart(document.getElementById('lineChart'),{type:'line',data:{labels:months,datasets:[{label:'واقعی',data:months.map((_,i)=>Math.round(base*0.5+base*0.1*i)),borderColor:'#534AB7',backgroundColor:'rgba(83,74,183,0.08)',tension:0.4,fill:true,pointRadius:4},{label:'برنامه',data:months.map((_,i)=>Math.round(base*0.45+base*0.12*i)),borderColor:'#1D9E75',borderDash:[5,3],tension:0.4,fill:false,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
+  const pv=projects.reduce((a,p)=>a+(p.budget*p.planned/100),0);
+  const ev_val=projects.reduce((a,p)=>a+(p.budget*p.progress/100),0);
+  const ac=projects.reduce((a,p)=>a+p.actual,0);
+  evChart=new Chart(document.getElementById('evChart'),{type:'bar',data:{labels:['PV','EV','AC'],datasets:[{data:[Math.round(pv),Math.round(ev_val),ac],backgroundColor:['#534AB7','#1D9E75','#D85A30'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
 }
 
 function refreshAll(){updateMetrics();updateTable();updateGantt();updateEV();if(document.getElementById('tab-dashboard').classList.contains('active'))setTimeout(buildCharts,50);}
