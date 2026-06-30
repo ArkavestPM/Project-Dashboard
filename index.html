@@ -177,6 +177,7 @@ tr:hover td{background:#f8f9fc;}
 .modal-overlay.open{display:flex;}
 .modal{background:#fff;border-radius:20px;padding:1.8rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,.35);}
 .modal-sm{max-width:460px;}
+.modal-md{max-width:560px;}
 .modal-lg{max-width:760px;}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;}
 .modal-title{font-size:17px;font-weight:800;color:var(--navy);}
@@ -223,6 +224,10 @@ tr:hover td{background:#f8f9fc;}
 .detail-tab.active{color:var(--red);border-bottom-color:var(--red);}
 .mini-list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fafbfc;border:1px solid var(--line);border-radius:12px;margin-bottom:6px;font-size:12.5px;transition:all .2s;}
 .mini-list-item:hover{background:#fff;border-color:var(--gold);}
+
+.access-project-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);}
+.access-project-item:last-child{border-bottom:none;}
+.access-project-item:hover{background:#f8f9fc;}
 </style>
 </head>
 <body>
@@ -237,14 +242,9 @@ tr:hover td{background:#f8f9fc;}
       <div class="sys">سیستم مدیریت پروژه‌ها</div>
     </div>
     
-    <!-- انتخاب نوع ورود -->
     <div class="login-type-toggle">
-      <button class="login-type-btn active" id="login-type-personnel">
-        👤 پرسنل شرکت
-      </button>
-      <button class="login-type-btn" id="login-type-client">
-        🏢 کارفرما / خارجی
-      </button>
+      <button class="login-type-btn active" id="login-type-personnel">👤 پرسنل شرکت</button>
+      <button class="login-type-btn" id="login-type-client">🏢 کارفرما / خارجی</button>
     </div>
 
     <div class="auth-tabs">
@@ -252,7 +252,6 @@ tr:hover td{background:#f8f9fc;}
       <button class="auth-tab" id="tab-reg-btn">ثبت‌نام</button>
     </div>
 
-    <!-- فرم ورود -->
     <div id="login-form">
       <div class="fg" id="login-personnel-field">
         <label>کد پرسنلی</label>
@@ -271,7 +270,6 @@ tr:hover td{background:#f8f9fc;}
       <div class="login-hint" id="login-hint">🔑 با کد پرسنلی وارد شوید</div>
     </div>
 
-    <!-- فرم ثبت‌نام -->
     <div id="register-form" style="display:none">
       <div class="fg"><label>نام و نام خانوادگی</label><input type="text" id="reg-name"></div>
       <div class="fg" id="reg-personnel-field">
@@ -473,22 +471,27 @@ tr:hover td{background:#f8f9fc;}
 
         <!-- ADMIN -->
         <div class="section" id="tab-admin">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;flex-wrap:wrap;gap:8px;">
             <div class="section-title" style="margin-bottom:0;border:none;padding:0;"><span class="red">⚙️</span> مدیریت کاربران</div>
-            <div style="display:flex;gap:8px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button class="btn btn-red btn-sm" id="open-add-user-btn">➕ افزودن کاربر</button>
               <button class="btn btn-sec btn-sm" id="import-users-btn">📥 وارد کردن اکسل</button>
             </div>
           </div>
-          <div style="margin-bottom:1.5rem;"><div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;">⏳ در انتظار تأیید</div><div id="pending-list"></div></div>
-          <div><div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;">✅ کاربران فعال</div><div id="approved-list"></div></div>
+          <div style="margin-bottom:1.5rem;">
+            <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;">⏳ در انتظار تأیید</div>
+            <div id="pending-list"></div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;">✅ کاربران فعال</div>
+            <div id="approved-list"></div>
+          </div>
         </div>
 
-        <!-- SETTINGS (فقط سوپرادمین) -->
+        <!-- SETTINGS -->
         <div class="section" id="tab-settings">
           <div class="section-title"><span class="red">🔧</span> تنظیمات سیستم <span class="sub">مدیریت دسته‌بندی‌ها و تنظیمات</span></div>
           
-          <!-- دسته‌بندی پروژه‌ها -->
           <div style="margin-bottom:2rem;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
               <h3 style="font-size:15px;color:var(--navy);">📂 دسته‌بندی پروژه‌ها</h3>
@@ -497,7 +500,6 @@ tr:hover td{background:#f8f9fc;}
             <div id="categories-list"></div>
           </div>
 
-          <!-- تنظیمات سیستم -->
           <div style="margin-bottom:2rem;">
             <h3 style="font-size:15px;color:var(--navy);margin-bottom:1rem;">⚙️ تنظیمات عمومی</h3>
             <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.5rem;box-shadow:var(--shadow);">
@@ -527,6 +529,41 @@ tr:hover td{background:#f8f9fc;}
   <div id="wn-assignees-wrap" style="display:none;"><div class="divider"></div><div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px;">👤 تخصیص به کارشناس</div><div class="fg"><label>کارشناس مسئول</label><select id="wn-assignee" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"><option value="">انتخاب کنید...</option></select></div></div>
   <div id="wn-msg" style="margin-top:8px;"></div>
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;"><button class="btn btn-sec" data-close="wbs-node-modal">انصراف</button><button class="btn btn-red" id="save-wbs-node-btn">✓ ذخیره</button></div>
+</div></div>
+
+<!-- مودال دسترسی پروژه‌ها -->
+<div class="modal-overlay" id="access-modal"><div class="modal modal-md">
+  <div class="modal-header">
+    <div class="modal-title">🔑 مدیریت دسترسی پروژه‌ها</div>
+    <button class="modal-close" data-close="access-modal">×</button>
+  </div>
+  <input type="hidden" id="access-user-id">
+  <div style="margin-bottom:1rem;">
+    <div style="font-size:14px;font-weight:700;color:var(--navy);" id="access-user-name"></div>
+    <div style="font-size:12px;color:var(--muted);" id="access-user-email"></div>
+  </div>
+  <div style="margin-bottom:1rem;">
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <button class="btn btn-sm btn-sec" id="select-all-projects">✅ انتخاب همه</button>
+      <button class="btn btn-sm btn-sec" id="deselect-all-projects">❌ حذف همه</button>
+    </div>
+    <div style="max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:10px;">
+      <div id="access-projects-list"></div>
+    </div>
+  </div>
+  <div class="fg">
+    <label>سطح دسترسی پیش‌فرض</label>
+    <select id="access-level" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;">
+      <option value="view">👁 مشاهده</option>
+      <option value="edit">✏️ ویرایش</option>
+      <option value="manage">⚙️ مدیریت کامل</option>
+    </select>
+  </div>
+  <div id="access-msg" style="margin-top:8px;"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">
+    <button class="btn btn-sec" data-close="access-modal">انصراف</button>
+    <button class="btn btn-red" id="save-access-btn">✓ ذخیره دسترسی‌ها</button>
+  </div>
 </div></div>
 
 <!-- مودال دسته‌بندی -->
@@ -614,10 +651,10 @@ const COLORS=['#cc0000','#0a1628','#1a9e6a','#2d7dd2','#d4af37','#6a4ca6','#0e7c
 const {createClient}=supabase;
 const db=createClient(SB_URL,SB_KEY);
 
-let CU=null,projects=[],allProjects=[],allUsers=[],wlData=[],categories=[];
+let CU=null,projects=[],allProjects=[],allUsers=[],wlData=[],categories=[],userAccess={};
 let charts={};
 let currentWbsProjectId=null,wbsNodes=[],wbsAssignments=[];
-let pendingAssignId=null,editingProjectId=null;
+let pendingAssignId=null,editingProjectId=null,currentAccessUserId=null;
 let monthlyChartInst=null,pdMonthlyChartInst=null;
 let loginType='personnel';
 
@@ -686,7 +723,6 @@ async function login() {
   const pass=document.getElementById('login-pass').value;
   if(!pass){showMsg('auth-msg','لطفاً پسورد را وارد کنید.','err');return;}
 
-  // سوپرادمین
   if(identifier===SA_EMAIL && pass===SA_PASS){
     CU={email:SA_EMAIL,name:'سوپر ادمین',role:'superadmin',approved:true,project_access:null};
     initApp();
@@ -763,9 +799,20 @@ async function loadAll(){await loadProjects();await loadUsers();await loadCatego
 async function loadProjects(){
   const {data}=await db.from('projects').select('*').order('id',{ascending:false});
   allProjects=data||[];
-  if(!isSA()&&CU.project_access&&CU.project_access.length>0) projects=allProjects.filter(p=>CU.project_access.includes(p.id));
-  else projects=allProjects;
-  refreshDash();populateSelects();
+  
+  // فیلتر بر اساس دسترسی
+  if (!isSA() && !isAdmin() && CU && CU.id) {
+    const {data: accessData} = await db.from('user_project_access')
+      .select('project_id')
+      .eq('user_id', CU.id);
+    const accessibleProjectIds = (accessData || []).map(a => a.project_id);
+    projects = allProjects.filter(p => accessibleProjectIds.includes(p.id));
+  } else {
+    projects = allProjects;
+  }
+  
+  refreshDash();
+  populateSelects();
 }
 
 async function loadUsers(){
@@ -780,6 +827,16 @@ async function loadCategories(){
   categories=data||[];
   populateCategorySelects();
   renderCategories();
+}
+
+async function loadUserAccess(){
+  if(!isSA()&&!isAdmin()) return;
+  const {data}=await db.from('user_project_access').select('*');
+  userAccess={};
+  (data||[]).forEach(a=>{
+    if(!userAccess[a.user_id]) userAccess[a.user_id]={};
+    userAccess[a.user_id][a.project_id]=a.access_level;
+  });
 }
 
 function populateCategorySelects(){
@@ -799,9 +856,11 @@ function populateManagerSelect(){
 }
 
 function populateSelects(){
+  const accessibleProjects = isSA()||isAdmin() ? projects : projects;
+  
   ['mr-proj','wl-proj','cmp-proj'].forEach(sid=>{
     const el=$(sid);if(!el)return;const cur=el.value;
-    el.innerHTML=(sid==='mr-proj'?'<option value="">انتخاب پروژه...</option>':'')+projects.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
+    el.innerHTML=(sid==='mr-proj'?'<option value="">انتخاب پروژه...</option>':'')+accessibleProjects.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
     if(cur)el.value=cur;
   });
 }
@@ -811,6 +870,95 @@ function populateWlFilters(){
   el.innerHTML='<option value="">همه کاربران</option>'+allUsers.map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+(u.personnel_id?' ('+u.personnel_id+')':'')+'</option>').join('');
   const el2=document.getElementById('wl-filter-proj');if(!el2)return;
   el2.innerHTML='<option value="">همه پروژه‌ها</option>'+projects.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
+}
+
+// ===== مدیریت دسترسی پروژه‌ها =====
+async function openAccessManager(userId) {
+  const user = allUsers.find(u => u.id === userId);
+  if (!user) return;
+  
+  currentAccessUserId = userId;
+  document.getElementById('access-user-id').value = userId;
+  document.getElementById('access-user-name').textContent = user.name || 'بدون نام';
+  document.getElementById('access-user-email').textContent = '📧 ' + user.email + (user.personnel_id ? ' | 🆔 ' + user.personnel_id : '');
+  document.getElementById('access-msg').innerHTML = '';
+  
+  const {data: accessData} = await db.from('user_project_access')
+    .select('project_id, access_level')
+    .eq('user_id', userId);
+  
+  const userAccessMap = {};
+  (accessData || []).forEach(a => {
+    userAccessMap[a.project_id] = a.access_level;
+  });
+  
+  const container = document.getElementById('access-projects-list');
+  if (!allProjects.length) {
+    container.innerHTML = '<div style="color:var(--muted);padding:1rem;text-align:center;">هیچ پروژه‌ای تعریف نشده است</div>';
+    return;
+  }
+  
+  container.innerHTML = allProjects.map(p => {
+    const checked = userAccessMap[p.id] ? 'checked' : '';
+    const level = userAccessMap[p.id] || 'view';
+    const cat = categories.find(c => c.id == p.category_id);
+    return `
+      <div class="access-project-item">
+        <input type="checkbox" class="project-access-check" data-project-id="${p.id}" ${checked} style="width:18px;height:18px;accent-color:var(--red);">
+        <div style="flex:1;font-size:13px;font-weight:600;color:var(--navy);">
+          ${p.name}
+          ${cat ? `<span style="font-size:11px;color:var(--muted);font-weight:400;">(${cat.icon} ${cat.name})</span>` : ''}
+        </div>
+        <select class="access-level-select" data-project-id="${p.id}" style="padding:4px 8px;border:2px solid var(--line);border-radius:8px;font-size:12px;font-family:inherit;outline:none;background:#fafbfc;${!checked ? 'opacity:0.5;' : ''}">
+          <option value="view" ${level === 'view' ? 'selected' : ''}>👁 مشاهده</option>
+          <option value="edit" ${level === 'edit' ? 'selected' : ''}>✏️ ویرایش</option>
+          <option value="manage" ${level === 'manage' ? 'selected' : ''}>⚙️ مدیریت</option>
+        </select>
+      </div>
+    `;
+  }).join('');
+  
+  container.querySelectorAll('.project-access-check').forEach(cb => {
+    cb.addEventListener('change', function() {
+      const select = this.closest('.access-project-item').querySelector('.access-level-select');
+      select.style.opacity = this.checked ? '1' : '0.5';
+    });
+  });
+  
+  openModal('access-modal');
+}
+
+async function saveProjectAccess() {
+  const userId = +document.getElementById('access-user-id').value;
+  if (!userId) return;
+  
+  const items = document.querySelectorAll('.access-project-item');
+  const accessData = [];
+  
+  items.forEach(item => {
+    const checkbox = item.querySelector('.project-access-check');
+    const select = item.querySelector('.access-level-select');
+    if (checkbox.checked) {
+      accessData.push({
+        user_id: userId,
+        project_id: +checkbox.dataset.projectId,
+        access_level: select.value
+      });
+    }
+  });
+  
+  await db.from('user_project_access').delete().eq('user_id', userId);
+  
+  if (accessData.length) {
+    const {error} = await db.from('user_project_access').insert(accessData);
+    if (error) {
+      showMsg('access-msg', 'خطا: ' + error.message, 'err');
+      return;
+    }
+  }
+  
+  showMsg('access-msg', '✅ دسترسی‌ها با موفقیت ذخیره شد!', 'ok');
+  setTimeout(() => closeModal('access-modal'), 1000);
 }
 
 // ===== WBS =====
@@ -1224,8 +1372,8 @@ async function loadAdminUsers(){
   const roleLabel=r=>({superadmin:'سوپر ادمین',admin:'ادمین',manager:'مدیر',user:'کاربر'}[r]||r);
   const roleBadge=r=>'<span class="badge '+({superadmin:'badge-red',admin:'badge-gold',manager:'badge-blue',user:'badge-green'}[r]||'badge-gray')+'">'+roleLabel(r)+'</span>';
   const pending=(data||[]).filter(u=>!u.approved);const approved=(data||[]).filter(u=>u.approved);
-  document.getElementById('pending-list').innerHTML=pending.length?pending.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+(u.personnel_id?' <span style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:11px;">کد: '+u.personnel_id+'</span>':'')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-green" onclick="approveUser('+u.id+')">✓ تأیید</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">✗ رد</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری در انتظار نیست.</div>';
-  document.getElementById('approved-list').innerHTML=approved.length?approved.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+' '+roleBadge(u.role)+(u.personnel_id?' <span style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:11px;">کد: '+u.personnel_id+'</span>':'')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-sec" onclick="openEditUser('+u.id+')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">🗑</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری وجود ندارد.</div>';
+  document.getElementById('pending-list').innerHTML=pending.length?pending.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+(u.personnel_id?' <span style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:11px;">🆔 '+u.personnel_id+'</span>':'')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-green" onclick="approveUser('+u.id+')">✓ تأیید</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">✗ رد</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری در انتظار نیست.</div>';
+  document.getElementById('approved-list').innerHTML=approved.length?approved.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+' '+roleBadge(u.role)+(u.personnel_id?' <span style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:11px;">🆔 '+u.personnel_id+'</span>':'')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-gold" onclick="openAccessManager('+u.id+')" title="مدیریت دسترسی پروژه‌ها">🔑</button><button class="btn btn-sm btn-sec" onclick="openEditUser('+u.id+')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">🗑</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری وجود ندارد.</div>';
 }
 
 async function approveUser(id){await db.from('users').update({approved:true}).eq('id',id);loadAdminUsers();await loadUsers();}
@@ -1508,7 +1656,7 @@ function showTab(id){
   if(id==='overview')setTimeout(buildOverview,50);
   if(id==='tasks')loadMyTasks();
   if(id==='worklog')loadWorklog();
-  if(id==='admin')loadAdminUsers();
+  if(id==='admin'){loadAdminUsers();loadUserAccess();}
   if(id==='monthly')loadMonthlyReports();
   if(id==='projects'){updateProjTable();closeWbs();}
   if(id==='settings'){loadCategories();}
@@ -1571,18 +1719,33 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('save-user-btn').addEventListener('click',saveUser);
   document.getElementById('cmp-proj').addEventListener('change',buildCompareChart);
   
-  // دسته‌بندی‌ها
   document.getElementById('add-category-btn').addEventListener('click',openAddCategory);
   document.getElementById('save-category-btn').addEventListener('click',saveCategory);
   
-  // ایمپورت کاربران
   document.getElementById('import-users-btn').addEventListener('click',openImportUsers);
   document.getElementById('import-users-btn-confirm').addEventListener('click',importUsersFromFile);
   
-  // تنظیمات
   document.getElementById('save-settings-btn').addEventListener('click',function(){
     alert('تنظیمات ذخیره شد!');
   });
+  
+  document.getElementById('select-all-projects').addEventListener('click', function() {
+    document.querySelectorAll('.project-access-check').forEach(cb => {
+      cb.checked = true;
+      const select = cb.closest('.access-project-item').querySelector('.access-level-select');
+      if(select) select.style.opacity = '1';
+    });
+  });
+  
+  document.getElementById('deselect-all-projects').addEventListener('click', function() {
+    document.querySelectorAll('.project-access-check').forEach(cb => {
+      cb.checked = false;
+      const select = cb.closest('.access-project-item').querySelector('.access-level-select');
+      if(select) select.style.opacity = '0.5';
+    });
+  });
+  
+  document.getElementById('save-access-btn').addEventListener('click', saveProjectAccess);
 });
 </script>
 </body>
