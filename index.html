@@ -31,19 +31,26 @@ body{font-family:'Vazirmatn',Tahoma,sans-serif;background:var(--bg);color:var(--
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a1628 0%,#1a3366 50%,#0a1628 100%);position:relative;overflow:hidden;}
 .auth-wrap::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 20% 30%,rgba(204,0,0,0.08),transparent 70%);}
 .auth-wrap::after{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:46px 46px;pointer-events:none;}
-.auth-box{background:#fff;border-radius:20px;padding:2.5rem;width:100%;max-width:420px;box-shadow:0 40px 100px rgba(0,0,0,.5);position:relative;z-index:1;}
+.auth-box{background:#fff;border-radius:20px;padding:2.5rem;width:100%;max-width:440px;box-shadow:0 40px 100px rgba(0,0,0,.5);position:relative;z-index:1;}
 .auth-logo{text-align:center;margin-bottom:1.8rem;}
+.auth-logo img{max-height:60px;margin-bottom:8px;}
 .auth-logo .brand{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
 .auth-logo .co{font-size:22px;font-weight:900;color:var(--red);letter-spacing:-.5px;}
 .auth-logo .co span{color:var(--navy);}
 .auth-logo .sys{font-size:13px;color:var(--muted);margin-top:5px;font-weight:500;}
+
+.login-type-toggle{display:flex;gap:8px;margin-bottom:1.5rem;}
+.login-type-btn{flex:1;padding:10px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--muted);font-weight:700;cursor:pointer;font-family:inherit;transition:all .3s;font-size:13px;}
+.login-type-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);box-shadow:0 4px 12px rgba(10,22,40,.2);}
+.login-type-btn:hover{transform:translateY(-2px);}
+
 .auth-tabs{display:flex;margin-bottom:1.5rem;background:var(--bg);border-radius:12px;padding:4px;}
 .auth-tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:13px;background:none;color:var(--muted);border:none;border-radius:10px;font-family:inherit;font-weight:700;transition:all .3s;}
 .auth-tab.active{background:var(--navy);color:#fff;box-shadow:0 4px 12px rgba(10,22,40,.3);}
 .fg{margin-bottom:1rem;}
 .fg label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:700;}
-.fg input{width:100%;padding:11px 14px;border:2px solid var(--line);border-radius:12px;font-size:14px;font-family:inherit;outline:none;transition:all .25s;background:#fafbfc;}
-.fg input:focus{border-color:var(--red);background:#fff;box-shadow:0 0 0 4px rgba(204,0,0,.08);}
+.fg input,.fg select{width:100%;padding:11px 14px;border:2px solid var(--line);border-radius:12px;font-size:14px;font-family:inherit;outline:none;transition:all .25s;background:#fafbfc;}
+.fg input:focus,.fg select:focus{border-color:var(--red);background:#fff;box-shadow:0 0 0 4px rgba(204,0,0,.08);}
 .password-wrapper{position:relative;}
 .password-wrapper input{padding-left:48px !important;}
 .password-toggle{position:absolute;left:14px;top:38px;cursor:pointer;font-size:22px;user-select:none;opacity:.6;transition:opacity .2s;background:#fafbfc;padding:0 4px;border-radius:6px;}
@@ -53,11 +60,13 @@ body{font-family:'Vazirmatn',Tahoma,sans-serif;background:var(--bg);color:var(--
 .msg{padding:10px 14px;border-radius:10px;font-size:12.5px;margin-top:10px;text-align:center;}
 .msg-ok{background:#E8F5EE;color:#1a7a56;}
 .msg-err{background:#FBE9EA;color:#9c2031;}
+.login-hint{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;}
 
 /* ===== APP SHELL ===== */
 .app-shell{display:flex;min-height:100vh;}
 .sidebar{width:260px;background:linear-gradient(180deg,#0a1628,#0a1a30);color:#fff;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-shadow:4px 0 24px rgba(0,0,0,.15);}
 .sb-brand{padding:1.5rem 1.3rem 1.2rem;border-bottom:1px solid rgba(255,255,255,.06);}
+.sb-brand img{max-height:40px;margin-bottom:6px;}
 .sb-brand .brand-label{font-size:10px;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;}
 .sb-brand .co{font-size:17px;font-weight:900;color:#fff;letter-spacing:-.3px;line-height:1.2;}
 .sb-brand .co .red{color:var(--red);}
@@ -180,13 +189,7 @@ tr:hover td{background:#f8f9fc;}
 
 .pov-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:7px;cursor:pointer;transition:all .2s;}
 .pov-row:hover{border-color:var(--gold);box-shadow:var(--shadow);transform:translateX(-4px);}
-.access-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-height:200px;overflow-y:auto;}
-.access-item{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;cursor:pointer;}
-.access-item:hover,.access-item.checked{border-color:var(--navy);background:#f1f2f8;}
-.access-item input{accent-color:var(--red);width:14px;height:14px;}
-.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--muted);font-weight:600;}
-.legend span{display:flex;align-items:center;gap:5px;}
-.ld{width:12px;height:12px;border-radius:4px;flex-shrink:0;}
+
 .loading{text-align:center;padding:2.5rem;color:var(--muted);font-size:13px;}
 .superadmin-badge{background:linear-gradient(135deg,var(--red),#990000);color:white;font-size:10px;padding:4px 12px;border-radius:20px;font-weight:700;letter-spacing:.5px;}
 .divider{height:1px;background:var(--line);margin:1rem 0;}
@@ -228,25 +231,53 @@ tr:hover td{background:#f8f9fc;}
 <div id="auth-screen" class="auth-wrap">
   <div class="auth-box">
     <div class="auth-logo">
+      <img src="logo.png" alt="لوگوی شرکت" style="max-height:60px;" id="login-logo">
       <div class="brand">🏢 شرکت مهندسی</div>
       <div class="co"><span>کوشا</span>معدن</div>
       <div class="sys">سیستم مدیریت پروژه‌ها</div>
     </div>
+    
+    <!-- انتخاب نوع ورود -->
+    <div class="login-type-toggle">
+      <button class="login-type-btn active" id="login-type-personnel">
+        👤 پرسنل شرکت
+      </button>
+      <button class="login-type-btn" id="login-type-client">
+        🏢 کارفرما / خارجی
+      </button>
+    </div>
+
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login-btn">ورود</button>
       <button class="auth-tab" id="tab-reg-btn">ثبت‌نام</button>
     </div>
+
+    <!-- فرم ورود -->
     <div id="login-form">
-      <div class="fg"><label>ایمیل</label><input type="email" id="login-email" placeholder="example@email.com"></div>
+      <div class="fg" id="login-personnel-field">
+        <label>کد پرسنلی</label>
+        <input type="text" id="login-personnel-id" placeholder="مثال: ۱۲۳۴۵">
+      </div>
+      <div class="fg" id="login-email-field" style="display:none;">
+        <label>ایمیل</label>
+        <input type="email" id="login-email" placeholder="example@email.com">
+      </div>
       <div class="fg password-wrapper">
         <label>پسورد</label>
         <input type="password" id="login-pass" placeholder="********">
         <span class="password-toggle" onclick="togglePassword('login-pass', this)">👁️</span>
       </div>
       <button class="btn-primary" id="login-btn">ورود به سیستم</button>
+      <div class="login-hint" id="login-hint">🔑 با کد پرسنلی وارد شوید</div>
     </div>
+
+    <!-- فرم ثبت‌نام -->
     <div id="register-form" style="display:none">
       <div class="fg"><label>نام و نام خانوادگی</label><input type="text" id="reg-name"></div>
+      <div class="fg" id="reg-personnel-field">
+        <label>کد پرسنلی <span style="color:var(--muted);font-weight:400;">(فقط برای پرسنل شرکت)</span></label>
+        <input type="text" id="reg-personnel-id" placeholder="در صورت پرسنل بودن وارد کنید">
+      </div>
       <div class="fg"><label>ایمیل</label><input type="email" id="reg-email"></div>
       <div class="fg password-wrapper">
         <label>پسورد</label>
@@ -275,6 +306,7 @@ tr:hover td{background:#f8f9fc;}
     <!-- SIDEBAR -->
     <div class="sidebar">
       <div class="sb-brand">
+        <img src="logo.png" alt="لوگو" id="sidebar-logo">
         <div class="brand-label">🏢 شرکت مهندسی</div>
         <div class="co"><span class="red">کوشا</span>معدن</div>
         <div class="accent"></div>
@@ -291,6 +323,7 @@ tr:hover td{background:#f8f9fc;}
         <button class="sb-link" data-tab="monthly"><span class="sb-ic">📅</span><span>گزارش ماهانه</span></button>
         <button class="sb-link" data-tab="projects"><span class="sb-ic">📁</span><span>پروژه‌ها</span></button>
         <button class="sb-link" data-tab="admin" id="tab-btn-admin" style="display:none"><span class="sb-ic">⚙️</span><span>کاربران</span></button>
+        <button class="sb-link" data-tab="settings" id="tab-btn-settings" style="display:none"><span class="sb-ic">🔧</span><span>تنظیمات</span></button>
       </div>
       <div class="sb-foot">
         <div class="sb-user">
@@ -331,7 +364,7 @@ tr:hover td{background:#f8f9fc;}
           <div class="chart-full"><div class="chart-title">📅 گانت چارت <span class="chart-hint">کلیک روی هر نوار برای جزئیات پروژه ›</span></div><div id="gantt"></div></div>
         </div>
 
-        <!-- DASHBOARD DETAILS -->
+        <!-- DETAIL PANELS -->
         <div class="detail-panel" id="panel-project-detail">
           <button class="back-link" id="back-from-proj-detail">← بازگشت به داشبورد</button>
           <div class="section-title" id="pd-title"></div>
@@ -415,18 +448,18 @@ tr:hover td{background:#f8f9fc;}
             <div class="form-grid">
               <div class="fgs"><label>نام پروژه *</label><input id="f-name" placeholder="نام پروژه"></div>
               <div class="fgs"><label>وضعیت</label><select id="f-status"><option>در حال اجرا</option><option>برنامه‌ریزی</option><option>تکمیل‌شده</option><option>متوقف‌شده</option></select></div>
+              <div class="fgs"><label>دسته‌بندی</label><select id="f-category"><option value="">بدون دسته</option></select></div>
+              <div class="fgs"><label>مدیر پروژه</label><select id="f-manager"><option value="">انتخاب مدیر...</option></select></div>
               <div class="fgs"><label>تاریخ شروع</label><input type="date" id="f-start"></div>
               <div class="fgs"><label>تاریخ پایان</label><input type="date" id="f-end"></div>
               <div class="fgs"><label>بودجه (M)</label><input type="number" id="f-budget" placeholder="0"></div>
               <div class="fgs"><label>هزینه واقعی (M)</label><input type="number" id="f-actual" placeholder="0"></div>
-              <div class="fgs"><label>مدیر پروژه</label><input id="f-manager" placeholder="نام مدیر"></div>
-              <div class="fgs"><label>دسته‌بندی</label><select id="f-cat"><option>زیرساخت</option><option>ساختمانی</option><option>معدنی</option><option>مشاوره</option><option>سایر</option></select></div>
             </div>
             <div style="display:flex;gap:10px;"><button class="btn btn-red" id="save-proj-btn">✓ ذخیره</button><button class="btn btn-sec" id="cancel-proj-btn">انصراف</button></div>
             <div id="add-msg" style="margin-top:10px"></div>
           </div>
           <div id="proj-list-wrap">
-            <div class="table-wrap"><table><thead><tr><th>نام پروژه</th><th>وضعیت</th><th>پیشرفت WBS</th><th>بودجه</th><th>هزینه</th><th>مدیر</th><th>عملیات</th></tr></thead><tbody id="proj-table"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>نام پروژه</th><th>دسته‌بندی</th><th>وضعیت</th><th>پیشرفت</th><th>بودجه</th><th>هزینه</th><th>مدیر</th><th>عملیات</th></tr></thead><tbody id="proj-table"></tbody></table></div>
           </div>
           <div id="wbs-panel" style="display:none;margin-top:1.5rem;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
@@ -442,10 +475,41 @@ tr:hover td{background:#f8f9fc;}
         <div class="section" id="tab-admin">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;">
             <div class="section-title" style="margin-bottom:0;border:none;padding:0;"><span class="red">⚙️</span> مدیریت کاربران</div>
-            <button class="btn btn-red btn-sm" id="open-add-user-btn">➕ افزودن کاربر</button>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-red btn-sm" id="open-add-user-btn">➕ افزودن کاربر</button>
+              <button class="btn btn-sec btn-sm" id="import-users-btn">📥 وارد کردن اکسل</button>
+            </div>
           </div>
           <div style="margin-bottom:1.5rem;"><div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;">⏳ در انتظار تأیید</div><div id="pending-list"></div></div>
           <div><div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;">✅ کاربران فعال</div><div id="approved-list"></div></div>
+        </div>
+
+        <!-- SETTINGS (فقط سوپرادمین) -->
+        <div class="section" id="tab-settings">
+          <div class="section-title"><span class="red">🔧</span> تنظیمات سیستم <span class="sub">مدیریت دسته‌بندی‌ها و تنظیمات</span></div>
+          
+          <!-- دسته‌بندی پروژه‌ها -->
+          <div style="margin-bottom:2rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+              <h3 style="font-size:15px;color:var(--navy);">📂 دسته‌بندی پروژه‌ها</h3>
+              <button class="btn btn-sm btn-red" id="add-category-btn">➕ دسته جدید</button>
+            </div>
+            <div id="categories-list"></div>
+          </div>
+
+          <!-- تنظیمات سیستم -->
+          <div style="margin-bottom:2rem;">
+            <h3 style="font-size:15px;color:var(--navy);margin-bottom:1rem;">⚙️ تنظیمات عمومی</h3>
+            <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.5rem;box-shadow:var(--shadow);">
+              <div class="form-grid">
+                <div class="fgs"><label>نام شرکت</label><input id="setting-company-name" value="شرکت مهندسی کوشا معدن"></div>
+                <div class="fgs"><label>رنگ اصلی</label><input type="color" id="setting-primary-color" value="#cc0000"></div>
+                <div class="fgs"><label>سال مالی جاری</label><input type="number" id="setting-fiscal-year" value="1404"></div>
+                <div class="fgs"><label>واحد پول</label><input id="setting-currency" value="تومان"></div>
+              </div>
+              <button class="btn btn-red" id="save-settings-btn">💾 ذخیره تنظیمات</button>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -465,6 +529,31 @@ tr:hover td{background:#f8f9fc;}
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;"><button class="btn btn-sec" data-close="wbs-node-modal">انصراف</button><button class="btn btn-red" id="save-wbs-node-btn">✓ ذخیره</button></div>
 </div></div>
 
+<!-- مودال دسته‌بندی -->
+<div class="modal-overlay" id="category-modal"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">📂 دسته‌بندی پروژه</div><button class="modal-close" data-close="category-modal">×</button></div>
+  <input type="hidden" id="cat-id">
+  <div class="fg"><label>نام دسته *</label><input id="cat-name" placeholder="مثال: ساختمانی، معدنی، زیرساخت" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"></div>
+  <div class="fg"><label>رنگ</label><input type="color" id="cat-color" value="#0a1628" style="width:100%;padding:4px;border:2px solid var(--line);border-radius:10px;height:44px;"></div>
+  <div class="fg"><label>آیکون</label><input id="cat-icon" placeholder="مثال: 🏗" value="📁" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:18px;font-family:inherit;outline:none;background:#fafbfc;"></div>
+  <div id="cat-msg" style="margin-top:8px;"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;"><button class="btn btn-sec" data-close="category-modal">انصراف</button><button class="btn btn-red" id="save-category-btn">✓ ذخیره</button></div>
+</div></div>
+
+<!-- مودال ایمپورت کاربران -->
+<div class="modal-overlay" id="import-users-modal"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">📥 وارد کردن کاربران از اکسل</div><button class="modal-close" data-close="import-users-modal">×</button></div>
+  <div style="background:#f8f9fc;border-radius:12px;padding:1rem;margin-bottom:1rem;border:2px dashed var(--line);text-align:center;">
+    <div style="font-size:40px;margin-bottom:8px;">📄</div>
+    <div style="font-size:13px;color:var(--muted);">فایل CSV یا Excel خود را انتخاب کنید</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">ستون‌های مورد نیاز: name, email, personnel_id (اختیاری), role</div>
+  </div>
+  <div class="fg"><label>فایل</label><input type="file" id="import-file" accept=".csv,.xlsx" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"></div>
+  <div id="import-msg" style="margin-top:8px;"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;"><button class="btn btn-sec" data-close="import-users-modal">انصراف</button><button class="btn btn-red" id="import-users-btn-confirm">📥 وارد کردن</button></div>
+</div></div>
+
+<!-- سایر مودال‌ها -->
 <div class="modal-overlay" id="confirm-task-modal"><div class="modal modal-sm">
   <div class="modal-header"><div class="modal-title">✅ اعلام انجام فعالیت</div><button class="modal-close" data-close="confirm-task-modal">×</button></div>
   <div id="confirm-task-info" style="font-size:13px;color:var(--ink);margin-bottom:1rem;"></div>
@@ -505,6 +594,7 @@ tr:hover td{background:#f8f9fc;}
   <div class="modal-header"><div class="modal-title" id="user-modal-title">افزودن کاربر</div><button class="modal-close" data-close="user-modal">×</button></div>
   <input type="hidden" id="um-id">
   <div class="fg"><label>نام *</label><input id="um-name" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"></div>
+  <div class="fg"><label>کد پرسنلی</label><input id="um-personnel-id" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;" placeholder="اختیاری برای پرسنل"></div>
   <div class="fg"><label>ایمیل *</label><input type="email" id="um-email" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"></div>
   <div class="fg" id="um-pass-wrap"><label>پسورد *</label><input type="password" id="um-pass" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"></div>
   <div class="fg"><label>نقش</label><select id="um-role" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"><option value="user">کاربر عادی</option><option value="manager">مدیر پروژه</option><option value="admin">ادمین</option><option value="superadmin">سوپر ادمین</option></select></div>
@@ -513,6 +603,7 @@ tr:hover td{background:#f8f9fc;}
 </div></div>
 
 <script>
+// ===== تنظیمات اولیه =====
 const SB_URL='https://lxcyhrkhpvgrojmygkli.supabase.co';
 const SB_KEY='sb_publishable_scr-leP70exRtxBB0Jz8Ng_EPe4_2el';
 const SA_EMAIL='admin@dashboard.com';
@@ -523,12 +614,14 @@ const COLORS=['#cc0000','#0a1628','#1a9e6a','#2d7dd2','#d4af37','#6a4ca6','#0e7c
 const {createClient}=supabase;
 const db=createClient(SB_URL,SB_KEY);
 
-let CU=null,projects=[],allProjects=[],allUsers=[],wlData=[];
+let CU=null,projects=[],allProjects=[],allUsers=[],wlData=[],categories=[];
 let charts={};
 let currentWbsProjectId=null,wbsNodes=[],wbsAssignments=[];
 let pendingAssignId=null,editingProjectId=null;
 let monthlyChartInst=null,pdMonthlyChartInst=null;
+let loginType='personnel';
 
+// ===== توابع کمکی =====
 function $(id){return document.getElementById(id);}
 function showMsg(id,txt,type){$(id).innerHTML='<div class="msg msg-'+type+'">'+txt+'</div>';}
 function openModal(id){$(id).classList.add('open');}
@@ -541,61 +634,132 @@ function statusBadge(s){const m={'در حال اجرا':'badge-blue','تکمیل
 function initials(name){if(!name)return '?';const p=name.trim().split(' ');return p.length>1?(p[0][0]+p[1][0]):name.slice(0,2);}
 
 function togglePassword(inputId, eyeIcon) {
-  const input = document.getElementById(inputId);
-  if (input.type === 'password') {
-    input.type = 'text';
-    eyeIcon.textContent = '🙈';
+  const input=document.getElementById(inputId);
+  if(input.type==='password'){input.type='text';eyeIcon.textContent='🙈';}
+  else{input.type='password';eyeIcon.textContent='👁️';}
+}
+
+// ===== توابع ورود =====
+function switchLoginType(type) {
+  loginType=type;
+  const personnelField=document.getElementById('login-personnel-field');
+  const emailField=document.getElementById('login-email-field');
+  const hint=document.getElementById('login-hint');
+  const personnelBtn=document.getElementById('login-type-personnel');
+  const clientBtn=document.getElementById('login-type-client');
+  
+  if(type==='personnel'){
+    personnelField.style.display='block';
+    emailField.style.display='none';
+    hint.textContent='🔑 با کد پرسنلی وارد شوید';
+    personnelBtn.className='login-type-btn active';
+    clientBtn.className='login-type-btn';
   } else {
-    input.type = 'password';
-    eyeIcon.textContent = '👁️';
+    personnelField.style.display='none';
+    emailField.style.display='block';
+    hint.textContent='📧 با ایمیل وارد شوید';
+    clientBtn.className='login-type-btn active';
+    personnelBtn.className='login-type-btn';
   }
 }
 
-// ---- AUTH ----
 function switchAuth(tab){
-  $('login-form').style.display=tab==='login'?'block':'none';
-  $('register-form').style.display=tab==='register'?'block':'none';
-  $('tab-login-btn').classList.toggle('active',tab==='login');
-  $('tab-reg-btn').classList.toggle('active',tab==='register');
-  $('auth-msg').innerHTML='';
+  document.getElementById('login-form').style.display=tab==='login'?'block':'none';
+  document.getElementById('register-form').style.display=tab==='register'?'block':'none';
+  document.getElementById('tab-login-btn').className='auth-tab'+(tab==='login'?' active':'');
+  document.getElementById('tab-reg-btn').className='auth-tab'+(tab==='register'?' active':'');
+  document.getElementById('auth-msg').innerHTML='';
 }
-async function login(){
-  const email=$('login-email').value.trim();const pass=$('login-pass').value;
-  if(!email||!pass){showMsg('auth-msg','همه فیلدها را پر کنید.','err');return;}
-  if(email===SA_EMAIL&&pass===SA_PASS){CU={email:SA_EMAIL,name:'سوپر ادمین',role:'superadmin',approved:true,project_access:null};initApp();return;}
-  const {data,error}=await db.from('users').select('*').eq('email',email).eq('password',pass).single();
-  if(error||!data){showMsg('auth-msg','ایمیل یا پسورد اشتباه است.','err');return;}
+
+async function login() {
+  let identifier, isPersonnel=false;
+  
+  if(loginType==='personnel'){
+    identifier=document.getElementById('login-personnel-id').value.trim();
+    isPersonnel=true;
+    if(!identifier){showMsg('auth-msg','لطفاً کد پرسنلی را وارد کنید.','err');return;}
+  } else {
+    identifier=document.getElementById('login-email').value.trim();
+    if(!identifier){showMsg('auth-msg','لطفاً ایمیل را وارد کنید.','err');return;}
+  }
+  
+  const pass=document.getElementById('login-pass').value;
+  if(!pass){showMsg('auth-msg','لطفاً پسورد را وارد کنید.','err');return;}
+
+  // سوپرادمین
+  if(identifier===SA_EMAIL && pass===SA_PASS){
+    CU={email:SA_EMAIL,name:'سوپر ادمین',role:'superadmin',approved:true,project_access:null};
+    initApp();
+    return;
+  }
+
+  let query=db.from('users').select('*');
+  if(isPersonnel){
+    query=query.eq('personnel_id',identifier);
+  } else {
+    query=query.eq('email',identifier);
+  }
+  
+  const {data,error}=await query.eq('password',pass).single();
+  
+  if(error||!data){
+    showMsg('auth-msg',isPersonnel?'کد پرسنلی یا پسورد اشتباه است.':'ایمیل یا پسورد اشتباه است.','err');
+    return;
+  }
+  
   if(!data.approved){CU=data;showPending();return;}
-  CU=data;initApp();
+  CU=data;
+  initApp();
 }
-async function register(){
-  const name=$('reg-name').value.trim();const email=$('reg-email').value.trim();const pass=$('reg-pass').value;
-  if(!name||!email||!pass){showMsg('auth-msg','همه فیلدها را پر کنید.','err');return;}
+
+async function register() {
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const pass=document.getElementById('reg-pass').value;
+  const personnelId=document.getElementById('reg-personnel-id').value.trim();
+  
+  if(!name||!email||!pass){showMsg('auth-msg','همه فیلدهای اجباری را پر کنید.','err');return;}
   if(pass.length<8){showMsg('auth-msg','پسورد حداقل ۸ کاراکتر.','err');return;}
-  const {data:ex}=await db.from('users').select('id').eq('email',email);
-  if(ex&&ex.length>0){showMsg('auth-msg','این ایمیل قبلاً ثبت شده.','err');return;}
-  const {error}=await db.from('users').insert([{email,password:pass,role:'user',approved:false,name,project_access:null}]);
+  
+  const {data:ex}=await db.from('users').select('id').or(`email.eq.${email},personnel_id.eq.${personnelId}`);
+  if(ex&&ex.length>0){showMsg('auth-msg','این ایمیل یا کد پرسنلی قبلاً ثبت شده.','err');return;}
+  
+  const userData={email,password:pass,role:'user',approved:false,name,project_access:null};
+  if(personnelId) userData.personnel_id=personnelId;
+  
+  const {error}=await db.from('users').insert([userData]);
   if(error){showMsg('auth-msg','خطا: '+error.message,'err');return;}
+  
   showMsg('auth-msg','ثبت‌نام موفق! منتظر تأیید ادمین باشید.','ok');
   setTimeout(()=>switchAuth('login'),2000);
 }
-function logout(){CU=null;projects=[];allProjects=[];allUsers=[];$('auth-screen').style.display='flex';$('pending-screen').style.display='none';$('main-app').style.display='none';}
-function showPending(){$('auth-screen').style.display='none';$('pending-screen').style.display='flex';$('main-app').style.display='none';}
 
+function logout(){CU=null;projects=[];allProjects=[];allUsers=[];document.getElementById('auth-screen').style.display='flex';document.getElementById('pending-screen').style.display='none';document.getElementById('main-app').style.display='none';}
+function showPending(){document.getElementById('auth-screen').style.display='none';document.getElementById('pending-screen').style.display='flex';document.getElementById('main-app').style.display='none';}
+
+// ===== راه‌اندازی اصلی =====
 function initApp(){
-  $('auth-screen').style.display='none';$('pending-screen').style.display='none';$('main-app').style.display='block';
-  $('sb-uname').textContent=CU.name||CU.email;
-  $('sb-avatar').textContent=initials(CU.name||CU.email);
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('pending-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  
+  document.getElementById('sb-uname').textContent=CU.name||CU.email;
+  document.getElementById('sb-avatar').textContent=initials(CU.name||CU.email);
+  
   const roleLabel={superadmin:'سوپر ادمین',admin:'ادمین',manager:'مدیر پروژه',user:'کاربر'}[CU.role]||CU.role;
-  $('sb-urole').textContent=roleLabel;
-  if(isSA())$('header-badge').innerHTML='<span class="superadmin-badge">SUPER ADMIN</span>';
-  if(isAdmin())$('tab-btn-admin').style.display='flex';
-  if(isManager())$('add-month-btn').style.display='block';
-  if(isSA()||isAdmin())$('add-proj-btn').style.display='block';
+  document.getElementById('sb-urole').textContent=roleLabel;
+  
+  if(isSA()) document.getElementById('header-badge').innerHTML='<span class="superadmin-badge">SUPER ADMIN</span>';
+  if(isAdmin()) document.getElementById('tab-btn-admin').style.display='flex';
+  if(isSA()) document.getElementById('tab-btn-settings').style.display='flex';
+  if(isManager()) document.getElementById('add-month-btn').style.display='block';
+  if(isSA()||isAdmin()) document.getElementById('add-proj-btn').style.display='block';
+  
   loadAll();
 }
 
-async function loadAll(){await loadProjects();await loadUsers();}
+async function loadAll(){await loadProjects();await loadUsers();await loadCategories();}
+
 async function loadProjects(){
   const {data}=await db.from('projects').select('*').order('id',{ascending:false});
   allProjects=data||[];
@@ -603,22 +767,53 @@ async function loadProjects(){
   else projects=allProjects;
   refreshDash();populateSelects();
 }
-async function loadUsers(){const {data}=await db.from('users').select('*').order('id');allUsers=data||[];populateWlFilters();}
+
+async function loadUsers(){
+  const {data}=await db.from('users').select('*').order('id');
+  allUsers=data||[];
+  populateWlFilters();
+  populateManagerSelect();
+}
+
+async function loadCategories(){
+  const {data}=await db.from('project_categories').select('*').order('name');
+  categories=data||[];
+  populateCategorySelects();
+  renderCategories();
+}
+
+function populateCategorySelects(){
+  const sel=document.getElementById('f-category');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">بدون دسته</option>'+categories.map(c=>'<option value="'+c.id+'">'+c.icon+' '+c.name+'</option>').join('');
+  if(cur)sel.value=cur;
+}
+
+function populateManagerSelect(){
+  const sel=document.getElementById('f-manager');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">انتخاب مدیر...</option>'+allUsers.filter(u=>u.approved && (u.role==='manager'||u.role==='admin'||u.role==='superadmin')).map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+'</option>').join('');
+  if(cur)sel.value=cur;
+}
+
 function populateSelects(){
   ['mr-proj','wl-proj','cmp-proj'].forEach(sid=>{
-    const el=$(sid);if(!el)return;const cur=el.value;const hasAll=['mr-proj'].includes(sid);
-    el.innerHTML=(hasAll?'<option value="">انتخاب پروژه...</option>':'')+projects.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
+    const el=$(sid);if(!el)return;const cur=el.value;
+    el.innerHTML=(sid==='mr-proj'?'<option value="">انتخاب پروژه...</option>':'')+projects.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
     if(cur)el.value=cur;
   });
 }
+
 function populateWlFilters(){
-  const el=$('wl-filter-user');if(!el)return;
-  el.innerHTML='<option value="">همه کاربران</option>'+allUsers.map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+'</option>').join('');
-  const el2=$('wl-filter-proj');if(!el2)return;
+  const el=document.getElementById('wl-filter-user');if(!el)return;
+  el.innerHTML='<option value="">همه کاربران</option>'+allUsers.map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+(u.personnel_id?' ('+u.personnel_id+')':'')+'</option>').join('');
+  const el2=document.getElementById('wl-filter-proj');if(!el2)return;
   el2.innerHTML='<option value="">همه پروژه‌ها</option>'+projects.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
 }
 
-// ---- WBS LOGIC ----
+// ===== WBS =====
 function calcNodeProgress(nodeId,nodes,assignments){
   const children=nodes.filter(n=>n.parent_id===nodeId);
   if(!children.length){
@@ -632,6 +827,7 @@ function calcNodeProgress(nodeId,nodes,assignments){
   for(const child of children){const w=child.weight||0;const p=calcNodeProgress(child.id,nodes,assignments);total+=w*p;totalWeight+=w;}
   return totalWeight>0?total/totalWeight:0;
 }
+
 function calcProjectProgress(projectId,nodes,assignments){
   const roots=nodes.filter(n=>n.project_id===projectId&&!n.parent_id);
   if(!roots.length)return 0;
@@ -639,12 +835,14 @@ function calcProjectProgress(projectId,nodes,assignments){
   for(const root of roots){const w=root.weight||0;const p=calcNodeProgress(root.id,nodes,assignments);total+=w*p;totalWeight+=w;}
   return totalWeight>0?Math.round(total/totalWeight):0;
 }
+
 async function loadWbsForProject(projectId){
   const {data:nodes}=await db.from('wbs_nodes').select('*').eq('project_id',projectId).order('id');
   const {data:assigns}=await db.from('wbs_assignments').select('*');
   wbsNodes=nodes||[];wbsAssignments=assigns||[];
   return {nodes:wbsNodes,assignments:wbsAssignments};
 }
+
 async function recalcAndSaveProgress(projectId){
   const {nodes,assignments}=await loadWbsForProject(projectId);
   const progress=calcProjectProgress(projectId,nodes,assignments);
@@ -656,14 +854,15 @@ function renderWbsTree(targetId,nodes,assignments,projectId,editable){
   const roots=nodes.filter(n=>n.project_id===projectId&&!n.parent_id);
   const totalRootWeight=roots.reduce((s,n)=>s+n.weight,0);
   if(editable){
-    const ws=$('wbs-weight-status');
+    const ws=document.getElementById('wbs-weight-status');
     if(roots.length>0){
       const ok=Math.abs(totalRootWeight-100)<0.01;
       ws.innerHTML=ok?'<div style="background:#E8F5EE;border-radius:10px;padding:10px 14px;font-size:12px;color:#1a7a56;font-weight:600;border:1px solid #b8e0cc;">✓ مجموع وزن گره‌های اصلی: ۱۰۰٪</div>':'<div class="weight-warning">⚠ مجموع وزن گره‌های اصلی: '+totalRootWeight+'٪ (باید ۱۰۰٪ باشد)</div>';
     } else ws.innerHTML='';
   }
-  $(targetId).innerHTML=roots.map(n=>renderNode(n,nodes,assignments,projectId,editable)).join('')||'<div class="loading">هنوز ساختاری تعریف نشده</div>';
+  document.getElementById(targetId).innerHTML=roots.map(n=>renderNode(n,nodes,assignments,projectId,editable)).join('')||'<div class="loading">هنوز ساختاری تعریف نشده</div>';
 }
+
 function renderNode(node,nodes,assignments,projectId,editable){
   const children=nodes.filter(n=>n.parent_id===node.id);
   const asgn=assignments.find(a=>a.node_id===node.id);
@@ -712,43 +911,71 @@ function renderNode(node,nodes,assignments,projectId,editable){
 async function openWbs(projectId){
   currentWbsProjectId=projectId;
   const proj=allProjects.find(p=>p.id===projectId);
-  $('wbs-proj-name').textContent=proj?proj.name:'';
-  $('proj-list-wrap').style.display='none';$('proj-form-wrap').style.display='none';$('wbs-panel').style.display='block';
+  document.getElementById('wbs-proj-name').textContent=proj?proj.name:'';
+  document.getElementById('proj-list-wrap').style.display='none';
+  document.getElementById('proj-form-wrap').style.display='none';
+  document.getElementById('wbs-panel').style.display='block';
   await loadWbsForProject(projectId);
   renderWbsTree('wbs-tree',wbsNodes,wbsAssignments,projectId,true);
 }
-function closeWbs(){$('proj-list-wrap').style.display='block';$('wbs-panel').style.display='none';currentWbsProjectId=null;}
+
+function closeWbs(){document.getElementById('proj-list-wrap').style.display='block';document.getElementById('wbs-panel').style.display='none';currentWbsProjectId=null;}
+
 function openAddRootNode(){
-  $('wbs-node-modal-title').textContent='افزودن گره اصلی';
-  $('wn-id').value='';$('wn-parent-id').value='';$('wn-project-id').value=currentWbsProjectId;
-  $('wn-title').value='';$('wn-weight').value='';$('wn-type').value='group';$('wn-assignees-wrap').style.display='none';$('wn-msg').innerHTML='';
+  document.getElementById('wbs-node-modal-title').textContent='افزودن گره اصلی';
+  document.getElementById('wn-id').value='';
+  document.getElementById('wn-parent-id').value='';
+  document.getElementById('wn-project-id').value=currentWbsProjectId;
+  document.getElementById('wn-title').value='';
+  document.getElementById('wn-weight').value='';
+  document.getElementById('wn-type').value='group';
+  document.getElementById('wn-assignees-wrap').style.display='none';
+  document.getElementById('wn-msg').innerHTML='';
   openModal('wbs-node-modal');
 }
+
 function openAddChildNode(parentId){
-  $('wbs-node-modal-title').textContent='افزودن زیرمجموعه';
-  $('wn-id').value='';$('wn-parent-id').value=parentId;$('wn-project-id').value=currentWbsProjectId;
-  $('wn-title').value='';$('wn-weight').value='';$('wn-type').value='group';$('wn-assignees-wrap').style.display='none';$('wn-msg').innerHTML='';
+  document.getElementById('wbs-node-modal-title').textContent='افزودن زیرمجموعه';
+  document.getElementById('wn-id').value='';
+  document.getElementById('wn-parent-id').value=parentId;
+  document.getElementById('wn-project-id').value=currentWbsProjectId;
+  document.getElementById('wn-title').value='';
+  document.getElementById('wn-weight').value='';
+  document.getElementById('wn-type').value='group';
+  document.getElementById('wn-assignees-wrap').style.display='none';
+  document.getElementById('wn-msg').innerHTML='';
   openModal('wbs-node-modal');
 }
+
 function openEditNode(nodeId){
   const node=wbsNodes.find(n=>n.id===nodeId);if(!node)return;
-  $('wbs-node-modal-title').textContent='ویرایش گره';
-  $('wn-id').value=nodeId;$('wn-parent-id').value=node.parent_id||'';$('wn-project-id').value=currentWbsProjectId;
-  $('wn-title').value=node.title;$('wn-weight').value=node.weight;$('wn-type').value=node.is_leaf?'leaf':'group';
+  document.getElementById('wbs-node-modal-title').textContent='ویرایش گره';
+  document.getElementById('wn-id').value=nodeId;
+  document.getElementById('wn-parent-id').value=node.parent_id||'';
+  document.getElementById('wn-project-id').value=currentWbsProjectId;
+  document.getElementById('wn-title').value=node.title;
+  document.getElementById('wn-weight').value=node.weight;
+  document.getElementById('wn-type').value=node.is_leaf?'leaf':'group';
   toggleWbsType();
-  if(node.is_leaf){const asgn=wbsAssignments.find(a=>a.node_id===nodeId);if(asgn)$('wn-assignee').value=asgn.user_id;}
-  $('wn-msg').innerHTML='';
+  if(node.is_leaf){const asgn=wbsAssignments.find(a=>a.node_id===nodeId);if(asgn)document.getElementById('wn-assignee').value=asgn.user_id;}
+  document.getElementById('wn-msg').innerHTML='';
   openModal('wbs-node-modal');
 }
+
 function toggleWbsType(){
-  const isLeaf=$('wn-type').value==='leaf';
-  $('wn-assignees-wrap').style.display=isLeaf?'block':'none';
-  if(isLeaf)$('wn-assignee').innerHTML='<option value="">انتخاب کارشناس...</option>'+allUsers.filter(u=>u.approved).map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+'</option>').join('');
+  const isLeaf=document.getElementById('wn-type').value==='leaf';
+  document.getElementById('wn-assignees-wrap').style.display=isLeaf?'block':'none';
+  if(isLeaf)document.getElementById('wn-assignee').innerHTML='<option value="">انتخاب کارشناس...</option>'+allUsers.filter(u=>u.approved).map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+'</option>').join('');
 }
+
 async function saveWbsNode(){
-  const id=$('wn-id').value;const parentId=$('wn-parent-id').value;const projectId=+$('wn-project-id').value;
-  const title=$('wn-title').value.trim();const weight=+$('wn-weight').value||0;const isLeaf=$('wn-type').value==='leaf';
-  const assigneeId=isLeaf?+$('wn-assignee').value:null;
+  const id=document.getElementById('wn-id').value;
+  const parentId=document.getElementById('wn-parent-id').value;
+  const projectId=+document.getElementById('wn-project-id').value;
+  const title=document.getElementById('wn-title').value.trim();
+  const weight=+document.getElementById('wn-weight').value||0;
+  const isLeaf=document.getElementById('wn-type').value==='leaf';
+  const assigneeId=isLeaf?+document.getElementById('wn-assignee').value:null;
   if(!title){showMsg('wn-msg','عنوان الزامی است.','err');return;}
   if(isLeaf&&!assigneeId){showMsg('wn-msg','کارشناس مسئول را انتخاب کنید.','err');return;}
   let nodeId;
@@ -772,6 +999,7 @@ async function saveWbsNode(){
   renderWbsTree('wbs-tree',wbsNodes,wbsAssignments,projectId,true);
   await recalcAndSaveProgress(projectId);
 }
+
 async function deleteWbsNode(nodeId){
   if(!confirm('این گره و تمام زیرمجموعه‌هایش حذف شود؟'))return;
   await db.from('wbs_nodes').delete().eq('id',nodeId);
@@ -780,14 +1008,14 @@ async function deleteWbsNode(nodeId){
   await recalcAndSaveProgress(currentWbsProjectId);
 }
 
-// ---- TASKS ----
+// ===== TASKS =====
 async function loadMyTasks(){
-  if(!CU||!CU.id){$('tasks-list').innerHTML='<div class="loading">لاگین کنید</div>';return;}
+  if(!CU||!CU.id){document.getElementById('tasks-list').innerHTML='<div class="loading">لاگین کنید</div>';return;}
   const {data:myAssigns}=await db.from('wbs_assignments').select('*').eq('user_id',CU.id);
-  if(!myAssigns||!myAssigns.length){$('tasks-list').innerHTML='<div class="loading">فعالیتی تخصیص داده نشده</div>';return;}
+  if(!myAssigns||!myAssigns.length){document.getElementById('tasks-list').innerHTML='<div class="loading">فعالیتی تخصیص داده نشده</div>';return;}
   const nodeIds=myAssigns.map(a=>a.node_id);
   const {data:nodes}=await db.from('wbs_nodes').select('*').in('id',nodeIds);
-  $('tasks-list').innerHTML=(nodes||[]).map(node=>{
+  document.getElementById('tasks-list').innerHTML=(nodes||[]).map(node=>{
     const asgn=myAssigns.find(a=>a.node_id===node.id);
     const proj=allProjects.find(p=>p.id===node.project_id);
     const isDone=asgn.confirmed_by_manager;const isUD=asgn.confirmed_by_user&&!asgn.confirmed_by_manager;
@@ -805,7 +1033,7 @@ async function loadMyTasks(){
     if(allAssigns&&allAssigns.length){
       const pendNodeIds=allAssigns.map(a=>a.node_id);
       const {data:pendNodes}=await db.from('wbs_nodes').select('*').in('id',pendNodeIds);
-      $('tasks-list').innerHTML+='<div style="font-size:14px;font-weight:700;color:var(--red);margin:1.5rem 0 .8rem;">⏳ منتظر تأیید مدیر</div>'+
+      document.getElementById('tasks-list').innerHTML+='<div style="font-size:14px;font-weight:700;color:var(--red);margin:1.5rem 0 .8rem;">⏳ منتظر تأیید مدیر</div>'+
       (pendNodes||[]).map(node=>{
         const asgn=allAssigns.find(a=>a.node_id===node.id);const u=allUsers.find(u=>u.id===asgn.user_id);const proj=allProjects.find(p=>p.id===node.project_id);
         return '<div class="act-card partial"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:14px;font-weight:700;color:var(--navy);">'+node.title+'</div><span class="badge badge-blue">منتظر تأیید مدیر</span></div><div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📁 '+(proj?proj.name:'—')+' | 👤 '+(u?u.name||u.email:'—')+'</div><button class="btn btn-red btn-sm" onclick="openApproveTask('+asgn.id+',\''+node.title.replace(/'/g,"\\'")+'\')">✓ تأیید مدیر</button></div>';
@@ -813,11 +1041,13 @@ async function loadMyTasks(){
     }
   }
 }
+
 function openConfirmTask(assignId,title){
   pendingAssignId=assignId;
-  $('confirm-task-info').innerHTML='فعالیت «<strong>'+title+'</strong>» را انجام داده‌اید؟<br><small style="color:var(--muted)">بعد از تأیید، پیشرفت ۸۰٪ ثبت می‌شود.</small>';
+  document.getElementById('confirm-task-info').innerHTML='فعالیت «<strong>'+title+'</strong>» را انجام داده‌اید؟<br><small style="color:var(--muted)">بعد از تأیید، پیشرفت ۸۰٪ ثبت می‌شود.</small>';
   openModal('confirm-task-modal');
 }
+
 async function doConfirmUser(){
   await db.from('wbs_assignments').update({confirmed_by_user:true}).eq('id',pendingAssignId);
   closeModal('confirm-task-modal');
@@ -825,11 +1055,13 @@ async function doConfirmUser(){
   if(asgn){const {data:node}=await db.from('wbs_nodes').select('*').eq('id',asgn.node_id).single();if(node)await recalcAndSaveProgress(node.project_id);}
   loadMyTasks();
 }
+
 function openApproveTask(assignId,title){
   pendingAssignId=assignId;
-  $('approve-task-info').innerHTML='تأیید انجام کامل فعالیت «<strong>'+title+'</strong>»<br><small style="color:var(--muted)">بعد از تأیید، پیشرفت ۱۰۰٪ ثبت می‌شود.</small>';
+  document.getElementById('approve-task-info').innerHTML='تأیید انجام کامل فعالیت «<strong>'+title+'</strong>»<br><small style="color:var(--muted)">بعد از تأیید، پیشرفت ۱۰۰٪ ثبت می‌شود.</small>';
   openModal('approve-task-modal');
 }
+
 async function doConfirmManager(){
   await db.from('wbs_assignments').update({confirmed_by_manager:true,confirmed_at:new Date().toISOString()}).eq('id',pendingAssignId);
   closeModal('approve-task-modal');
@@ -838,238 +1070,419 @@ async function doConfirmManager(){
   loadMyTasks();
 }
 
-// ---- PROJECTS ----
+// ===== PROJECTS =====
 async function saveProject(){
-  const n=$('f-name').value.trim();
+  const n=document.getElementById('f-name').value.trim();
   if(!n){showMsg('add-msg','نام پروژه الزامی است.','err');return;}
-  const data={name:n,status:$('f-status').value,start_date:$('f-start').value||new Date().toISOString().slice(0,10),end_date:$('f-end').value||(new Date(Date.now()+365*864e5)).toISOString().slice(0,10),budget:+$('f-budget').value||0,actual:+$('f-actual').value||0,manager:$('f-manager').value||'—',category:$('f-cat').value,progress:0,planned:0};
+  const managerId=document.getElementById('f-manager').value;
+  const managerObj=allUsers.find(u=>u.id==managerId);
+  const data={
+    name:n,
+    status:document.getElementById('f-status').value,
+    start_date:document.getElementById('f-start').value||new Date().toISOString().slice(0,10),
+    end_date:document.getElementById('f-end').value||(new Date(Date.now()+365*864e5)).toISOString().slice(0,10),
+    budget:+document.getElementById('f-budget').value||0,
+    actual:+document.getElementById('f-actual').value||0,
+    manager:managerObj?managerObj.name:'—',
+    manager_id:managerId||null,
+    category_id:document.getElementById('f-category').value||null,
+    progress:0,
+    planned:0
+  };
   let error;
   if(editingProjectId){delete data.progress;({error}=await db.from('projects').update(data).eq('id',editingProjectId));}
   else ({error}=await db.from('projects').insert([data]));
   if(error){showMsg('add-msg','خطا: '+error.message,'err');return;}
   showMsg('add-msg','✓ ذخیره شد!','ok');
-  editingProjectId=null;$('proj-form-wrap').style.display='none';
+  editingProjectId=null;document.getElementById('proj-form-wrap').style.display='none';
   await loadProjects();
 }
+
 function openEditProject(id){
   const p=projects.find(x=>x.id===id);if(!p)return;
   editingProjectId=id;
-  $('proj-form-title').textContent='✏️ ویرایش پروژه';
-  $('f-name').value=p.name;$('f-status').value=p.status;$('f-start').value=p.start_date;$('f-end').value=p.end_date;
-  $('f-budget').value=p.budget;$('f-actual').value=p.actual;$('f-manager').value=p.manager;$('f-cat').value=p.category;
-  $('add-msg').innerHTML='';$('proj-form-wrap').style.display='block';$('proj-form-wrap').scrollIntoView({behavior:'smooth'});
-}
-async function deleteProject(id){if(!confirm('پروژه حذف شود؟'))return;await db.from('projects').delete().eq('id',id);await loadProjects();}
-function exportCSV(){
-  const h='name,status,start_date,end_date,budget,actual,progress,manager,category';
-  const rows=projects.map(p=>[p.name,p.status,p.start_date,p.end_date,p.budget,p.actual,p.progress,p.manager,p.category].join(','));
-  dl('\uFEFF'+[h,...rows].join('\n'),'projects.csv','text/csv');
-}
-function updateProjTable(){
-  const tb=$('proj-table');
-  if(!projects.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem;">پروژه‌ای وجود ندارد</td></tr>';return;}
-  tb.innerHTML=projects.map(p=>'<tr><td style="font-weight:700;color:var(--navy);">'+p.name+'</td><td>'+statusBadge(p.status)+'</td><td><div style="display:flex;align-items:center;gap:5px;"><div class="pb-wrap"><div class="pb-fill" style="width:'+p.progress+'%;background:'+(p.progress>=(p.planned||0)?'#1a9e6a':'#cc0000')+'"></div></div><span style="font-size:12px;font-weight:700;">'+p.progress+'٪</span></div></td><td>'+p.budget+'M</td><td>'+p.actual+'M</td><td>'+p.manager+'</td><td style="display:flex;gap:5px;"><button class="btn btn-sm btn-warn" onclick="openWbs('+p.id+')">🏗 WBS</button>'+(isManager()?'<button onclick="openEditProject('+p.id+')" style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--red);">✏️</button>':'')+(isSA()?'<button onclick="deleteProject('+p.id+')" style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--red);">🗑</button>':'')+'</td></tr>').join('');
+  document.getElementById('proj-form-title').textContent='✏️ ویرایش پروژه';
+  document.getElementById('f-name').value=p.name;
+  document.getElementById('f-status').value=p.status;
+  document.getElementById('f-start').value=p.start_date;
+  document.getElementById('f-end').value=p.end_date;
+  document.getElementById('f-budget').value=p.budget;
+  document.getElementById('f-actual').value=p.actual;
+  document.getElementById('f-manager').value=p.manager_id||'';
+  document.getElementById('f-category').value=p.category_id||'';
+  document.getElementById('add-msg').innerHTML='';
+  document.getElementById('proj-form-wrap').style.display='block';
+  document.getElementById('proj-form-wrap').scrollIntoView({behavior:'smooth'});
 }
 
-// ---- WORKLOG ----
+async function deleteProject(id){if(!confirm('پروژه حذف شود؟'))return;await db.from('projects').delete().eq('id',id);await loadProjects();}
+
+function exportCSV(){
+  const h='name,status,start_date,end_date,budget,actual,progress,manager,category';
+  const rows=projects.map(p=>{
+    const cat=categories.find(c=>c.id==p.category_id);
+    return [p.name,p.status,p.start_date,p.end_date,p.budget,p.actual,p.progress,p.manager,cat?cat.name:''].join(',');
+  });
+  dl('\uFEFF'+[h,...rows].join('\n'),'projects.csv','text/csv');
+}
+
+function updateProjTable(){
+  const tb=document.getElementById('proj-table');
+  if(!projects.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem;">پروژه‌ای وجود ندارد</td></tr>';return;}
+  tb.innerHTML=projects.map(p=>{
+    const cat=categories.find(c=>c.id==p.category_id);
+    return '<tr><td style="font-weight:700;color:var(--navy);">'+p.name+'</td><td>'+(cat?cat.icon+' '+cat.name:'—')+'</td><td>'+statusBadge(p.status)+'</td><td><div style="display:flex;align-items:center;gap:5px;"><div class="pb-wrap"><div class="pb-fill" style="width:'+p.progress+'%;background:'+(p.progress>=(p.planned||0)?'#1a9e6a':'#cc0000')+'"></div></div><span style="font-size:12px;font-weight:700;">'+p.progress+'٪</span></div></td><td>'+p.budget+'M</td><td>'+p.actual+'M</td><td>'+p.manager+'</td><td style="display:flex;gap:5px;"><button class="btn btn-sm btn-warn" onclick="openWbs('+p.id+')">🏗 WBS</button>'+(isManager()?'<button onclick="openEditProject('+p.id+')" style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--red);">✏️</button>':'')+(isSA()?'<button onclick="deleteProject('+p.id+')" style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--red);">🗑</button>':'')+'</td></tr>';
+  }).join('');
+}
+
+// ===== WORKLOG =====
 async function loadWlNodes(){
-  const projId=$('wl-proj').value;const sel=$('wl-node');
+  const projId=document.getElementById('wl-proj').value;const sel=document.getElementById('wl-node');
   if(!projId){sel.innerHTML='<option value="">ابتدا پروژه انتخاب کنید</option>';return;}
   const {data}=await db.from('wbs_nodes').select('*').eq('project_id',+projId).eq('is_leaf',true);
   sel.innerHTML=(data&&data.length?data.map(n=>'<option value="'+n.id+'">'+n.title+'</option>').join(''):'<option value="">فعالیتی وجود ندارد</option>');
 }
-function openAddWorklog(){$('wl-desc').value='';$('wl-hours').value='';$('wl-date').value=new Date().toISOString().slice(0,10);$('wl-msg').innerHTML='';openModal('add-worklog-modal');}
+
+function openAddWorklog(){document.getElementById('wl-desc').value='';document.getElementById('wl-hours').value='';document.getElementById('wl-date').value=new Date().toISOString().slice(0,10);document.getElementById('wl-msg').innerHTML='';openModal('add-worklog-modal');}
+
 async function saveWorklog(){
-  const projId=+$('wl-proj').value;const nodeId=+$('wl-node').value;const hours=+$('wl-hours').value||0;const date=$('wl-date').value;const desc=$('wl-desc').value.trim();
+  const projId=+document.getElementById('wl-proj').value;
+  const nodeId=+document.getElementById('wl-node').value;
+  const hours=+document.getElementById('wl-hours').value||0;
+  const date=document.getElementById('wl-date').value;
+  const desc=document.getElementById('wl-desc').value.trim();
   if(!projId||!nodeId||!hours||!date){showMsg('wl-msg','همه فیلدهای اجباری را پر کنید.','err');return;}
   const {error}=await db.from('work_logs').insert([{user_id:CU.id,project_id:projId,activity_id:nodeId,hours,log_date:date,description:desc}]);
   if(error){showMsg('wl-msg','خطا: '+error.message,'err');return;}
   closeModal('add-worklog-modal');loadWorklog();
 }
+
 async function loadWorklog(){
-  const uf=$('wl-filter-user').value;const pf=$('wl-filter-proj').value;const from=$('wl-from').value;const to=$('wl-to').value;
+  const uf=document.getElementById('wl-filter-user').value;
+  const pf=document.getElementById('wl-filter-proj').value;
+  const from=document.getElementById('wl-from').value;
+  const to=document.getElementById('wl-to').value;
   let q=db.from('work_logs').select('*').order('log_date',{ascending:false});
   if(!isAdmin())q=q.eq('user_id',CU.id);else if(uf)q=q.eq('user_id',+uf);
   if(pf)q=q.eq('project_id',+pf);if(from)q=q.gte('log_date',from);if(to)q=q.lte('log_date',to);
   const {data}=await q;wlData=data||[];
   const totalH=wlData.reduce((s,r)=>s+r.hours,0);
-  $('wl-metrics').innerHTML='<div class="metric"><div class="metric-label">رکوردها</div><div class="metric-value">'+wlData.length+'</div></div><div class="metric g"><div class="metric-label">مجموع ساعات</div><div class="metric-value">'+totalH+'h</div></div>';
-  $('wl-table').innerHTML=wlData.map(r=>{
+  document.getElementById('wl-metrics').innerHTML='<div class="metric"><div class="metric-label">رکوردها</div><div class="metric-value">'+wlData.length+'</div></div><div class="metric g"><div class="metric-label">مجموع ساعات</div><div class="metric-value">'+totalH+'h</div></div>';
+  document.getElementById('wl-table').innerHTML=wlData.map(r=>{
     const u=allUsers.find(u=>u.id===r.user_id);const p=allProjects.find(p=>p.id===r.project_id);
     return '<tr><td>'+r.log_date+'</td><td>'+(u?u.name||u.email:'—')+'</td><td>'+(p?p.name:'—')+'</td><td>'+(r.activity_id||'—')+'</td><td><strong>'+r.hours+'h</strong></td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(r.description||'—')+'</td><td>'+(isAdmin()?'<button onclick="deleteWorklog('+r.id+')" style="background:none;border:none;cursor:pointer;color:var(--red);">🗑</button>':'')+'</td></tr>';
   }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem;">رکوردی وجود ندارد</td></tr>';
 }
+
 async function deleteWorklog(id){if(!confirm('حذف شود؟'))return;await db.from('work_logs').delete().eq('id',id);loadWorklog();}
+
 function exportWorklog(){
   const h='date,user,project,hours,description';
   const rows=wlData.map(r=>{const u=allUsers.find(u=>u.id===r.user_id);const p=allProjects.find(p=>p.id===r.project_id);return[r.log_date,(u?u.name||u.email:r.user_id),(p?p.name:r.project_id),r.hours,'"'+(r.description||'')+'"'].join(',');});
   dl('\uFEFF'+[h,...rows].join('\n'),'worklog.csv','text/csv');
 }
 
-// ---- MONTHLY ----
+// ===== MONTHLY =====
 async function loadMonthlyReports(){
-  const projId=$('mr-proj').value;const year=$('mr-year').value;const list=$('monthly-list');const cw=$('monthly-chart-wrap');
+  const projId=document.getElementById('mr-proj').value;
+  const year=document.getElementById('mr-year').value;
+  const list=document.getElementById('monthly-list');
+  const cw=document.getElementById('monthly-chart-wrap');
   if(!projId){list.innerHTML='<div class="loading">یک پروژه انتخاب کنید</div>';cw.style.display='none';return;}
   const {data}=await db.from('monthly_reports').select('*').eq('project_id',+projId).eq('year',+year).order('month');
   cw.style.display=data&&data.length?'block':'none';
   if(data&&data.length){
     if(monthlyChartInst)monthlyChartInst.destroy();
-    monthlyChartInst=new Chart($('monthlyChart'),{type:'line',data:{labels:data.map(r=>MONTHS[r.month-1]),datasets:[{label:'پیشرفت برنامه',data:data.map(r=>r.planned),borderColor:'#1a9e6a',borderDash:[5,3],tension:.4},{label:'هزینه',data:data.map(r=>r.actual),borderColor:'#cc0000',tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+    monthlyChartInst=new Chart(document.getElementById('monthlyChart'),{type:'line',data:{labels:data.map(r=>MONTHS[r.month-1]),datasets:[{label:'پیشرفت برنامه',data:data.map(r=>r.planned),borderColor:'#1a9e6a',borderDash:[5,3],tension:.4},{label:'هزینه',data:data.map(r=>r.actual),borderColor:'#cc0000',tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
     list.innerHTML='<div class="table-wrap"><table><thead><tr><th>ماه</th><th>بودجه</th><th>هزینه</th><th>پیشرفت برنامه</th><th>یادداشت</th>'+(isManager()?'<th></th>':'')+'</tr></thead><tbody>'+data.map(r=>'<tr><td>'+MONTHS[r.month-1]+'</td><td>'+r.budget+'M</td><td>'+r.actual+'M</td><td>'+r.planned+'٪</td><td style="font-size:12px;color:var(--muted);">'+(r.notes||'—')+'</td>'+(isManager()?'<td><button onclick="deleteMonthly('+r.id+')" style="background:none;border:none;cursor:pointer;color:var(--red);">🗑</button></td>':'')+'</tr>').join('')+'</tbody></table></div>';
   } else list.innerHTML='<div class="loading">گزارشی ثبت نشده</div>';
 }
+
 function openAddMonthly(){
-  const projId=$('mr-proj').value;if(!projId){alert('ابتدا پروژه انتخاب کنید');return;}
-  ['nm-budget','nm-actual','nm-planned','nm-notes'].forEach(i=>$(i).value='');
-  $('nm-year').value=$('mr-year').value||1404;$('nm-msg').innerHTML='';openModal('add-monthly-modal');
+  const projId=document.getElementById('mr-proj').value;if(!projId){alert('ابتدا پروژه انتخاب کنید');return;}
+  ['nm-budget','nm-actual','nm-planned','nm-notes'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('nm-year').value=document.getElementById('mr-year').value||1404;
+  document.getElementById('nm-msg').innerHTML='';
+  openModal('add-monthly-modal');
 }
+
 async function saveMonthlyReport(){
-  const projId=+$('mr-proj').value;const month=+$('nm-month').value;const year=+$('nm-year').value;
-  const rep={project_id:projId,month,year,budget:+$('nm-budget').value||0,actual:+$('nm-actual').value||0,planned:+$('nm-planned').value||0,notes:$('nm-notes').value};
+  const projId=+document.getElementById('mr-proj').value;
+  const month=+document.getElementById('nm-month').value;
+  const year=+document.getElementById('nm-year').value;
+  const rep={project_id:projId,month,year,budget:+document.getElementById('nm-budget').value||0,actual:+document.getElementById('nm-actual').value||0,planned:+document.getElementById('nm-planned').value||0,notes:document.getElementById('nm-notes').value};
   const {error}=await db.from('monthly_reports').upsert([rep],{onConflict:'project_id,year,month'});
   if(error){showMsg('nm-msg','خطا: '+error.message,'err');return;}
   closeModal('add-monthly-modal');loadMonthlyReports();
 }
+
 async function deleteMonthly(id){if(!confirm('حذف شود؟'))return;await db.from('monthly_reports').delete().eq('id',id);loadMonthlyReports();}
 
-// ---- ADMIN ----
+// ===== ADMIN =====
 async function loadAdminUsers(){
   const {data}=await db.from('users').select('*').order('id');
   const roleLabel=r=>({superadmin:'سوپر ادمین',admin:'ادمین',manager:'مدیر',user:'کاربر'}[r]||r);
   const roleBadge=r=>'<span class="badge '+({superadmin:'badge-red',admin:'badge-gold',manager:'badge-blue',user:'badge-green'}[r]||'badge-gray')+'">'+roleLabel(r)+'</span>';
   const pending=(data||[]).filter(u=>!u.approved);const approved=(data||[]).filter(u=>u.approved);
-  $('pending-list').innerHTML=pending.length?pending.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-green" onclick="approveUser('+u.id+')">✓ تأیید</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">✗ رد</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری در انتظار نیست.</div>';
-  $('approved-list').innerHTML=approved.length?approved.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+' '+roleBadge(u.role)+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-sec" onclick="openEditUser('+u.id+')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">🗑</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری وجود ندارد.</div>';
+  document.getElementById('pending-list').innerHTML=pending.length?pending.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+(u.personnel_id?' <span style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:11px;">کد: '+u.personnel_id+'</span>':'')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-green" onclick="approveUser('+u.id+')">✓ تأیید</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">✗ رد</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری در انتظار نیست.</div>';
+  document.getElementById('approved-list').innerHTML=approved.length?approved.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+' '+roleBadge(u.role)+(u.personnel_id?' <span style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:11px;">کد: '+u.personnel_id+'</span>':'')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-sec" onclick="openEditUser('+u.id+')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">🗑</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری وجود ندارد.</div>';
 }
+
 async function approveUser(id){await db.from('users').update({approved:true}).eq('id',id);loadAdminUsers();await loadUsers();}
 async function deleteUser(id){if(!confirm('حذف شود؟'))return;await db.from('users').delete().eq('id',id);loadAdminUsers();await loadUsers();}
+
 function openEditUser(id){
   const u=allUsers.find(x=>x.id===id);if(!u)return;
-  $('um-id').value=id;$('um-name').value=u.name||'';$('um-email').value=u.email;$('um-role').value=u.role;
-  $('user-modal-title').textContent='✏️ ویرایش کاربر';$('um-pass-wrap').style.display='none';$('um-pass').value='';$('um-msg').innerHTML='';
+  document.getElementById('um-id').value=id;
+  document.getElementById('um-name').value=u.name||'';
+  document.getElementById('um-personnel-id').value=u.personnel_id||'';
+  document.getElementById('um-email').value=u.email;
+  document.getElementById('um-role').value=u.role;
+  document.getElementById('user-modal-title').textContent='✏️ ویرایش کاربر';
+  document.getElementById('um-pass-wrap').style.display='none';
+  document.getElementById('um-pass').value='';
+  document.getElementById('um-msg').innerHTML='';
   openModal('user-modal');
 }
+
 function openAddUser(){
-  $('um-id').value='';$('um-name').value='';$('um-email').value='';$('um-pass').value='';$('um-role').value='user';
-  $('user-modal-title').textContent='➕ افزودن کاربر';$('um-pass-wrap').style.display='block';$('um-msg').innerHTML='';
+  document.getElementById('um-id').value='';
+  document.getElementById('um-name').value='';
+  document.getElementById('um-personnel-id').value='';
+  document.getElementById('um-email').value='';
+  document.getElementById('um-pass').value='';
+  document.getElementById('um-role').value='user';
+  document.getElementById('user-modal-title').textContent='➕ افزودن کاربر';
+  document.getElementById('um-pass-wrap').style.display='block';
+  document.getElementById('um-msg').innerHTML='';
   openModal('user-modal');
 }
+
 async function saveUser(){
-  const id=$('um-id').value;const name=$('um-name').value.trim();const email=$('um-email').value.trim();const pass=$('um-pass').value;const role=$('um-role').value;
+  const id=document.getElementById('um-id').value;
+  const name=document.getElementById('um-name').value.trim();
+  const personnelId=document.getElementById('um-personnel-id').value.trim();
+  const email=document.getElementById('um-email').value.trim();
+  const pass=document.getElementById('um-pass').value;
+  const role=document.getElementById('um-role').value;
   if(!name||!email){showMsg('um-msg','نام و ایمیل الزامی است.','err');return;}
   let error;
-  if(id)({error}=await db.from('users').update({name,email,role}).eq('id',+id));
-  else{if(!pass||pass.length<8){showMsg('um-msg','پسورد حداقل ۸ کاراکتر.','err');return;}({error}=await db.from('users').insert([{name,email,password:pass,role,approved:true,project_access:null}]));}
+  if(id){
+    const updateData={name,email,role};
+    if(personnelId) updateData.personnel_id=personnelId;
+    ({error}=await db.from('users').update(updateData).eq('id',+id));
+  } else {
+    if(!pass||pass.length<8){showMsg('um-msg','پسورد حداقل ۸ کاراکتر.','err');return;}
+    const insertData={name,email,password:pass,role,approved:true,project_access:null};
+    if(personnelId) insertData.personnel_id=personnelId;
+    ({error}=await db.from('users').insert([insertData]));
+  }
   if(error){showMsg('um-msg','خطا: '+error.message,'err');return;}
   closeModal('user-modal');loadAdminUsers();await loadUsers();
 }
 
-// ---- CHARTS ----
+// ===== CATEGORIES =====
+function renderCategories(){
+  const container=document.getElementById('categories-list');
+  if(!categories.length){container.innerHTML='<div style="color:var(--muted);font-size:13px;padding:.8rem;">هیچ دسته‌بندی تعریف نشده</div>';return;}
+  container.innerHTML=categories.map(c=>'<div class="admin-card"><div class="admin-card-info"><span style="font-size:18px;">'+c.icon+'</span> '+c.name+' <span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:'+c.color+';vertical-align:middle;margin-right:6px;"></span><span>تعداد پروژه: '+projects.filter(p=>p.category_id==c.id).length+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-sec" onclick="openEditCategory('+c.id+')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteCategory('+c.id+')">🗑</button></div></div>').join('');
+}
+
+function openAddCategory(){
+  document.getElementById('cat-id').value='';
+  document.getElementById('cat-name').value='';
+  document.getElementById('cat-color').value='#0a1628';
+  document.getElementById('cat-icon').value='📁';
+  document.getElementById('cat-msg').innerHTML='';
+  openModal('category-modal');
+}
+
+function openEditCategory(id){
+  const c=categories.find(x=>x.id===id);if(!c)return;
+  document.getElementById('cat-id').value=id;
+  document.getElementById('cat-name').value=c.name;
+  document.getElementById('cat-color').value=c.color||'#0a1628';
+  document.getElementById('cat-icon').value=c.icon||'📁';
+  document.getElementById('cat-msg').innerHTML='';
+  openModal('category-modal');
+}
+
+async function saveCategory(){
+  const id=document.getElementById('cat-id').value;
+  const name=document.getElementById('cat-name').value.trim();
+  const color=document.getElementById('cat-color').value;
+  const icon=document.getElementById('cat-icon').value;
+  if(!name){showMsg('cat-msg','نام دسته الزامی است.','err');return;}
+  let error;
+  if(id)({error}=await db.from('project_categories').update({name,color,icon}).eq('id',+id));
+  else ({error}=await db.from('project_categories').insert([{name,color,icon}]));
+  if(error){showMsg('cat-msg','خطا: '+error.message,'err');return;}
+  closeModal('category-modal');loadCategories();
+}
+
+async function deleteCategory(id){
+  if(!confirm('حذف شود؟'))return;
+  await db.from('project_categories').delete().eq('id',id);
+  loadCategories();
+}
+
+// ===== IMPORT USERS =====
+function openImportUsers(){document.getElementById('import-msg').innerHTML='';document.getElementById('import-file').value='';openModal('import-users-modal');}
+
+async function importUsersFromFile(){
+  const file=document.getElementById('import-file').files[0];
+  if(!file){showMsg('import-msg','لطفاً فایل را انتخاب کنید.','err');return;}
+  
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const text=e.target.result;
+      const lines=text.split('\n').filter(l=>l.trim());
+      const headers=lines[0].split(',').map(h=>h.trim().toLowerCase());
+      const imported=[];
+      let success=0,errors=0;
+      
+      for(let i=1;i<lines.length;i++){
+        const values=lines[i].split(',').map(v=>v.trim());
+        const obj={};
+        headers.forEach((h,idx)=>{obj[h]=values[idx]||'';});
+        
+        if(!obj.name||!obj.email){errors++;continue;}
+        if(obj.password&&obj.password.length<8){errors++;continue;}
+        
+        const pass=obj.password||'12345678';
+        const userData={name:obj.name,email:obj.email,password:pass,role:obj.role||'user',approved:true,project_access:null};
+        if(obj.personnel_id) userData.personnel_id=obj.personnel_id;
+        
+        const {error}=await db.from('users').insert([userData]);
+        if(error){errors++;}else{success++;}
+      }
+      
+      showMsg('import-msg','✅ وارد شد: '+success+' کاربر | ❌ خطا: '+errors+' کاربر','ok');
+      loadAdminUsers();await loadUsers();
+    } catch(err){
+      showMsg('import-msg','خطا در خواندن فایل: '+err.message,'err');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ===== CHARTS =====
 function buildProgressChart(){
   if(charts.bar)charts.bar.destroy();
   if(!projects.length)return;
-  charts.bar=new Chart($('barChart'),{type:'bar',data:{labels:projects.map(p=>p.name.length>10?p.name.slice(0,10)+'…':p.name),datasets:[{label:'پیشرفت WBS',data:projects.map(p=>p.progress),backgroundColor:projects.map(p=>p.progress>=(p.planned||0)?'#1a9e6a':'#cc0000'),borderRadius:8},{label:'برنامه',data:projects.map(p=>p.planned||0),backgroundColor:'rgba(10,22,40,.12)',borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'٪'}}},onClick:(e,els)=>{if(els.length){const idx=els[0].index;openProjectDetail(projects[idx].id);}}}});
+  charts.bar=new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:projects.map(p=>p.name.length>10?p.name.slice(0,10)+'…':p.name),datasets:[{label:'پیشرفت WBS',data:projects.map(p=>p.progress),backgroundColor:projects.map(p=>p.progress>=(p.planned||0)?'#1a9e6a':'#cc0000'),borderRadius:8},{label:'برنامه',data:projects.map(p=>p.planned||0),backgroundColor:'rgba(10,22,40,.12)',borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'٪'}}},onClick:(e,els)=>{if(els.length){const idx=els[0].index;openProjectDetail(projects[idx].id);}}}});
 }
+
 async function buildCostChart(){
   if(charts.line)charts.line.destroy();
   const {data:mr}=await db.from('monthly_reports').select('*').order('year').order('month');
   const map={};(mr||[]).forEach(r=>{const k=r.year+'-'+String(r.month).padStart(2,'0');if(!map[k])map[k]={actual:0,budget:0};map[k].actual+=r.actual;map[k].budget+=r.budget;});
   const keys=Object.keys(map).sort();const labels=keys.map(k=>{const[y,m]=k.split('-');return MONTHS[+m-1]+' '+y;});
-  charts.line=new Chart($('lineChart'),{type:'line',data:{labels,datasets:[{label:'هزینه واقعی',data:keys.map(k=>map[k].actual),borderColor:'#0a1628',backgroundColor:'rgba(10,22,40,.06)',tension:.4,fill:true,pointRadius:5,pointBackgroundColor:'#0a1628'},{label:'بودجه',data:keys.map(k=>map[k].budget),borderColor:'#1a9e6a',borderDash:[6,4],tension:.4,fill:false,pointRadius:4,pointBackgroundColor:'#1a9e6a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}},onClick:(e,els)=>{if(els.length){const idx=els[0].index;openMonthDetail(keys[idx],labels[idx]);}}}});
+  charts.line=new Chart(document.getElementById('lineChart'),{type:'line',data:{labels,datasets:[{label:'هزینه واقعی',data:keys.map(k=>map[k].actual),borderColor:'#0a1628',backgroundColor:'rgba(10,22,40,.06)',tension:.4,fill:true,pointRadius:5,pointBackgroundColor:'#0a1628'},{label:'بودجه',data:keys.map(k=>map[k].budget),borderColor:'#1a9e6a',borderDash:[6,4],tension:.4,fill:false,pointRadius:4,pointBackgroundColor:'#1a9e6a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}},onClick:(e,els)=>{if(els.length){const idx=els[0].index;openMonthDetail(keys[idx],labels[idx]);}}}});
 }
+
 function buildPieChart(){
   if(charts.pie)charts.pie.destroy();
   if(!projects.length)return;
   const sc={};projects.forEach(p=>{sc[p.status]=(sc[p.status]||0)+1;});
   const sL=Object.keys(sc);const sC={'در حال اجرا':'#2d7dd2','تکمیل‌شده':'#1a9e6a','برنامه‌ریزی':'#d4af37','متوقف‌شده':'#cc0000'};
-  $('pie-legend').innerHTML=sL.map(s=>'<span><span class="ld" style="background:'+(sC[s]||'#888')+'"></span>'+s+' ('+sc[s]+')</span>').join('');
-  charts.pie=new Chart($('pieChart'),{type:'doughnut',data:{labels:sL,datasets:[{data:sL.map(s=>sc[s]),backgroundColor:sL.map(s=>sC[s]||'#888'),borderWidth:3,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},onClick:(e,els)=>{if(els.length){const idx=els[0].index;openStatusDetail(sL[idx]);}}}});
+  document.getElementById('pie-legend').innerHTML=sL.map(s=>'<span><span class="ld" style="background:'+(sC[s]||'#888')+'"></span>'+s+' ('+sc[s]+')</span>').join('');
+  charts.pie=new Chart(document.getElementById('pieChart'),{type:'doughnut',data:{labels:sL,datasets:[{data:sL.map(s=>sc[s]),backgroundColor:sL.map(s=>sC[s]||'#888'),borderWidth:3,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},onClick:(e,els)=>{if(els.length){const idx=els[0].index;openStatusDetail(sL[idx]);}}}});
 }
+
 function buildEVChart(){
   if(charts.ev)charts.ev.destroy();
-  if(!projects.length){$('ev-stats').innerHTML='<div style="color:var(--muted);font-size:13px;">پروژه‌ای وجود ندارد</div>';return;}
+  if(!projects.length){document.getElementById('ev-stats').innerHTML='<div style="color:var(--muted);font-size:13px;">پروژه‌ای وجود ندارد</div>';return;}
   const pv=projects.reduce((a,p)=>a+(p.budget*(p.planned||0)/100),0);const ev_=projects.reduce((a,p)=>a+(p.budget*p.progress/100),0);const ac=projects.reduce((a,p)=>a+p.actual,0);
-  charts.ev=new Chart($('evChart'),{type:'bar',data:{labels:['PV','EV','AC'],datasets:[{data:[Math.round(pv),Math.round(ev_),ac],backgroundColor:['#0a1628','#1a9e6a','#cc0000'],borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
+  charts.ev=new Chart(document.getElementById('evChart'),{type:'bar',data:{labels:['PV','EV','AC'],datasets:[{data:[Math.round(pv),Math.round(ev_),ac],backgroundColor:['#0a1628','#1a9e6a','#cc0000'],borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
   const sv=(ev_-pv).toFixed(0);const cv=(ev_-ac).toFixed(0);const spi=pv?(ev_/pv).toFixed(2):'-';const cpi=ac?(ev_/ac).toFixed(2):'-';
   const row=(l,v,c)=>'<div class="ev-stat"><span style="font-weight:600;">'+l+'</span><span style="font-weight:700;color:'+(c||'#1a1d29')+'">'+v+'</span></div>';
-  $('ev-stats').innerHTML=row('PV',Math.round(pv)+'M')+row('EV',Math.round(ev_)+'M')+row('AC',ac+'M')+row('SV',(sv>=0?'+':'')+sv+'M',sv>=0?'#1a9e6a':'#cc0000')+row('CV',(cv>=0?'+':'')+cv+'M',cv>=0?'#1a9e6a':'#cc0000')+row('SPI',spi,spi>=1?'#1a9e6a':'#cc0000')+row('CPI',cpi,cpi>=1?'#1a9e6a':'#cc0000');
+  document.getElementById('ev-stats').innerHTML=row('PV',Math.round(pv)+'M')+row('EV',Math.round(ev_)+'M')+row('AC',ac+'M')+row('SV',(sv>=0?'+':'')+sv+'M',sv>=0?'#1a9e6a':'#cc0000')+row('CV',(cv>=0?'+':'')+cv+'M',cv>=0?'#1a9e6a':'#cc0000')+row('SPI',spi,spi>=1?'#1a9e6a':'#cc0000')+row('CPI',cpi,cpi>=1?'#1a9e6a':'#cc0000');
 }
+
 async function buildCompareChart(){
   if(charts.compare)charts.compare.destroy();
-  const projId=$('cmp-proj').value;if(!projId)return;
+  const projId=document.getElementById('cmp-proj').value;if(!projId)return;
   const {data:mr}=await db.from('monthly_reports').select('*').eq('project_id',+projId).order('year').order('month');
   if(!mr||!mr.length)return;
-  charts.compare=new Chart($('compareChart'),{type:'bar',data:{labels:mr.map(r=>MONTHS[r.month-1]+' '+r.year),datasets:[{label:'برنامه',data:mr.map(r=>r.planned),backgroundColor:'rgba(26,158,106,.5)',borderRadius:6},{label:'هزینه',data:mr.map(r=>r.actual),backgroundColor:'#cc0000',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Vazirmatn'}}}}}});
+  charts.compare=new Chart(document.getElementById('compareChart'),{type:'bar',data:{labels:mr.map(r=>MONTHS[r.month-1]+' '+r.year),datasets:[{label:'برنامه',data:mr.map(r=>r.planned),backgroundColor:'rgba(26,158,106,.5)',borderRadius:6},{label:'هزینه',data:mr.map(r=>r.actual),backgroundColor:'#cc0000',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Vazirmatn'}}}}}});
 }
+
 function buildGantt(){
-  const g=$('gantt');
+  const g=document.getElementById('gantt');
   if(!projects.length){g.innerHTML='<div class="loading">پروژه‌ای وجود ندارد</div>';return;}
   const starts=projects.map(p=>new Date(p.start_date).getTime());const ends=projects.map(p=>new Date(p.end_date).getTime());
   const minT=Math.min(...starts),maxT=Math.max(...ends);const range=maxT-minT||1;
   g.innerHTML=projects.map((p,i)=>{const s=(new Date(p.start_date).getTime()-minT)/range*100;const w=Math.max(2,(new Date(p.end_date).getTime()-new Date(p.start_date).getTime())/range*100);return '<div class="gantt-row"><div class="gantt-label" title="'+p.name+'">'+p.name+'</div><div class="gantt-track" onclick="openProjectDetail('+p.id+')"><div class="gantt-bar" style="left:'+s.toFixed(1)+'%;width:'+w.toFixed(1)+'%;background:'+COLORS[i%COLORS.length]+';box-shadow:0 2px 8px rgba(0,0,0,.15);">'+p.progress+'٪</div></div></div>';}).join('');
 }
+
 function buildOverview(){
   if(charts.ov)charts.ov.destroy();
   const total=projects.length,done=projects.filter(p=>p.status==='تکمیل‌شده').length,active=projects.filter(p=>p.status==='در حال اجرا').length;
   const avg=total?Math.round(projects.reduce((a,p)=>a+p.progress,0)/total):0;
-  $('ov-metrics').innerHTML='<div class="metric"><div class="metric-label">کل</div><div class="metric-value">'+total+'</div></div><div class="metric g"><div class="metric-label">تکمیل‌شده</div><div class="metric-value">'+done+'</div></div><div class="metric b"><div class="metric-label">در حال اجرا</div><div class="metric-value">'+active+'</div></div><div class="metric r"><div class="metric-label">پیشرفت کل</div><div class="metric-value">'+avg+'٪</div></div>';
-  if(projects.length)charts.ov=new Chart($('ovChart'),{type:'bar',data:{labels:projects.map(p=>p.name.length>10?p.name.slice(0,10)+'…':p.name),datasets:[{label:'پیشرفت WBS',data:projects.map(p=>p.progress),backgroundColor:projects.map(p=>p.progress>=(p.planned||0)?'#1a9e6a':'#cc0000'),borderRadius:8},{label:'برنامه',data:projects.map(p=>p.planned||0),backgroundColor:'rgba(10,22,40,.1)',borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:100,ticks:{callback:v=>v+'٪'}}},onClick:(e,els)=>{if(els.length)openProjectDetail(projects[els[0].index].id);}}});
-  $('ov-list').innerHTML=projects.map(p=>'<div class="pov-row" onclick="openProjectDetail('+p.id+')"><div style="font-size:13px;font-weight:700;min-width:130px;color:var(--navy);">'+p.name+'</div><div style="flex:1;"><div style="display:flex;gap:4px;align-items:center;"><div class="pb-wrap"><div class="pb-fill" style="width:'+p.progress+'%;background:'+(p.progress>=(p.planned||0)?'#1a9e6a':'#cc0000')+'"></div></div><span style="font-size:12px;font-weight:700;min-width:35px;">'+p.progress+'٪</span></div></div><div>'+(p.progress>=(p.planned||0)?'<span class="badge badge-green">✓</span>':'<span class="badge badge-red">⚠</span>')+'</div></div>').join('');
+  document.getElementById('ov-metrics').innerHTML='<div class="metric"><div class="metric-label">کل</div><div class="metric-value">'+total+'</div></div><div class="metric g"><div class="metric-label">تکمیل‌شده</div><div class="metric-value">'+done+'</div></div><div class="metric b"><div class="metric-label">در حال اجرا</div><div class="metric-value">'+active+'</div></div><div class="metric r"><div class="metric-label">پیشرفت کل</div><div class="metric-value">'+avg+'٪</div></div>';
+  if(projects.length)charts.ov=new Chart(document.getElementById('ovChart'),{type:'bar',data:{labels:projects.map(p=>p.name.length>10?p.name.slice(0,10)+'…':p.name),datasets:[{label:'پیشرفت WBS',data:projects.map(p=>p.progress),backgroundColor:projects.map(p=>p.progress>=(p.planned||0)?'#1a9e6a':'#cc0000'),borderRadius:8},{label:'برنامه',data:projects.map(p=>p.planned||0),backgroundColor:'rgba(10,22,40,.1)',borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:100,ticks:{callback:v=>v+'٪'}}},onClick:(e,els)=>{if(els.length)openProjectDetail(projects[els[0].index].id);}}});
+  document.getElementById('ov-list').innerHTML=projects.map(p=>'<div class="pov-row" onclick="openProjectDetail('+p.id+')"><div style="font-size:13px;font-weight:700;min-width:130px;color:var(--navy);">'+p.name+'</div><div style="flex:1;"><div style="display:flex;gap:4px;align-items:center;"><div class="pb-wrap"><div class="pb-fill" style="width:'+p.progress+'%;background:'+(p.progress>=(p.planned||0)?'#1a9e6a':'#cc0000')+'"></div></div><span style="font-size:12px;font-weight:700;min-width:35px;">'+p.progress+'٪</span></div></div><div>'+(p.progress>=(p.planned||0)?'<span class="badge badge-green">✓</span>':'<span class="badge badge-red">⚠</span>')+'</div></div>').join('');
 }
-function updateMetrics(){
-  $('dash-metrics').innerHTML='<div class="metric"><div class="metric-label">کل پروژه‌ها</div><div class="metric-value">'+projects.length+'</div></div><div class="metric g"><div class="metric-label">در حال اجرا</div><div class="metric-value">'+projects.filter(p=>p.status==='در حال اجرا').length+'</div></div><div class="metric b"><div class="metric-label">میانگین پیشرفت</div><div class="metric-value">'+(projects.length?Math.round(projects.reduce((a,p)=>a+p.progress,0)/projects.length):0)+'٪</div></div><div class="metric r"><div class="metric-label">بودجه کل (M)</div><div class="metric-value">'+projects.reduce((a,p)=>a+p.budget,0)+'</div></div>';
-}
-async function buildDashCharts(){updateMetrics();buildProgressChart();await buildCostChart();buildPieChart();buildEVChart();buildGantt();await buildCompareChart();}
-function refreshDash(){updateMetrics();updateProjTable();if($('tab-dashboard')&&$('tab-dashboard').classList.contains('active'))setTimeout(buildDashCharts,50);}
 
-// ---- DETAIL PANELS ----
+function updateMetrics(){
+  document.getElementById('dash-metrics').innerHTML='<div class="metric"><div class="metric-label">کل پروژه‌ها</div><div class="metric-value">'+projects.length+'</div></div><div class="metric g"><div class="metric-label">در حال اجرا</div><div class="metric-value">'+projects.filter(p=>p.status==='در حال اجرا').length+'</div></div><div class="metric b"><div class="metric-label">میانگین پیشرفت</div><div class="metric-value">'+(projects.length?Math.round(projects.reduce((a,p)=>a+p.progress,0)/projects.length):0)+'٪</div></div><div class="metric r"><div class="metric-label">بودجه کل (M)</div><div class="metric-value">'+projects.reduce((a,p)=>a+p.budget,0)+'</div></div>';
+}
+
+async function buildDashCharts(){updateMetrics();buildProgressChart();await buildCostChart();buildPieChart();buildEVChart();buildGantt();await buildCompareChart();}
+function refreshDash(){updateMetrics();updateProjTable();if(document.getElementById('tab-dashboard')&&document.getElementById('tab-dashboard').classList.contains('active'))setTimeout(buildDashCharts,50);}
+
+// ===== DETAIL PANELS =====
 function showDashboardMain(){
   document.querySelectorAll('.detail-panel').forEach(p=>p.classList.remove('open'));
-  $('tab-dashboard').style.display='block';
+  document.getElementById('tab-dashboard').style.display='block';
 }
-function hideDashboardMain(){$('tab-dashboard').style.display='none';document.querySelectorAll('.detail-panel').forEach(p=>p.classList.remove('open'));}
+function hideDashboardMain(){document.getElementById('tab-dashboard').style.display='none';document.querySelectorAll('.detail-panel').forEach(p=>p.classList.remove('open'));}
 
 async function openProjectDetail(projectId){
   hideDashboardMain();
-  $('panel-project-detail').classList.add('open');
+  document.getElementById('panel-project-detail').classList.add('open');
   const p=allProjects.find(x=>x.id===projectId);if(!p)return;
-  $('pd-title').innerHTML='<span class="red">📊</span> '+p.name+' <span class="sub">جزئیات کامل پروژه</span>';
-  $('pd-metrics').innerHTML='<div class="metric"><div class="metric-label">پیشرفت WBS</div><div class="metric-value">'+p.progress+'٪</div></div><div class="metric b"><div class="metric-label">وضعیت</div><div class="metric-value" style="font-size:14px;">'+statusBadge(p.status)+'</div></div><div class="metric"><div class="metric-label">بودجه</div><div class="metric-value">'+p.budget+'M</div></div><div class="metric r"><div class="metric-label">هزینه واقعی</div><div class="metric-value">'+p.actual+'M</div></div><div class="metric g"><div class="metric-label">مدیر پروژه</div><div class="metric-value" style="font-size:14px;">'+p.manager+'</div></div>';
+  document.getElementById('pd-title').innerHTML='<span class="red">📊</span> '+p.name+' <span class="sub">جزئیات کامل پروژه</span>';
+  document.getElementById('pd-metrics').innerHTML='<div class="metric"><div class="metric-label">پیشرفت WBS</div><div class="metric-value">'+p.progress+'٪</div></div><div class="metric b"><div class="metric-label">وضعیت</div><div class="metric-value" style="font-size:14px;">'+statusBadge(p.status)+'</div></div><div class="metric"><div class="metric-label">بودجه</div><div class="metric-value">'+p.budget+'M</div></div><div class="metric r"><div class="metric-label">هزینه واقعی</div><div class="metric-value">'+p.actual+'M</div></div><div class="metric g"><div class="metric-label">مدیر پروژه</div><div class="metric-value" style="font-size:14px;">'+p.manager+'</div></div>';
   await loadWbsForProject(projectId);
   renderWbsTree('pd-content-wbs',wbsNodes,wbsAssignments,projectId,false);
   document.querySelectorAll('#panel-project-detail .detail-tab').forEach(t=>t.onclick=()=>switchPdTab(t.dataset.dtab,projectId));
   switchPdTab('wbs',projectId);
 }
+
 async function switchPdTab(tab,projectId){
   document.querySelectorAll('#panel-project-detail .detail-tab').forEach(t=>t.classList.toggle('active',t.dataset.dtab===tab));
-  $('pd-content-wbs').style.display=tab==='wbs'?'block':'none';
-  $('pd-content-monthly').style.display=tab==='monthly'?'block':'none';
-  $('pd-content-worklog').style.display=tab==='worklog'?'block':'none';
+  document.getElementById('pd-content-wbs').style.display=tab==='wbs'?'block':'none';
+  document.getElementById('pd-content-monthly').style.display=tab==='monthly'?'block':'none';
+  document.getElementById('pd-content-worklog').style.display=tab==='worklog'?'block':'none';
   if(tab==='monthly'){
     const {data}=await db.from('monthly_reports').select('*').eq('project_id',projectId).order('year').order('month');
     if(pdMonthlyChartInst)pdMonthlyChartInst.destroy();
     if(data&&data.length){
-      pdMonthlyChartInst=new Chart($('pdMonthlyChart'),{type:'line',data:{labels:data.map(r=>MONTHS[r.month-1]+' '+r.year),datasets:[{label:'برنامه',data:data.map(r=>r.planned),borderColor:'#1a9e6a',borderDash:[5,3],tension:.4},{label:'هزینه',data:data.map(r=>r.actual),borderColor:'#cc0000',tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Vazirmatn'}}}}}});
-      $('pd-monthly-list').innerHTML=data.map(r=>'<div class="mini-list-item"><span style="font-weight:700;">'+MONTHS[r.month-1]+' '+r.year+'</span><span>بودجه: '+r.budget+'M | هزینه: '+r.actual+'M | برنامه: '+r.planned+'٪</span></div>').join('');
-    } else {$('pd-monthly-list').innerHTML='<div class="loading">گزارشی ثبت نشده</div>';}
+      pdMonthlyChartInst=new Chart(document.getElementById('pdMonthlyChart'),{type:'line',data:{labels:data.map(r=>MONTHS[r.month-1]+' '+r.year),datasets:[{label:'برنامه',data:data.map(r=>r.planned),borderColor:'#1a9e6a',borderDash:[5,3],tension:.4},{label:'هزینه',data:data.map(r=>r.actual),borderColor:'#cc0000',tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Vazirmatn'}}}}}});
+      document.getElementById('pd-monthly-list').innerHTML=data.map(r=>'<div class="mini-list-item"><span style="font-weight:700;">'+MONTHS[r.month-1]+' '+r.year+'</span><span>بودجه: '+r.budget+'M | هزینه: '+r.actual+'M | برنامه: '+r.planned+'٪</span></div>').join('');
+    } else {document.getElementById('pd-monthly-list').innerHTML='<div class="loading">گزارشی ثبت نشده</div>';}
   }
   if(tab==='worklog'){
     const {data}=await db.from('work_logs').select('*').eq('project_id',projectId).order('log_date',{ascending:false}).limit(30);
-    $('pd-worklog-list').innerHTML=(data&&data.length)?data.map(r=>{const u=allUsers.find(u=>u.id===r.user_id);return '<div class="mini-list-item"><span style="font-weight:600;">'+r.log_date+' — '+(u?u.name||u.email:'—')+'</span><span><strong>'+r.hours+'h</strong> '+(r.description?'| '+r.description:'')+'</span></div>';}).join(''):'<div class="loading">کارکردی ثبت نشده</div>';
+    document.getElementById('pd-worklog-list').innerHTML=(data&&data.length)?data.map(r=>{const u=allUsers.find(u=>u.id===r.user_id);return '<div class="mini-list-item"><span style="font-weight:600;">'+r.log_date+' — '+(u?u.name||u.email:'—')+'</span><span><strong>'+r.hours+'h</strong> '+(r.description?'| '+r.description:'')+'</span></div>';}).join(''):'<div class="loading">کارکردی ثبت نشده</div>';
   }
 }
 
 function openMonthDetail(key,label){
   hideDashboardMain();
-  $('panel-month-detail').classList.add('open');
-  $('md-title').innerHTML='<span class="red">📅</span> '+label+' <span class="sub">جزئیات هزینه این ماه به تفکیک پروژه</span>';
+  document.getElementById('panel-month-detail').classList.add('open');
+  document.getElementById('md-title').innerHTML='<span class="red">📅</span> '+label+' <span class="sub">جزئیات هزینه این ماه به تفکیک پروژه</span>';
   const [year,month]=key.split('-');
   loadMonthDetailContent(+year,+month);
 }
+
 async function loadMonthDetailContent(year,month){
   const {data}=await db.from('monthly_reports').select('*').eq('year',year).eq('month',month);
-  if(!data||!data.length){$('md-content').innerHTML='<div class="loading">داده‌ای برای این ماه ثبت نشده</div>';return;}
-  $('md-content').innerHTML=data.map(r=>{
+  if(!data||!data.length){document.getElementById('md-content').innerHTML='<div class="loading">داده‌ای برای این ماه ثبت نشده</div>';return;}
+  document.getElementById('md-content').innerHTML=data.map(r=>{
     const p=allProjects.find(p=>p.id===r.project_id);
     return '<div class="mini-list-item" style="cursor:pointer" onclick="openProjectDetail('+r.project_id+')"><span style="font-weight:700;color:var(--navy);">'+(p?p.name:'—')+'</span><span>بودجه: '+r.budget+'M | هزینه: '+r.actual+'M | برنامه: '+r.planned+'٪'+(r.notes?' | '+r.notes:'')+'</span></div>';
   }).join('');
@@ -1077,20 +1490,20 @@ async function loadMonthDetailContent(year,month){
 
 function openStatusDetail(status){
   hideDashboardMain();
-  $('panel-status-detail').classList.add('open');
-  $('sd-title').innerHTML='<span class="red">🎯</span> '+status+' <span class="sub">فهرست پروژه‌های این وضعیت</span>';
+  document.getElementById('panel-status-detail').classList.add('open');
+  document.getElementById('sd-title').innerHTML='<span class="red">🎯</span> '+status+' <span class="sub">فهرست پروژه‌های این وضعیت</span>';
   const filtered=projects.filter(p=>p.status===status);
-  $('sd-content').innerHTML=filtered.length?filtered.map(p=>'<div class="mini-list-item" style="cursor:pointer" onclick="openProjectDetail('+p.id+')"><span style="font-weight:700;color:var(--navy);">'+p.name+'</span><span>پیشرفت: '+p.progress+'٪ | بودجه: '+p.budget+'M | مدیر: '+p.manager+'</span></div>').join(''):'<div class="loading">پروژه‌ای با این وضعیت نیست</div>';
+  document.getElementById('sd-content').innerHTML=filtered.length?filtered.map(p=>'<div class="mini-list-item" style="cursor:pointer" onclick="openProjectDetail('+p.id+')"><span style="font-weight:700;color:var(--navy);">'+p.name+'</span><span>پیشرفت: '+p.progress+'٪ | بودجه: '+p.budget+'M | مدیر: '+p.manager+'</span></div>').join(''):'<div class="loading">پروژه‌ای با این وضعیت نیست</div>';
 }
 
-// ---- NAVIGATION ----
+// ===== NAVIGATION =====
 function showTab(id){
   document.querySelectorAll('.sb-link').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));
   document.querySelectorAll('.section').forEach(s=>s.style.display='none');
   document.querySelectorAll('.detail-panel').forEach(p=>p.classList.remove('open'));
-  const sec=$('tab-'+id);if(sec)sec.style.display='block';
-  const titles={dashboard:['نمای کلی','داشبورد'],overview:['نمای کلی','نمای کلی شرکت'],tasks:['کار من','وظایف من'],worklog:['کار من','گزارش کارکرد'],monthly:['مدیریت','گزارش ماهانه'],projects:['مدیریت','پروژه‌ها'],admin:['مدیریت','کاربران']};
-  if(titles[id]){$('topbar-eyebrow').textContent=titles[id][0];$('topbar-title').textContent=titles[id][1];}
+  const sec=document.getElementById('tab-'+id);if(sec)sec.style.display='block';
+  const titles={dashboard:['نمای کلی','داشبورد'],overview:['نمای کلی','نمای کلی شرکت'],tasks:['کار من','وظایف من'],worklog:['کار من','گزارش کارکرد'],monthly:['مدیریت','گزارش ماهانه'],projects:['مدیریت','پروژه‌ها'],admin:['مدیریت','کاربران'],settings:['مدیریت','تنظیمات']};
+  if(titles[id]){document.getElementById('topbar-eyebrow').textContent=titles[id][0];document.getElementById('topbar-title').textContent=titles[id][1];}
   if(id==='dashboard')setTimeout(buildDashCharts,50);
   if(id==='overview')setTimeout(buildOverview,50);
   if(id==='tasks')loadMyTasks();
@@ -1098,58 +1511,78 @@ function showTab(id){
   if(id==='admin')loadAdminUsers();
   if(id==='monthly')loadMonthlyReports();
   if(id==='projects'){updateProjTable();closeWbs();}
+  if(id==='settings'){loadCategories();}
 }
 
-// ---- INIT ----
+// ===== INIT =====
 document.addEventListener('DOMContentLoaded',function(){
-  $('tab-login-btn').addEventListener('click',()=>switchAuth('login'));
-  $('tab-reg-btn').addEventListener('click',()=>switchAuth('register'));
-  $('login-btn').addEventListener('click',login);
-  $('reg-btn').addEventListener('click',register);
-  $('pending-logout-btn').addEventListener('click',logout);
-  $('main-logout-btn').addEventListener('click',logout);
+  document.getElementById('login-type-personnel').addEventListener('click',()=>switchLoginType('personnel'));
+  document.getElementById('login-type-client').addEventListener('click',()=>switchLoginType('client'));
+  document.getElementById('tab-login-btn').addEventListener('click',()=>switchAuth('login'));
+  document.getElementById('tab-reg-btn').addEventListener('click',()=>switchAuth('register'));
+  document.getElementById('login-btn').addEventListener('click',login);
+  document.getElementById('reg-btn').addEventListener('click',register);
+  document.getElementById('pending-logout-btn').addEventListener('click',logout);
+  document.getElementById('main-logout-btn').addEventListener('click',logout);
+  
   document.querySelectorAll('.sb-link[data-tab]').forEach(btn=>btn.addEventListener('click',()=>showTab(btn.dataset.tab)));
   document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.close)));
   document.querySelectorAll('.modal-overlay').forEach(overlay=>overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('open');}));
 
-  $('back-from-proj-detail').addEventListener('click',showDashboardMain);
-  $('back-from-month-detail').addEventListener('click',showDashboardMain);
-  $('back-from-status-detail').addEventListener('click',showDashboardMain);
+  document.getElementById('back-from-proj-detail').addEventListener('click',showDashboardMain);
+  document.getElementById('back-from-month-detail').addEventListener('click',showDashboardMain);
+  document.getElementById('back-from-status-detail').addEventListener('click',showDashboardMain);
 
-  $('add-proj-btn').addEventListener('click',()=>{
-    editingProjectId=null;$('proj-form-title').textContent='➕ پروژه جدید';
-    ['f-name','f-start','f-end','f-budget','f-actual','f-manager'].forEach(i=>$(i).value='');
-    $('add-msg').innerHTML='';$('proj-form-wrap').style.display='block';
+  document.getElementById('add-proj-btn').addEventListener('click',()=>{
+    editingProjectId=null;document.getElementById('proj-form-title').textContent='➕ پروژه جدید';
+    ['f-name','f-start','f-end','f-budget','f-actual'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('f-manager').value='';
+    document.getElementById('f-category').value='';
+    document.getElementById('add-msg').innerHTML='';
+    document.getElementById('proj-form-wrap').style.display='block';
   });
-  $('cancel-proj-btn').addEventListener('click',()=>{$('proj-form-wrap').style.display='none';editingProjectId=null;});
-  $('save-proj-btn').addEventListener('click',saveProject);
-  $('export-csv-btn').addEventListener('click',exportCSV);
+  document.getElementById('cancel-proj-btn').addEventListener('click',()=>{document.getElementById('proj-form-wrap').style.display='none';editingProjectId=null;});
+  document.getElementById('save-proj-btn').addEventListener('click',saveProject);
+  document.getElementById('export-csv-btn').addEventListener('click',exportCSV);
 
-  $('add-root-node-btn').addEventListener('click',openAddRootNode);
-  $('close-wbs-btn').addEventListener('click',closeWbs);
-  $('save-wbs-node-btn').addEventListener('click',saveWbsNode);
-  $('wn-type').addEventListener('change',toggleWbsType);
+  document.getElementById('add-root-node-btn').addEventListener('click',openAddRootNode);
+  document.getElementById('close-wbs-btn').addEventListener('click',closeWbs);
+  document.getElementById('save-wbs-node-btn').addEventListener('click',saveWbsNode);
+  document.getElementById('wn-type').addEventListener('change',toggleWbsType);
 
-  $('do-confirm-user-btn').addEventListener('click',doConfirmUser);
-  $('do-confirm-manager-btn').addEventListener('click',doConfirmManager);
+  document.getElementById('do-confirm-user-btn').addEventListener('click',doConfirmUser);
+  document.getElementById('do-confirm-manager-btn').addEventListener('click',doConfirmManager);
 
-  $('open-worklog-btn').addEventListener('click',openAddWorklog);
-  $('save-worklog-btn').addEventListener('click',saveWorklog);
-  $('export-wl-btn').addEventListener('click',exportWorklog);
-  $('wl-filter-user').addEventListener('change',loadWorklog);
-  $('wl-filter-proj').addEventListener('change',loadWorklog);
-  $('wl-from').addEventListener('change',loadWorklog);
-  $('wl-to').addEventListener('change',loadWorklog);
-  $('wl-proj').addEventListener('change',loadWlNodes);
+  document.getElementById('open-worklog-btn').addEventListener('click',openAddWorklog);
+  document.getElementById('save-worklog-btn').addEventListener('click',saveWorklog);
+  document.getElementById('export-wl-btn').addEventListener('click',exportWorklog);
+  document.getElementById('wl-filter-user').addEventListener('change',loadWorklog);
+  document.getElementById('wl-filter-proj').addEventListener('change',loadWorklog);
+  document.getElementById('wl-from').addEventListener('change',loadWorklog);
+  document.getElementById('wl-to').addEventListener('change',loadWorklog);
+  document.getElementById('wl-proj').addEventListener('change',loadWlNodes);
 
-  $('add-month-btn').addEventListener('click',openAddMonthly);
-  $('save-monthly-btn').addEventListener('click',saveMonthlyReport);
-  $('mr-proj').addEventListener('change',loadMonthlyReports);
-  $('mr-year').addEventListener('change',loadMonthlyReports);
+  document.getElementById('add-month-btn').addEventListener('click',openAddMonthly);
+  document.getElementById('save-monthly-btn').addEventListener('click',saveMonthlyReport);
+  document.getElementById('mr-proj').addEventListener('change',loadMonthlyReports);
+  document.getElementById('mr-year').addEventListener('change',loadMonthlyReports);
 
-  $('open-add-user-btn').addEventListener('click',openAddUser);
-  $('save-user-btn').addEventListener('click',saveUser);
-  $('cmp-proj').addEventListener('change',buildCompareChart);
+  document.getElementById('open-add-user-btn').addEventListener('click',openAddUser);
+  document.getElementById('save-user-btn').addEventListener('click',saveUser);
+  document.getElementById('cmp-proj').addEventListener('change',buildCompareChart);
+  
+  // دسته‌بندی‌ها
+  document.getElementById('add-category-btn').addEventListener('click',openAddCategory);
+  document.getElementById('save-category-btn').addEventListener('click',saveCategory);
+  
+  // ایمپورت کاربران
+  document.getElementById('import-users-btn').addEventListener('click',openImportUsers);
+  document.getElementById('import-users-btn-confirm').addEventListener('click',importUsersFromFile);
+  
+  // تنظیمات
+  document.getElementById('save-settings-btn').addEventListener('click',function(){
+    alert('تنظیمات ذخیره شد!');
+  });
 });
 </script>
 </body>
