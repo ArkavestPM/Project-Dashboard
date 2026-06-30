@@ -284,10 +284,6 @@ tr:hover td{background:#f8f9fc;}
 .access-project-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);}
 .access-project-item:last-child{border-bottom:none;}
 .access-project-item:hover{background:#f8f9fc;}
-
-/* ===== NOTIFICATION BADGE ===== */
-.notif-badge{position:relative;}
-.notif-badge .count{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:50%;padding:2px 7px;font-size:9px;font-weight:700;min-width:18px;text-align:center;}
 </style>
 </head>
 <body>
@@ -974,7 +970,6 @@ function initApp(){
   
   document.getElementById('change-password-btn').style.display='block';
   
-  // نمایش بخش‌های مدیریت فقط برای ادمین و سوپرادمین
   if(isAdmin()||isSA()){
     document.getElementById('tab-btn-admin').style.display='flex';
     document.getElementById('tab-btn-settings').style.display='flex';
@@ -998,8 +993,6 @@ function initApp(){
   if(isSA()) document.getElementById('header-badge').innerHTML='<span class="superadmin-badge">SUPER ADMIN</span>';
   
   loadAll();
-  
-  // شروع چت
   setTimeout(loadChatContacts, 500);
 }
 
@@ -1014,15 +1007,15 @@ async function loadProjects(){
   }
   
   if (!isSA() && !isAdmin() && CU && CU.id) {
-    const {data: accessData} = await db.from('user_project_access')
+    const {data: accessData}=await db.from('user_project_access')
       .select('project_id')
       .eq('user_id', CU.id);
-    const accessibleProjectIds = (accessData || []).map(a => a.project_id);
-    const managedIds = myManagedProjects.map(p => p.id);
-    const allAccessIds = [...new Set([...accessibleProjectIds, ...managedIds])];
-    projects = allProjects.filter(p => allAccessIds.includes(p.id));
+    const accessibleProjectIds=(accessData||[]).map(a=>a.project_id);
+    const managedIds=myManagedProjects.map(p=>p.id);
+    const allAccessIds=[...new Set([...accessibleProjectIds,...managedIds])];
+    projects=allProjects.filter(p=>allAccessIds.includes(p.id));
   } else {
-    projects = allProjects;
+    projects=allProjects;
   }
   
   refreshDash();
@@ -1131,7 +1124,6 @@ async function loadChatContacts() {
   
   const contacts=[];
   
-  // کاربران دیگر (غیر از خودم)
   const otherUsers=allUsers.filter(u=>u.id!==CU.id && u.approved);
   otherUsers.forEach(u=>{
     contacts.push({
@@ -1145,7 +1137,6 @@ async function loadChatContacts() {
     });
   });
   
-  // گروه‌ها
   const {data: groups}=await db.from('chat_groups')
     .select('*, chat_group_members(user_id)')
     .eq('created_by', CU.id);
@@ -1163,7 +1154,6 @@ async function loadChatContacts() {
     });
   });
   
-  // گروه‌هایی که کاربر عضو آنهاست
   const {data: memberGroups}=await db.from('chat_group_members')
     .select('group_id, chat_groups(*)')
     .eq('user_id', CU.id);
@@ -1288,7 +1278,6 @@ async function loadChatMessages(contact) {
   
   container.scrollTop=container.scrollHeight;
   
-  // علامت‌گذاری پیام‌ها به عنوان خوانده شده
   if(contact.type==='user'){
     await db.from('chat_messages')
       .update({is_read:true, read_at:new Date().toISOString()})
@@ -1321,7 +1310,7 @@ async function sendChatMessage() {
   await loadChatContacts();
 }
 
-async function openNewGroupModal() {
+function openNewGroupModal() {
   document.getElementById('ng-name').value='';
   document.getElementById('ng-description').value='';
   document.getElementById('ng-project').value='';
@@ -1351,9 +1340,8 @@ async function createNewGroup() {
   const {data: group, error}=await db.from('chat_groups').insert([groupData]).select().single();
   if(error){showMsg('ng-msg','خطا: '+error.message,'err');return;}
   
-  // افزودن اعضا
   const membersData=members.map(m=>({group_id: group.id, user_id: m}));
-  membersData.push({group_id: group.id, user_id: CU.id}); // خود creator هم عضو شود
+  membersData.push({group_id: group.id, user_id: CU.id});
   await db.from('chat_group_members').insert(membersData);
   
   closeModal('new-group-modal');
@@ -1445,7 +1433,7 @@ async function saveProjectAccess() {
 }
 
 // ===== WBS CHANGE REQUESTS =====
-async function openWbsChangeRequest() {
+function openWbsChangeRequest() {
   if(!currentWbsProjectId){alert('ابتدا یک پروژه را انتخاب کنید');return;}
   document.getElementById('wcr-node-id').value='';
   document.getElementById('wcr-project-id').value=currentWbsProjectId;
@@ -1473,7 +1461,7 @@ async function saveWbsChangeRequest() {
   if(error){showMsg('wcr-msg','خطا: '+error.message,'err');return;}
   
   closeModal('wbs-change-request-modal');
-  showMsg('wbs-msg','✅ درخواست شما با موفقیت ثبت شد و منتظر تایید ادمین است.','ok');
+  alert('✅ درخواست شما با موفقیت ثبت شد و منتظر تایید ادمین است.');
   await loadWbsChangeRequests();
 }
 
@@ -1668,7 +1656,7 @@ async function openWbs(projectId){
   await loadWbsForProject(projectId);
   const isEditable=isAdmin()||isSA()||(isManager() && myManagedProjects.some(p=>p.id===projectId));
   renderWbsTree('wbs-tree',wbsNodes,wbsAssignments,projectId,isEditable);
-  document.getElementById('wbs-request-change-btn').style.display=isEditable?'block':'none';
+  document.getElementById('wbs-request-change-btn').style.display=isEditable?'inline-flex':'none';
 }
 
 function closeWbs(){document.getElementById('proj-list-wrap').style.display='block';document.getElementById('wbs-panel').style.display='none';currentWbsProjectId=null;}
@@ -2294,92 +2282,115 @@ function showTab(id){
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',function(){
-  document.getElementById('login-type-personnel').addEventListener('click',()=>switchLoginType('personnel'));
-  document.getElementById('login-type-client').addEventListener('click',()=>switchLoginType('client'));
-  document.getElementById('tab-login-btn').addEventListener('click',()=>switchAuth('login'));
-  document.getElementById('tab-reg-btn').addEventListener('click',()=>switchAuth('register'));
-  document.getElementById('login-btn').addEventListener('click',login);
-  document.getElementById('reg-btn').addEventListener('click',register);
-  document.getElementById('pending-logout-btn').addEventListener('click',logout);
-  document.getElementById('main-logout-btn').addEventListener('click',logout);
+  // ===== دکمه‌های صفحه ورود =====
+  document.getElementById('login-type-personnel').addEventListener('click', function(){ switchLoginType('personnel'); });
+  document.getElementById('login-type-client').addEventListener('click', function(){ switchLoginType('client'); });
+  document.getElementById('tab-login-btn').addEventListener('click', function(){ switchAuth('login'); });
+  document.getElementById('tab-reg-btn').addEventListener('click', function(){ switchAuth('register'); });
+  document.getElementById('login-btn').addEventListener('click', login);
+  document.getElementById('reg-btn').addEventListener('click', register);
+  document.getElementById('pending-logout-btn').addEventListener('click', logout);
+  document.getElementById('main-logout-btn').addEventListener('click', logout);
   
-  document.getElementById('change-password-btn').addEventListener('click',openChangePassword);
-  document.getElementById('save-password-btn').addEventListener('click',savePassword);
+  // ===== تغییر رمز =====
+  document.getElementById('change-password-btn').addEventListener('click', openChangePassword);
+  document.getElementById('save-password-btn').addEventListener('click', savePassword);
   
-  // چت
-  document.getElementById('save-group-btn').addEventListener('click',createNewGroup);
+  // ===== چت =====
+  document.getElementById('save-group-btn').addEventListener('click', createNewGroup);
   
-  // WBS Change Requests
-  document.getElementById('save-wbs-change-request-btn').addEventListener('click',saveWbsChangeRequest);
+  // ===== WBS Change Requests =====
+  document.getElementById('save-wbs-change-request-btn').addEventListener('click', saveWbsChangeRequest);
   
-  document.querySelectorAll('.sb-link[data-tab]').forEach(btn=>btn.addEventListener('click',()=>showTab(btn.dataset.tab)));
-  document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.close)));
-  document.querySelectorAll('.modal-overlay').forEach(overlay=>overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('open');}));
+  // ===== ناوبری =====
+  document.querySelectorAll('.sb-link[data-tab]').forEach(function(btn){
+    btn.addEventListener('click', function(){ showTab(this.dataset.tab); });
+  });
+  
+  // ===== بستن مودال‌ها =====
+  document.querySelectorAll('[data-close]').forEach(function(btn){
+    btn.addEventListener('click', function(){ closeModal(this.dataset.close); });
+  });
+  document.querySelectorAll('.modal-overlay').forEach(function(overlay){
+    overlay.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); });
+  });
 
-  document.getElementById('back-from-proj-detail').addEventListener('click',showDashboardMain);
-  document.getElementById('back-from-month-detail').addEventListener('click',showDashboardMain);
-  document.getElementById('back-from-status-detail').addEventListener('click',showDashboardMain);
+  // ===== دکمه‌های بازگشت =====
+  document.getElementById('back-from-proj-detail').addEventListener('click', showDashboardMain);
+  document.getElementById('back-from-month-detail').addEventListener('click', showDashboardMain);
+  document.getElementById('back-from-status-detail').addEventListener('click', showDashboardMain);
 
-  document.getElementById('add-proj-btn').addEventListener('click',()=>{
-    editingProjectId=null;document.getElementById('proj-form-title').textContent='➕ پروژه جدید';
-    ['f-name','f-start','f-end','f-budget','f-actual'].forEach(i=>document.getElementById(i).value='');
+  // ===== پروژه‌ها =====
+  document.getElementById('add-proj-btn').addEventListener('click', function(){
+    editingProjectId=null;
+    document.getElementById('proj-form-title').textContent='➕ پروژه جدید';
+    ['f-name','f-start','f-end','f-budget','f-actual'].forEach(function(i){ document.getElementById(i).value=''; });
     document.getElementById('f-manager').value='';
     document.getElementById('f-category').value='';
     document.getElementById('add-msg').innerHTML='';
     document.getElementById('proj-form-wrap').style.display='block';
   });
-  document.getElementById('cancel-proj-btn').addEventListener('click',()=>{document.getElementById('proj-form-wrap').style.display='none';editingProjectId=null;});
-  document.getElementById('save-proj-btn').addEventListener('click',saveProject);
-  document.getElementById('export-csv-btn').addEventListener('click',exportCSV);
+  document.getElementById('cancel-proj-btn').addEventListener('click', function(){ document.getElementById('proj-form-wrap').style.display='none'; editingProjectId=null; });
+  document.getElementById('save-proj-btn').addEventListener('click', saveProject);
+  document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
 
-  document.getElementById('add-root-node-btn').addEventListener('click',openAddRootNode);
-  document.getElementById('close-wbs-btn').addEventListener('click',closeWbs);
-  document.getElementById('save-wbs-node-btn').addEventListener('click',saveWbsNode);
-  document.getElementById('wn-type').addEventListener('change',toggleWbsType);
+  // ===== WBS =====
+  document.getElementById('add-root-node-btn').addEventListener('click', openAddRootNode);
+  document.getElementById('close-wbs-btn').addEventListener('click', closeWbs);
+  document.getElementById('save-wbs-node-btn').addEventListener('click', saveWbsNode);
+  document.getElementById('wn-type').addEventListener('change', toggleWbsType);
 
-  document.getElementById('do-confirm-user-btn').addEventListener('click',doConfirmUser);
-  document.getElementById('do-confirm-manager-btn').addEventListener('click',doConfirmManager);
+  // ===== وظایف =====
+  document.getElementById('do-confirm-user-btn').addEventListener('click', doConfirmUser);
+  document.getElementById('do-confirm-manager-btn').addEventListener('click', doConfirmManager);
 
-  document.getElementById('open-worklog-btn').addEventListener('click',openAddWorklog);
-  document.getElementById('save-worklog-btn').addEventListener('click',saveWorklog);
-  document.getElementById('export-wl-btn').addEventListener('click',exportWorklog);
-  document.getElementById('wl-filter-user').addEventListener('change',loadWorklog);
-  document.getElementById('wl-filter-proj').addEventListener('change',loadWorklog);
-  document.getElementById('wl-from').addEventListener('change',loadWorklog);
-  document.getElementById('wl-to').addEventListener('change',loadWorklog);
-  document.getElementById('wl-proj').addEventListener('change',loadWlNodes);
+  // ===== گزارش کارکرد =====
+  document.getElementById('open-worklog-btn').addEventListener('click', openAddWorklog);
+  document.getElementById('save-worklog-btn').addEventListener('click', saveWorklog);
+  document.getElementById('export-wl-btn').addEventListener('click', exportWorklog);
+  document.getElementById('wl-filter-user').addEventListener('change', loadWorklog);
+  document.getElementById('wl-filter-proj').addEventListener('change', loadWorklog);
+  document.getElementById('wl-from').addEventListener('change', loadWorklog);
+  document.getElementById('wl-to').addEventListener('change', loadWorklog);
+  document.getElementById('wl-proj').addEventListener('change', loadWlNodes);
 
-  document.getElementById('add-month-btn').addEventListener('click',openAddMonthly);
-  document.getElementById('save-monthly-btn').addEventListener('click',saveMonthlyReport);
-  document.getElementById('mr-proj').addEventListener('change',loadMonthlyReports);
-  document.getElementById('mr-year').addEventListener('change',loadMonthlyReports);
+  // ===== گزارش ماهانه =====
+  document.getElementById('add-month-btn').addEventListener('click', openAddMonthly);
+  document.getElementById('save-monthly-btn').addEventListener('click', saveMonthlyReport);
+  document.getElementById('mr-proj').addEventListener('change', loadMonthlyReports);
+  document.getElementById('mr-year').addEventListener('change', loadMonthlyReports);
 
-  document.getElementById('open-add-user-btn').addEventListener('click',openAddUser);
-  document.getElementById('save-user-btn').addEventListener('click',saveUser);
-  document.getElementById('cmp-proj').addEventListener('change',buildCompareChart);
+  // ===== مدیریت کاربران =====
+  document.getElementById('open-add-user-btn').addEventListener('click', openAddUser);
+  document.getElementById('save-user-btn').addEventListener('click', saveUser);
+  document.getElementById('cmp-proj').addEventListener('change', buildCompareChart);
   
-  document.getElementById('add-category-btn').addEventListener('click',openAddCategory);
-  document.getElementById('save-category-btn').addEventListener('click',saveCategory);
+  // ===== دسته‌بندی‌ها =====
+  document.getElementById('add-category-btn').addEventListener('click', openAddCategory);
+  document.getElementById('save-category-btn').addEventListener('click', saveCategory);
   
-  document.getElementById('import-users-btn').addEventListener('click',openImportUsers);
-  document.getElementById('import-users-btn-confirm').addEventListener('click',importUsersFromFile);
+  // ===== ایمپورت کاربران =====
+  document.getElementById('import-users-btn').addEventListener('click', openImportUsers);
+  document.getElementById('import-users-btn-confirm').addEventListener('click', importUsersFromFile);
   
-  document.getElementById('save-settings-btn').addEventListener('click',function(){
+  // ===== تنظیمات =====
+  document.getElementById('save-settings-btn').addEventListener('click', function(){
     alert('تنظیمات ذخیره شد!');
   });
   
+  // ===== دسترسی پروژه‌ها =====
   document.getElementById('select-all-projects').addEventListener('click', function() {
-    document.querySelectorAll('.project-access-check').forEach(cb => {
+    document.querySelectorAll('.project-access-check').forEach(function(cb) {
       cb.checked = true;
-      const select = cb.closest('.access-project-item').querySelector('.access-level-select');
+      var select = cb.closest('.access-project-item').querySelector('.access-level-select');
       if(select) select.style.opacity = '1';
     });
   });
   
   document.getElementById('deselect-all-projects').addEventListener('click', function() {
-    document.querySelectorAll('.project-access-check').forEach(cb => {
+    document.querySelectorAll('.project-access-check').forEach(function(cb) {
       cb.checked = false;
-      const select = cb.closest('.access-project-item').querySelector('.access-level-select');
+      var select = cb.closest('.access-project-item').querySelector('.access-level-select');
       if(select) select.style.opacity = '0.5';
     });
   });
