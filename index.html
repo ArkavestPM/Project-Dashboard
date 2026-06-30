@@ -998,7 +998,7 @@ async function loadProjects(){
 async function loadUsers(){
   var result=await db.from('users').select('*').order('id');
   allUsers=result.data||[];
-  populateWlFilters();
+  await populateWlFilters();
   populateManagerSelect();
   populateGroupMembersSelect();
 }
@@ -1068,7 +1068,7 @@ function populateSelects(){
   }
 }
 
-function populateWlFilters(){
+async function populateWlFilters(){
   var el=document.getElementById('wl-filter-user');
   if(!el)return;
   
@@ -2195,7 +2195,7 @@ function showTab(id){
   if(id==='overview')setTimeout(buildOverview,50);
   if(id==='chat'){loadChatContacts();}
   if(id==='tasks')loadMyTasks();
-  if(id==='worklog'){loadWorklog();populateWlFilters();}
+  if(id==='worklog'){await loadWorklog();await populateWlFilters();}
   if(id==='admin'){loadAdminUsers();loadUserAccess();}
   if(id==='monthly')loadMonthlyReports();
   if(id==='projects'){updateProjTable();closeWbs();}
