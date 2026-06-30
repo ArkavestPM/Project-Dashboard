@@ -91,7 +91,6 @@ body{font-family:'Vazirmatn',Tahoma,sans-serif;background:var(--bg);color:var(--
 .topbar{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;background:#fff;position:sticky;top:0;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.04);}
 .topbar-title{font-size:15px;font-weight:800;color:var(--ink);}
 .topbar-title .eyebrow{font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px;}
-.topbar-actions{display:flex;gap:8px;align-items:center;}
 .content{padding:1.8rem 2rem 3rem;max-width:1440px;}
 
 /* ===== CARDS / METRICS ===== */
@@ -319,9 +318,9 @@ tr:hover td{background:#f8f9fc;}
         <button class="sb-link" data-tab="tasks"><span class="sb-ic">✅</span><span>وظایف من</span></button>
         <button class="sb-link" data-tab="worklog"><span class="sb-ic">⏱</span><span>گزارش کارکرد</span></button>
         <div class="sb-section-label">مدیریت</div>
-        <button class="sb-link" data-tab="monthly" id="tab-btn-monthly"><span class="sb-ic">📅</span><span>گزارش ماهانه</span></button>
-        <button class="sb-link" data-tab="projects" id="tab-btn-projects"><span class="sb-ic">📁</span><span>پروژه‌ها</span></button>
-        <button class="sb-link" data-tab="admin" id="tab-btn-admin" style="display:none"><span class="sb-ic">⚙️</span><span>مدیریت کاربران</span></button>
+        <button class="sb-link" data-tab="monthly"><span class="sb-ic">📅</span><span>گزارش ماهانه</span></button>
+        <button class="sb-link" data-tab="projects"><span class="sb-ic">📁</span><span>پروژه‌ها</span></button>
+        <button class="sb-link" data-tab="admin" id="tab-btn-admin" style="display:none"><span class="sb-ic">⚙️</span><span>کاربران</span></button>
         <button class="sb-link" data-tab="settings" id="tab-btn-settings" style="display:none"><span class="sb-ic">🔧</span><span>تنظیمات</span></button>
       </div>
       <div class="sb-foot">
@@ -343,10 +342,7 @@ tr:hover td{background:#f8f9fc;}
           <span class="eyebrow" id="topbar-eyebrow">نمای کلی</span>
           <span id="topbar-title">داشبورد</span>
         </div>
-        <div class="topbar-actions">
-          <button class="btn btn-sm btn-sec" id="change-password-btn" style="display:none;">🔑 تغییر رمز</button>
-          <div id="header-badge"></div>
-        </div>
+        <div id="header-badge"></div>
       </div>
       <div class="content">
 
@@ -413,15 +409,9 @@ tr:hover td{background:#f8f9fc;}
             <div class="section-title" style="margin-bottom:0;border:none;padding:0;"><span class="red">⏱</span> گزارش کارکرد</div>
             <button class="btn btn-red btn-sm" id="open-worklog-btn">➕ ثبت کارکرد</button>
           </div>
-          <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;" id="wl-filters">
-            <div class="fgs" id="wl-filter-user-wrap" style="display:none;">
-              <label>فیلتر کاربر</label>
-              <select id="wl-filter-user" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;min-width:150px;background:#fafbfc;"><option value="">همه کاربران</option></select>
-            </div>
-            <div class="fgs" id="wl-filter-proj-wrap">
-              <label>فیلتر پروژه</label>
-              <select id="wl-filter-proj" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;min-width:150px;background:#fafbfc;"><option value="">همه پروژه‌ها</option></select>
-            </div>
+          <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
+            <div class="fgs"><label>فیلتر کاربر</label><select id="wl-filter-user" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;min-width:150px;background:#fafbfc;"><option value="">همه کاربران</option></select></div>
+            <div class="fgs"><label>فیلتر پروژه</label><select id="wl-filter-proj" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;min-width:150px;background:#fafbfc;"><option value="">همه پروژه‌ها</option></select></div>
             <div class="fgs"><label>از تاریخ</label><input type="date" id="wl-from" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"></div>
             <div class="fgs"><label>تا تاریخ</label><input type="date" id="wl-to" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"></div>
             <div class="fgs" style="justify-content:flex-end;"><button class="btn btn-sec btn-sm" id="export-wl-btn">⬇ CSV</button></div>
@@ -600,31 +590,6 @@ tr:hover td{background:#f8f9fc;}
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;"><button class="btn btn-sec" data-close="import-users-modal">انصراف</button><button class="btn btn-red" id="import-users-btn-confirm">📥 وارد کردن</button></div>
 </div></div>
 
-<!-- مودال تغییر رمز -->
-<div class="modal-overlay" id="change-password-modal"><div class="modal modal-sm">
-  <div class="modal-header"><div class="modal-title">🔑 تغییر رمز عبور</div><button class="modal-close" data-close="change-password-modal">×</button></div>
-  <div class="fg password-wrapper">
-    <label>رمز فعلی</label>
-    <input type="password" id="cp-current-pass" placeholder="رمز فعلی را وارد کنید">
-    <span class="password-toggle" onclick="togglePassword('cp-current-pass', this)">👁️</span>
-  </div>
-  <div class="fg password-wrapper">
-    <label>رمز جدید</label>
-    <input type="password" id="cp-new-pass" placeholder="حداقل ۸ کاراکتر">
-    <span class="password-toggle" onclick="togglePassword('cp-new-pass', this)">👁️</span>
-  </div>
-  <div class="fg password-wrapper">
-    <label>تکرار رمز جدید</label>
-    <input type="password" id="cp-confirm-pass" placeholder="تکرار رمز جدید">
-    <span class="password-toggle" onclick="togglePassword('cp-confirm-pass', this)">👁️</span>
-  </div>
-  <div id="cp-msg" style="margin-top:8px;"></div>
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">
-    <button class="btn btn-sec" data-close="change-password-modal">انصراف</button>
-    <button class="btn btn-red" id="save-password-btn">✓ تغییر رمز</button>
-  </div>
-</div></div>
-
 <!-- سایر مودال‌ها -->
 <div class="modal-overlay" id="confirm-task-modal"><div class="modal modal-sm">
   <div class="modal-header"><div class="modal-title">✅ اعلام انجام فعالیت</div><button class="modal-close" data-close="confirm-task-modal">×</button></div>
@@ -692,7 +657,6 @@ let currentWbsProjectId=null,wbsNodes=[],wbsAssignments=[];
 let pendingAssignId=null,editingProjectId=null,currentAccessUserId=null;
 let monthlyChartInst=null,pdMonthlyChartInst=null;
 let loginType='personnel';
-let myManagedProjects=[]; // پروژه‌هایی که کاربر مدیر آنهاست
 
 // ===== توابع کمکی =====
 function $(id){return document.getElementById(id);}
@@ -760,7 +724,7 @@ async function login() {
   if(!pass){showMsg('auth-msg','لطفاً پسورد را وارد کنید.','err');return;}
 
   if(identifier===SA_EMAIL && pass===SA_PASS){
-    CU={id:9999,email:SA_EMAIL,name:'سوپر ادمین',role:'superadmin',approved:true,project_access:null};
+    CU={email:SA_EMAIL,name:'سوپر ادمین',role:'superadmin',approved:true,project_access:null};
     initApp();
     return;
   }
@@ -821,57 +785,28 @@ function initApp(){
   const roleLabel={superadmin:'سوپر ادمین',admin:'ادمین',manager:'مدیر پروژه',user:'کاربر'}[CU.role]||CU.role;
   document.getElementById('sb-urole').textContent=roleLabel;
   
-  // نمایش دکمه تغییر رمز برای همه
-  document.getElementById('change-password-btn').style.display='block';
-  
-  // نمایش بخش‌های مدیریت فقط برای ادمین و سوپرادمین
-  if(isAdmin()||isSA()){
-    document.getElementById('tab-btn-admin').style.display='flex';
-    document.getElementById('tab-btn-settings').style.display='flex';
-    document.getElementById('add-proj-btn').style.display='block';
-    document.getElementById('add-month-btn').style.display='block';
-    document.getElementById('wl-filter-user-wrap').style.display='block';
-  }
-  
-  // مدیر پروژه
-  if(isManager()&&!isAdmin()&&!isSA()){
-    document.getElementById('add-month-btn').style.display='block';
-    document.getElementById('add-proj-btn').style.display='block';
-    // فیلتر کاربر برای مدیر پروژه مخفی میشه (چون فقط کارکنان خودش رو میبینه)
-    document.getElementById('wl-filter-user-wrap').style.display='none';
-  }
-  
-  // کاربر عادی
-  if(CU.role==='user'){
-    document.getElementById('wl-filter-user-wrap').style.display='none';
-  }
-  
   if(isSA()) document.getElementById('header-badge').innerHTML='<span class="superadmin-badge">SUPER ADMIN</span>';
+  if(isAdmin()) document.getElementById('tab-btn-admin').style.display='flex';
+  if(isSA()) document.getElementById('tab-btn-settings').style.display='flex';
+  if(isManager()) document.getElementById('add-month-btn').style.display='block';
+  if(isSA()||isAdmin()) document.getElementById('add-proj-btn').style.display='block';
   
   loadAll();
 }
 
-async function loadAll(){await loadProjects();await loadUsers();await loadCategories();await loadUserAccess();}
+async function loadAll(){await loadProjects();await loadUsers();await loadCategories();}
 
 async function loadProjects(){
   const {data}=await db.from('projects').select('*').order('id',{ascending:false});
   allProjects=data||[];
   
-  // پیدا کردن پروژه‌هایی که کاربر مدیر آنهاست
-  if(CU && CU.id){
-    myManagedProjects = allProjects.filter(p => p.manager_id === CU.id);
-  }
-  
   // فیلتر بر اساس دسترسی
   if (!isSA() && !isAdmin() && CU && CU.id) {
-    // اگر مدیر پروژه است، همه پروژه‌های خودش و پروژه‌هایی که دسترسی دارد
     const {data: accessData} = await db.from('user_project_access')
       .select('project_id')
       .eq('user_id', CU.id);
     const accessibleProjectIds = (accessData || []).map(a => a.project_id);
-    const managedIds = myManagedProjects.map(p => p.id);
-    const allAccessIds = [...new Set([...accessibleProjectIds, ...managedIds])];
-    projects = allProjects.filter(p => allAccessIds.includes(p.id));
+    projects = allProjects.filter(p => accessibleProjectIds.includes(p.id));
   } else {
     projects = allProjects;
   }
@@ -921,60 +856,20 @@ function populateManagerSelect(){
 }
 
 function populateSelects(){
-  let accessibleProjects = projects;
-  
-  // اگر مدیر پروژه است و ادمین نیست، فقط پروژه‌های خودش رو ببینه
-  if(isManager() && !isAdmin() && !isSA()){
-    accessibleProjects = myManagedProjects;
-  } else {
-    accessibleProjects = projects;
-  }
+  const accessibleProjects = isSA()||isAdmin() ? projects : projects;
   
   ['mr-proj','wl-proj','cmp-proj'].forEach(sid=>{
     const el=$(sid);if(!el)return;const cur=el.value;
     el.innerHTML=(sid==='mr-proj'?'<option value="">انتخاب پروژه...</option>':'')+accessibleProjects.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
     if(cur)el.value=cur;
   });
-  
-  // فیلتر پروژه در گزارش کارکرد
-  const wlFilter = document.getElementById('wl-filter-proj');
-  if(wlFilter){
-    const cur=wlFilter.value;
-    let projList = projects;
-    // برای مدیر پروژه که ادمین نیست، فقط پروژه‌های خودش
-    if(isManager() && !isAdmin() && !isSA()){
-      projList = myManagedProjects;
-    }
-    wlFilter.innerHTML='<option value="">همه پروژه‌ها</option>'+projList.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
-    if(cur)wlFilter.value=cur;
-  }
 }
 
 function populateWlFilters(){
-  const el=document.getElementById('wl-filter-user');
-  if(!el)return;
-  
-  let userList = allUsers;
-  
-  // اگر مدیر پروژه است و ادمین نیست، فقط کارکنان پروژه‌های خودش
-  if(isManager() && !isAdmin() && !isSA() && CU && CU.id){
-    // پیدا کردن کاربرانی که به پروژه‌های مدیر دسترسی دارند
-    const managedProjectIds = myManagedProjects.map(p => p.id);
-    if(managedProjectIds.length){
-      // کاربرانی که به این پروژه‌ها دسترسی دارند
-      const {data: accessUsers} = await db.from('user_project_access')
-        .select('user_id')
-        .in('project_id', managedProjectIds);
-      const userIds = [...new Set(accessUsers.map(a => a.user_id))];
-      // اضافه کردن خود مدیر
-      userIds.push(CU.id);
-      userList = allUsers.filter(u => userIds.includes(u.id));
-    } else {
-      userList = [CU];
-    }
-  }
-  
-  el.innerHTML='<option value="">همه کاربران</option>'+userList.map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+(u.personnel_id?' ('+u.personnel_id+')':'')+'</option>').join('');
+  const el=document.getElementById('wl-filter-user');if(!el)return;
+  el.innerHTML='<option value="">همه کاربران</option>'+allUsers.map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+(u.personnel_id?' ('+u.personnel_id+')':'')+'</option>').join('');
+  const el2=document.getElementById('wl-filter-proj');if(!el2)return;
+  el2.innerHTML='<option value="">همه پروژه‌ها</option>'+projects.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
 }
 
 // ===== مدیریت دسترسی پروژه‌ها =====
@@ -1064,61 +959,6 @@ async function saveProjectAccess() {
   
   showMsg('access-msg', '✅ دسترسی‌ها با موفقیت ذخیره شد!', 'ok');
   setTimeout(() => closeModal('access-modal'), 1000);
-}
-
-// ===== تغییر رمز عبور =====
-function openChangePassword(){
-  document.getElementById('cp-current-pass').value='';
-  document.getElementById('cp-new-pass').value='';
-  document.getElementById('cp-confirm-pass').value='';
-  document.getElementById('cp-msg').innerHTML='';
-  openModal('change-password-modal');
-}
-
-async function savePassword(){
-  const currentPass = document.getElementById('cp-current-pass').value;
-  const newPass = document.getElementById('cp-new-pass').value;
-  const confirmPass = document.getElementById('cp-confirm-pass').value;
-  
-  if(!currentPass || !newPass || !confirmPass){
-    showMsg('cp-msg','همه فیلدها را پر کنید.','err');
-    return;
-  }
-  
-  if(newPass.length < 8){
-    showMsg('cp-msg','رمز جدید حداقل ۸ کاراکتر باشد.','err');
-    return;
-  }
-  
-  if(newPass !== confirmPass){
-    showMsg('cp-msg','رمز جدید و تکرار آن مطابقت ندارند.','err');
-    return;
-  }
-  
-  // بررسی رمز فعلی
-  const {data,error} = await db.from('users')
-    .select('id')
-    .eq('id', CU.id)
-    .eq('password', currentPass)
-    .single();
-  
-  if(error || !data){
-    showMsg('cp-msg','رمز فعلی اشتباه است.','err');
-    return;
-  }
-  
-  // به‌روزرسانی رمز
-  const {error: updateError} = await db.from('users')
-    .update({password: newPass})
-    .eq('id', CU.id);
-  
-  if(updateError){
-    showMsg('cp-msg','خطا در تغییر رمز: ' + updateError.message, 'err');
-    return;
-  }
-  
-  showMsg('cp-msg','✅ رمز با موفقیت تغییر کرد!','ok');
-  setTimeout(() => closeModal('change-password-modal'), 1500);
 }
 
 // ===== WBS =====
@@ -1471,37 +1311,8 @@ async function loadWorklog(){
   const from=document.getElementById('wl-from').value;
   const to=document.getElementById('wl-to').value;
   let q=db.from('work_logs').select('*').order('log_date',{ascending:false});
-  
-  // دسترسی‌ها
-  if(!isAdmin() && !isSA()){
-    if(isManager()){
-      // مدیر پروژه: فقط کارکنان پروژه‌های خودش
-      const managedIds = myManagedProjects.map(p => p.id);
-      if(managedIds.length){
-        // کاربرانی که به پروژه‌های مدیر دسترسی دارند
-        const {data: accessUsers} = await db.from('user_project_access')
-          .select('user_id')
-          .in('project_id', managedIds);
-        const userIds = [...new Set(accessUsers.map(a => a.user_id))];
-        userIds.push(CU.id); // خود مدیر
-        q = q.in('user_id', userIds);
-        if(pf) q = q.eq('project_id', +pf);
-      } else {
-        q = q.eq('user_id', CU.id);
-      }
-    } else {
-      // کاربر عادی: فقط خودش
-      q = q.eq('user_id', CU.id);
-    }
-  } else {
-    // ادمین: همه
-    if(uf) q = q.eq('user_id', +uf);
-    if(pf) q = q.eq('project_id', +pf);
-  }
-  
-  if(from) q = q.gte('log_date', from);
-  if(to) q = q.lte('log_date', to);
-  
+  if(!isAdmin())q=q.eq('user_id',CU.id);else if(uf)q=q.eq('user_id',+uf);
+  if(pf)q=q.eq('project_id',+pf);if(from)q=q.gte('log_date',from);if(to)q=q.lte('log_date',to);
   const {data}=await q;wlData=data||[];
   const totalH=wlData.reduce((s,r)=>s+r.hours,0);
   document.getElementById('wl-metrics').innerHTML='<div class="metric"><div class="metric-label">رکوردها</div><div class="metric-value">'+wlData.length+'</div></div><div class="metric g"><div class="metric-label">مجموع ساعات</div><div class="metric-value">'+totalH+'h</div></div>';
@@ -1844,7 +1655,7 @@ function showTab(id){
   if(id==='dashboard')setTimeout(buildDashCharts,50);
   if(id==='overview')setTimeout(buildOverview,50);
   if(id==='tasks')loadMyTasks();
-  if(id==='worklog'){loadWorklog();populateWlFilters();}
+  if(id==='worklog')loadWorklog();
   if(id==='admin'){loadAdminUsers();loadUserAccess();}
   if(id==='monthly')loadMonthlyReports();
   if(id==='projects'){updateProjTable();closeWbs();}
@@ -1861,10 +1672,6 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('reg-btn').addEventListener('click',register);
   document.getElementById('pending-logout-btn').addEventListener('click',logout);
   document.getElementById('main-logout-btn').addEventListener('click',logout);
-  
-  // تغییر رمز
-  document.getElementById('change-password-btn').addEventListener('click',openChangePassword);
-  document.getElementById('save-password-btn').addEventListener('click',savePassword);
   
   document.querySelectorAll('.sb-link[data-tab]').forEach(btn=>btn.addEventListener('click',()=>showTab(btn.dataset.tab)));
   document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.close)));
