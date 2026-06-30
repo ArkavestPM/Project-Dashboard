@@ -7,120 +7,180 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
+:root{
+  --navy:#0f1631; --navy2:#161f44; --navy3:#1d2a5c;
+  --gold:#c9a44c; --red:#c8102e;
+  --ink:#1a1d29; --muted:#6b7184; --line:#eceef3; --bg:#f7f8fb;
+  --green:#1d9e75; --blue:#3a7bd5; --amber:#c98a2e;
+}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:Tahoma,Arial,sans-serif;background:#f0f2f5;color:#222;direction:rtl;min-height:100vh;}
-header{background:linear-gradient(135deg,#1a1060,#534AB7);color:white;padding:.85rem 2rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.2);}
-header h1{font-size:16px;font-weight:600;}
-.btn-logout{background:rgba(255,255,255,.2);border:none;color:white;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:Tahoma;font-size:13px;}
-.container{max-width:1300px;margin:0 auto;padding:1.25rem;}
-.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460,#533483);}
-.auth-box{background:white;border-radius:20px;padding:2rem 2.2rem;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.4);}
-.auth-logo{text-align:center;margin-bottom:1.5rem;}
-.auth-logo .co{font-size:18px;font-weight:700;color:#534AB7;margin-bottom:4px;}
-.auth-logo .sys{font-size:13px;color:#888;}
-.auth-tabs{display:flex;margin-bottom:1.5rem;border:1px solid #eee;border-radius:8px;overflow:hidden;}
-.auth-tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:14px;background:#f9f9f9;color:#666;border:none;font-family:Tahoma;}
-.auth-tab.active{background:#534AB7;color:white;font-weight:600;}
-.fg{margin-bottom:1rem;}
-.fg label{display:block;font-size:13px;color:#555;margin-bottom:5px;font-weight:500;}
-.fg input{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:Tahoma;outline:none;}
-.fg input:focus{border-color:#534AB7;}
-.btn-primary{width:100%;padding:11px;background:#534AB7;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:Tahoma;}
-.msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px;text-align:center;}
-.msg-ok{background:#EAF3DE;color:#3B6D11;}
-.msg-err{background:#FCEBEB;color:#A32D2D;}
-.tabs{display:flex;gap:2px;margin-bottom:1.25rem;border-bottom:2px solid #e0e0e0;overflow-x:auto;}
-.tab{padding:9px 14px;font-size:13px;cursor:pointer;border:none;background:none;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;font-family:Tahoma;white-space:nowrap;}
-.tab.active{color:#534AB7;border-bottom-color:#534AB7;font-weight:600;}
-.section{display:none;}.section.active{display:block;}
-.section-title{font-size:15px;font-weight:700;color:#333;margin-bottom:1rem;padding-bottom:8px;border-bottom:2px solid #eee;}
-.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem;}
-.metric{background:white;border-radius:10px;padding:.9rem 1.1rem;box-shadow:0 1px 5px rgba(0,0,0,.07);border-right:4px solid #534AB7;}
-.metric-label{font-size:11px;color:#888;margin-bottom:4px;}
-.metric-value{font-size:21px;font-weight:700;color:#534AB7;}
-.metric.g{border-right-color:#1D9E75;}.metric.g .metric-value{color:#1D9E75;}
-.metric.r{border-right-color:#D85A30;}.metric.r .metric-value{color:#D85A30;}
-.metric.b{border-right-color:#378ADD;}.metric.b .metric-value{color:#378ADD;}
-.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:1.25rem;}
-@media(max-width:700px){.chart-row{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr!important;}}
-.chart-box,.chart-full{background:white;border-radius:10px;padding:1.1rem;box-shadow:0 1px 5px rgba(0,0,0,.07);margin-bottom:1.25rem;}
-.chart-title{font-size:13px;font-weight:600;color:#444;margin-bottom:8px;}
+body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;background:var(--bg);color:var(--ink);direction:rtl;min-height:100vh;}
+
+/* ===== AUTH ===== */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 30% 20%,#1d2a5c,#0f1631 60%);position:relative;overflow:hidden;}
+.auth-wrap::after{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:46px 46px;pointer-events:none;}
+.auth-box{background:#fff;border-radius:18px;padding:2.3rem 2.4rem;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,.45);position:relative;z-index:1;}
+.auth-logo{text-align:center;margin-bottom:1.6rem;}
+.auth-logo .co{font-size:19px;font-weight:800;color:var(--red);letter-spacing:.3px;}
+.auth-logo .sys{font-size:12.5px;color:var(--muted);margin-top:3px;}
+.auth-tabs{display:flex;margin-bottom:1.4rem;background:var(--bg);border-radius:10px;padding:3px;}
+.auth-tab{flex:1;padding:9px;text-align:center;cursor:pointer;font-size:13.5px;background:none;color:var(--muted);border:none;border-radius:8px;font-family:inherit;font-weight:600;transition:all .2s;}
+.auth-tab.active{background:var(--navy);color:#fff;}
+.fg{margin-bottom:.95rem;}
+.fg label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;font-weight:600;}
+.fg input{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;outline:none;transition:border .15s;}
+.fg input:focus{border-color:var(--navy);}
+.btn-primary{width:100%;padding:11px;background:var(--navy);color:white;border:none;border-radius:9px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+.btn-primary:hover{background:var(--navy2);}
+.msg{padding:9px 13px;border-radius:8px;font-size:12.5px;margin-top:9px;text-align:center;}
+.msg-ok{background:#E8F5EE;color:#1a7a56;}
+.msg-err{background:#FBE9EA;color:#9c2031;}
+
+/* ===== APP SHELL ===== */
+.app-shell{display:flex;min-height:100vh;}
+.sidebar{width:248px;background:linear-gradient(180deg,var(--navy),#0c1226);color:#fff;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.sb-brand{padding:1.4rem 1.3rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-brand .name{font-size:15px;font-weight:800;color:#fff;letter-spacing:.2px;}
+.sb-brand .accent{display:inline-block;width:18px;height:3px;background:var(--gold);border-radius:2px;margin-top:7px;}
+.sb-brand .sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:6px;}
+.sb-nav{flex:1;padding:1rem .7rem;overflow-y:auto;}
+.sb-section-label{font-size:10.5px;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:.6px;padding:.8rem .7rem .4rem;text-transform:uppercase;}
+.sb-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:rgba(255,255,255,.72);font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:2px;transition:all .15s;border:none;background:none;width:100%;text-align:right;font-family:inherit;}
+.sb-link:hover{background:rgba(255,255,255,.06);color:#fff;}
+.sb-link.active{background:rgba(201,164,76,.14);color:var(--gold);}
+.sb-link.active .sb-ic{opacity:1;}
+.sb-ic{font-size:16px;width:20px;text-align:center;opacity:.85;}
+.sb-foot{padding:1rem 1.1rem;border-top:1px solid rgba(255,255,255,.08);}
+.sb-user{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.sb-avatar{width:34px;height:34px;border-radius:10px;background:var(--gold);color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;}
+.sb-uname{font-size:12.5px;font-weight:700;color:#fff;line-height:1.3;}
+.sb-urole{font-size:10.5px;color:rgba(255,255,255,.45);}
+.sb-logout{width:100%;padding:8px;background:rgba(255,255,255,.07);border:none;border-radius:8px;color:rgba(255,255,255,.75);font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;}
+.sb-logout:hover{background:rgba(255,255,255,.12);color:#fff;}
+
+.main-area{flex:1;min-width:0;background:#fff;}
+.topbar{height:62px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 1.8rem;background:#fff;position:sticky;top:0;z-index:20;}
+.topbar-title{font-size:16px;font-weight:800;color:var(--ink);}
+.topbar-title .eyebrow{font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:1px;}
+.content{padding:1.6rem 1.8rem 3rem;max-width:1400px;}
+
+/* ===== CARDS / METRICS ===== */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:1.4rem;}
+.metric{background:#fff;border:1px solid var(--line);border-radius:14px;padding:1rem 1.15rem;position:relative;overflow:hidden;}
+.metric::before{content:'';position:absolute;top:0;right:0;width:3px;height:100%;background:var(--navy);}
+.metric.g::before{background:var(--green);} .metric.r::before{background:var(--red);} .metric.b::before{background:var(--blue);} .metric.gold::before{background:var(--gold);}
+.metric-label{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;}
+.metric-value{font-size:23px;font-weight:800;color:var(--navy);}
+.metric.g .metric-value{color:var(--green);} .metric.r .metric-value{color:var(--red);} .metric.b .metric-value{color:var(--blue);}
+
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:1.4rem;}
+@media(max-width:900px){.chart-row{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr!important;}.sidebar{width:72px;}.sb-brand .name,.sb-brand .sub,.sb-link span:last-child,.sb-uname,.sb-urole{display:none;}.sb-link{justify-content:center;}.sb-user{justify-content:center;}}
+.chart-box,.chart-full{background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.3rem;margin-bottom:1.4rem;}
+.chart-box.clickable{cursor:pointer;transition:all .18s;}
+.chart-box.clickable:hover{border-color:var(--navy);box-shadow:0 8px 24px rgba(15,22,49,.08);transform:translateY(-1px);}
+.chart-title{font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.chart-hint{font-size:10.5px;color:var(--muted);font-weight:500;}
+.section-title{font-size:17px;font-weight:800;color:var(--ink);margin-bottom:1.1rem;padding-bottom:10px;border-bottom:2px solid var(--line);}
+.section-title .sub{font-size:12px;color:var(--muted);font-weight:500;display:block;margin-top:2px;}
+
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
 .fgs{display:flex;flex-direction:column;gap:4px;}
-.fgs label{font-size:12px;color:#555;font-weight:500;}
-.fgs input,.fgs select,.fgs textarea{padding:8px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;}
+.fgs label{font-size:12px;color:var(--muted);font-weight:600;}
+.fgs input,.fgs select,.fgs textarea{padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;transition:border .15s;}
+.fgs input:focus,.fgs select:focus{border-color:var(--navy);}
 .fgs textarea{resize:vertical;min-height:60px;}
-.btn{padding:7px 16px;border:none;border-radius:8px;background:#534AB7;color:white;font-size:13px;cursor:pointer;font-weight:600;font-family:Tahoma;}
-.btn:hover{opacity:.88;}
-.btn-sm{padding:5px 11px;font-size:12px;}
-.btn-sec{background:#f0f0f0;color:#333;}
-.btn-danger{background:#FCEBEB;color:#A32D2D;}
-.btn-green{background:#EAF3DE;color:#3B6D11;}
-.btn-warn{background:#FFF3CD;color:#856404;}
-.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
-.badge-green{background:#EAF3DE;color:#3B6D11;}
-.badge-amber{background:#FAEEDA;color:#854F0B;}
-.badge-red{background:#FCEBEB;color:#A32D2D;}
-.badge-blue{background:#E6F1FB;color:#185FA5;}
-.badge-gray{background:#f0f0f0;color:#555;}
-.badge-gold{background:#FFF3CD;color:#856404;}
+
+.btn{padding:8px 18px;border:none;border-radius:9px;background:var(--navy);color:white;font-size:13px;cursor:pointer;font-weight:700;font-family:inherit;transition:background .15s;}
+.btn:hover{background:var(--navy2);}
+.btn-sm{padding:6px 13px;font-size:12px;}
+.btn-sec{background:var(--bg);color:var(--ink);}
+.btn-sec:hover{background:#eceef3;}
+.btn-danger{background:#FBE9EA;color:#9c2031;}
+.btn-green{background:#E8F5EE;color:#1a7a56;}
+.btn-warn{background:#FCF1DC;color:#8a611b;}
+.btn-gold{background:var(--gold);color:var(--navy);}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;}
+.badge-green{background:#E8F5EE;color:#1a7a56;}
+.badge-amber{background:#FCF1DC;color:#8a611b;}
+.badge-red{background:#FBE9EA;color:#9c2031;}
+.badge-blue{background:#E9F1FC;color:#2563a8;}
+.badge-gray{background:var(--bg);color:var(--muted);}
+.badge-gold{background:#FCF1DC;color:#8a611b;}
+
 .table-wrap{overflow-x:auto;}
 table{width:100%;font-size:13px;border-collapse:collapse;}
-th{text-align:right;font-weight:600;color:#555;padding:9px 11px;border-bottom:1px solid #eee;background:#fafafa;white-space:nowrap;}
-td{padding:9px 11px;border-bottom:1px solid #f5f5f5;color:#333;vertical-align:middle;}
-tr:hover td{background:#fafbff;}
-.gantt-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
-.gantt-label{font-size:12px;color:#666;width:110px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
-.gantt-track{flex:1;height:20px;background:#f0f0f0;border-radius:4px;position:relative;overflow:hidden;}
-.gantt-bar{height:100%;border-radius:4px;position:absolute;display:flex;align-items:center;padding-right:6px;font-size:10px;color:white;font-weight:600;}
-.ev-stat{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f0f0f0;}
-.ev-stat:last-child{border-bottom:none;}
-.admin-card{background:white;border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.6rem;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-.admin-card-info{font-size:14px;flex:1;}
-.admin-card-info span{font-size:12px;color:#888;display:block;margin-top:2px;}
-.admin-actions{display:flex;gap:5px;flex-wrap:wrap;}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:1rem;}
-.modal-overlay.open{display:flex;}
-.modal{background:white;border-radius:14px;padding:1.4rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
-.modal-sm{max-width:440px;}
-.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;}
-.modal-title{font-size:15px;font-weight:700;color:#333;}
-.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;}
-.pb-wrap{background:#f0f0f0;border-radius:4px;height:7px;overflow:hidden;flex:1;}
-.pb-fill{height:100%;border-radius:4px;background:#534AB7;}
-.pov-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:white;border-radius:10px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
-.access-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-height:200px;overflow-y:auto;}
-.access-item{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid #eee;border-radius:8px;font-size:13px;cursor:pointer;}
-.access-item:hover,.access-item.checked{border-color:#534AB7;background:#f5f3ff;}
-.access-item input{accent-color:#534AB7;width:14px;height:14px;}
-.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:#666;}
-.legend span{display:flex;align-items:center;gap:4px;}
-.ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
-.loading{text-align:center;padding:2.5rem;color:#aaa;font-size:14px;}
-.superadmin-badge{background:linear-gradient(135deg,#c8102e,#8b0000);color:white;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;}
-.divider{height:1px;background:#f0f0f0;margin:.9rem 0;}
+th{text-align:right;font-weight:700;color:var(--muted);padding:10px 12px;border-bottom:1.5px solid var(--line);background:var(--bg);white-space:nowrap;font-size:11.5px;}
+td{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--ink);vertical-align:middle;}
+tr:hover td{background:#fafbfd;}
 
-/* WBS styles */
+.gantt-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.gantt-label{font-size:12px;color:var(--muted);width:120px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;font-weight:600;}
+.gantt-track{flex:1;height:22px;background:var(--bg);border-radius:5px;position:relative;overflow:hidden;cursor:pointer;}
+.gantt-bar{height:100%;border-radius:5px;position:absolute;display:flex;align-items:center;padding-right:7px;font-size:10.5px;color:white;font-weight:700;transition:filter .15s;}
+.gantt-bar:hover{filter:brightness(1.1);}
+
+.ev-stat{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--line);}
+.ev-stat:last-child{border-bottom:none;}
+
+.admin-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:.9rem 1.1rem;margin-bottom:.6rem;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.admin-card-info{font-size:14px;flex:1;font-weight:600;}
+.admin-card-info span{font-size:12px;color:var(--muted);display:block;margin-top:2px;font-weight:500;}
+.admin-actions{display:flex;gap:5px;flex-wrap:wrap;}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,22,49,.55);z-index:1000;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(2px);}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:18px;padding:1.5rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.35);}
+.modal-sm{max-width:460px;}
+.modal-lg{max-width:760px;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;}
+.modal-title{font-size:16px;font-weight:800;color:var(--ink);}
+.modal-title .sub{font-size:11.5px;color:var(--muted);font-weight:500;display:block;margin-top:2px;}
+.modal-close{background:var(--bg);border:none;font-size:18px;cursor:pointer;color:var(--muted);width:30px;height:30px;border-radius:9px;}
+.modal-close:hover{background:#eceef3;}
+
+.pb-wrap{background:var(--bg);border-radius:5px;height:8px;overflow:hidden;flex:1;}
+.pb-fill{height:100%;border-radius:5px;background:var(--navy);transition:width .3s;}
+.pov-row{display:flex;align-items:center;gap:10px;padding:10px 13px;background:#fff;border:1px solid var(--line);border-radius:13px;margin-bottom:6px;cursor:pointer;transition:all .15s;}
+.pov-row:hover{border-color:var(--navy);}
+.access-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-height:200px;overflow-y:auto;}
+.access-item{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;cursor:pointer;}
+.access-item:hover,.access-item.checked{border-color:var(--navy);background:#f1f2f8;}
+.access-item input{accent-color:var(--navy);width:14px;height:14px;}
+.legend{display:flex;flex-wrap:wrap;gap:11px;font-size:11.5px;color:var(--muted);font-weight:600;}
+.legend span{display:flex;align-items:center;gap:4px;}
+.ld{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.loading{text-align:center;padding:2.5rem;color:var(--muted);font-size:13px;}
+.superadmin-badge{background:linear-gradient(135deg,var(--red),#8b0000);color:white;font-size:10px;padding:3px 9px;border-radius:20px;font-weight:700;}
+.divider{height:1px;background:var(--line);margin:1rem 0;}
+
 .wbs-tree{padding:0;}
-.wbs-node{margin-bottom:4px;}
-.wbs-row{display:flex;align-items:center;gap:6px;padding:7px 10px;background:white;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-right:3px solid #ddd;cursor:pointer;transition:all .15s;}
-.wbs-row:hover{background:#f5f3ff;border-right-color:#534AB7;}
-.wbs-row.leaf{border-right-color:#1D9E75;}
-.wbs-row.selected{background:#f0eeff;border-right-color:#534AB7;}
-.wbs-children{margin-right:20px;margin-top:4px;border-right:2px dashed #e0e0e0;padding-right:10px;}
-.wbs-title{font-size:13px;font-weight:600;flex:1;}
-.wbs-weight{font-size:11px;color:#888;min-width:60px;}
-.wbs-progress{font-size:11px;font-weight:600;}
+.wbs-node{margin-bottom:5px;}
+.wbs-row{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fff;border:1px solid var(--line);border-radius:11px;cursor:pointer;transition:all .15s;}
+.wbs-row:hover{border-color:var(--navy);background:#fafbfd;}
+.wbs-row.leaf{border-right:3px solid var(--green);}
+.wbs-children{margin-right:22px;margin-top:5px;border-right:2px dashed var(--line);padding-right:11px;}
+.wbs-title{font-size:13px;font-weight:700;flex:1;}
+.wbs-weight{font-size:11px;color:var(--muted);min-width:62px;font-weight:600;}
+.wbs-progress{font-size:11.5px;font-weight:800;}
 .wbs-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s;}
 .wbs-row:hover .wbs-actions{opacity:1;}
-.node-type-badge{font-size:10px;padding:1px 6px;border-radius:10px;}
-.assignee-chip{display:inline-flex;align-items:center;gap:4px;background:#f0eeff;border-radius:20px;padding:3px 10px;font-size:12px;margin:2px;}
-.act-card{background:white;border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.6rem;box-shadow:0 1px 4px rgba(0,0,0,.07);border-right:4px solid #ddd;}
-.act-card.pending{border-right-color:#BA7517;}
-.act-card.partial{border-right-color:#378ADD;}
-.act-card.done{border-right-color:#1D9E75;}
-.assignee-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f9f9f9;border-radius:8px;margin-top:5px;font-size:13px;flex-wrap:wrap;}
-.weight-warning{background:#FFF3CD;border:1px solid #ffc107;border-radius:8px;padding:8px 12px;font-size:12px;color:#856404;margin-top:8px;}
+.assignee-chip{display:inline-flex;align-items:center;gap:4px;background:#f1f2f8;border-radius:20px;padding:3px 11px;font-size:11.5px;font-weight:600;margin:2px;}
+.act-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:1rem 1.15rem;margin-bottom:.7rem;border-right:4px solid var(--line);}
+.act-card.pending{border-right-color:var(--amber);}
+.act-card.partial{border-right-color:var(--blue);}
+.act-card.done{border-right-color:var(--green);}
+.weight-warning{background:#FCF1DC;border:1px solid #e6c068;border-radius:9px;padding:9px 13px;font-size:12px;color:#8a611b;margin-top:8px;font-weight:600;}
+
+.detail-panel{display:none;}
+.detail-panel.open{display:block;animation:slideIn .25s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--navy);background:none;border:none;cursor:pointer;font-family:inherit;margin-bottom:1rem;padding:6px 0;}
+.back-link:hover{text-decoration:underline;}
+.detail-tabs{display:flex;gap:6px;margin-bottom:1.2rem;border-bottom:1.5px solid var(--line);}
+.detail-tab{padding:8px 14px;font-size:12.5px;font-weight:700;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;font-family:inherit;}
+.detail-tab.active{color:var(--navy);border-bottom-color:var(--navy);}
+.mini-list-item{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:#fafbfd;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;font-size:12.5px;}
 </style>
 </head>
 <body>
@@ -155,325 +215,254 @@ tr:hover td{background:#fafbff;}
 <div id="pending-screen" style="display:none" class="auth-wrap">
   <div class="auth-box" style="text-align:center;padding:2.5rem 2rem;">
     <div style="font-size:48px;margin-bottom:1rem;">⏳</div>
-    <div style="font-size:16px;font-weight:600;margin-bottom:8px;">در انتظار تأیید</div>
-    <div style="font-size:13px;color:#888;margin-bottom:1.5rem;">حساب شما ثبت شده و منتظر تأیید مدیر است.</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:8px;">در انتظار تأیید</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:1.5rem;">حساب شما ثبت شده و منتظر تأیید مدیر است.</div>
     <button class="btn-primary" id="pending-logout-btn">خروج</button>
   </div>
 </div>
 
 <!-- MAIN APP -->
 <div id="main-app" style="display:none">
-  <header>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span style="font-size:20px;">📊</span>
-      <h1>داشبورد مدیریت پروژه</h1>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span id="header-badge"></span>
-      <span style="font-size:13px;opacity:.85;" id="header-user"></span>
-      <button class="btn-logout" id="main-logout-btn">خروج</button>
-    </div>
-  </header>
-  <div class="container">
-    <div class="tabs">
-      <button class="tab active" data-tab="dashboard">📊 داشبورد</button>
-      <button class="tab" data-tab="overview">🏢 نمای کلی</button>
-      <button class="tab" data-tab="tasks">✅ وظایف من</button>
-      <button class="tab" data-tab="worklog">⏱ کارکرد</button>
-      <button class="tab" data-tab="monthly">📅 گزارش ماهانه</button>
-      <button class="tab" data-tab="projects">📁 پروژه‌ها</button>
-      <button class="tab" data-tab="admin" id="tab-btn-admin" style="display:none">⚙️ کاربران</button>
-    </div>
-
-    <!-- DASHBOARD -->
-    <div class="section active" id="tab-dashboard">
-      <div class="metrics" id="dash-metrics"></div>
-      <div class="chart-box">
-        <div class="chart-title">پیشرفت پروژه‌ها (واقعی vs برنامه)</div>
-        <div style="height:220px"><canvas id="barChart"></canvas></div>
+  <div class="app-shell">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sb-brand">
+        <div class="name">📊 داشبورد پروژه</div>
+        <div class="accent"></div>
+        <div class="sub">سیستم مدیریت پروژه‌ها</div>
       </div>
-      <div class="chart-row">
-        <div class="chart-box">
-          <div class="chart-title">روند ماهانه هزینه</div>
-          <div class="legend"><span><span class="ld" style="background:#534AB7"></span>واقعی</span><span><span class="ld" style="background:#1D9E75"></span>برنامه</span></div>
-          <div style="height:180px"><canvas id="lineChart"></canvas></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title">وضعیت پروژه‌ها</div>
-          <div class="legend" id="pie-legend"></div>
-          <div style="height:170px"><canvas id="pieChart"></canvas></div>
-        </div>
+      <div class="sb-nav">
+        <div class="sb-section-label">نمای کلی</div>
+        <button class="sb-link active" data-tab="dashboard"><span class="sb-ic">📊</span><span>داشبورد</span></button>
+        <button class="sb-link" data-tab="overview"><span class="sb-ic">🏢</span><span>نمای کلی</span></button>
+        <div class="sb-section-label">کار من</div>
+        <button class="sb-link" data-tab="tasks"><span class="sb-ic">✅</span><span>وظایف من</span></button>
+        <button class="sb-link" data-tab="worklog"><span class="sb-ic">⏱</span><span>گزارش کارکرد</span></button>
+        <div class="sb-section-label">مدیریت</div>
+        <button class="sb-link" data-tab="monthly"><span class="sb-ic">📅</span><span>گزارش ماهانه</span></button>
+        <button class="sb-link" data-tab="projects"><span class="sb-ic">📁</span><span>پروژه‌ها</span></button>
+        <button class="sb-link" data-tab="admin" id="tab-btn-admin" style="display:none"><span class="sb-ic">⚙️</span><span>کاربران</span></button>
       </div>
-      <div class="chart-row">
-        <div class="chart-box">
-          <div class="chart-title">شاخص‌های EV</div>
-          <div style="height:100px"><canvas id="evChart"></canvas></div>
-          <div id="ev-stats" style="margin-top:10px"></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title">مقایسه ماه به ماه —
-            <select id="cmp-proj" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:Tahoma;outline:none;"></select>
-          </div>
-          <div style="height:180px"><canvas id="compareChart"></canvas></div>
-        </div>
-      </div>
-      <div class="chart-full">
-        <div class="chart-title">گانت چارت</div>
-        <div id="gantt"></div>
-      </div>
-    </div>
-
-    <!-- OVERVIEW -->
-    <div class="section" id="tab-overview">
-      <div class="section-title">🏢 نمای کلی</div>
-      <div class="metrics" id="ov-metrics"></div>
-      <div class="chart-box"><div style="height:240px"><canvas id="ovChart"></canvas></div></div>
-      <div id="ov-list"></div>
-    </div>
-
-    <!-- TASKS (وظایف من) -->
-    <div class="section" id="tab-tasks">
-      <div class="section-title">✅ وظایف من</div>
-      <div id="tasks-list"><div class="loading">در حال بارگذاری...</div></div>
-    </div>
-
-    <!-- WORKLOG -->
-    <div class="section" id="tab-worklog">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
-        <div class="section-title" style="margin-bottom:0">⏱ گزارش کارکرد</div>
-        <button class="btn btn-sm" id="open-worklog-btn">➕ ثبت کارکرد</button>
-      </div>
-      <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
-        <div class="fgs"><label>فیلتر کاربر</label><select id="wl-filter-user" style="padding:7px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;min-width:150px;"><option value="">همه کاربران</option></select></div>
-        <div class="fgs"><label>فیلتر پروژه</label><select id="wl-filter-proj" style="padding:7px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;min-width:150px;"><option value="">همه پروژه‌ها</option></select></div>
-        <div class="fgs"><label>از تاریخ</label><input type="date" id="wl-from" style="padding:7px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"></div>
-        <div class="fgs"><label>تا تاریخ</label><input type="date" id="wl-to" style="padding:7px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"></div>
-        <div class="fgs" style="justify-content:flex-end;"><button class="btn btn-sec btn-sm" id="export-wl-btn">⬇ CSV</button></div>
-      </div>
-      <div class="metrics" id="wl-metrics"></div>
-      <div class="table-wrap">
-        <table><thead><tr><th>تاریخ</th><th>کاربر</th><th>پروژه</th><th>فعالیت</th><th>ساعت</th><th>توضیحات</th><th>عملیات</th></tr></thead>
-        <tbody id="wl-table"></tbody></table>
-      </div>
-    </div>
-
-    <!-- MONTHLY -->
-    <div class="section" id="tab-monthly">
-      <div class="section-title">📅 گزارش ماهانه</div>
-      <div style="display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:flex-end;">
-        <div class="fgs"><label>پروژه</label><select id="mr-proj" style="padding:8px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;min-width:170px;outline:none;"><option value="">انتخاب پروژه...</option></select></div>
-        <div class="fgs"><label>سال</label><select id="mr-year" style="padding:8px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"><option value="1403">۱۴۰۳</option><option value="1404" selected>۱۴۰۴</option><option value="1405">۱۴۰۵</option></select></div>
-        <button class="btn btn-sm" id="add-month-btn" style="display:none">➕ ثبت گزارش ماه</button>
-      </div>
-      <div id="monthly-chart-wrap" style="display:none" class="chart-box">
-        <div style="height:220px"><canvas id="monthlyChart"></canvas></div>
-      </div>
-      <div id="monthly-list"></div>
-    </div>
-
-    <!-- PROJECTS -->
-    <div class="section" id="tab-projects">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
-        <div class="section-title" style="margin-bottom:0">📁 پروژه‌ها</div>
-        <div style="display:flex;gap:7px;">
-          <button class="btn btn-sm" id="add-proj-btn" style="display:none">➕ پروژه جدید</button>
-          <button class="btn btn-sec btn-sm" id="export-csv-btn">⬇ CSV</button>
-        </div>
-      </div>
-      <!-- Project form -->
-      <div id="proj-form-wrap" style="display:none;background:white;border-radius:10px;padding:1.2rem;margin-bottom:1.2rem;box-shadow:0 1px 5px rgba(0,0,0,.07);">
-        <div style="font-size:14px;font-weight:600;margin-bottom:1rem;" id="proj-form-title">➕ پروژه جدید</div>
-        <div class="form-grid">
-          <div class="fgs"><label>نام پروژه *</label><input id="f-name" placeholder="نام پروژه"></div>
-          <div class="fgs"><label>وضعیت</label><select id="f-status"><option>در حال اجرا</option><option>برنامه‌ریزی</option><option>تکمیل‌شده</option><option>متوقف‌شده</option></select></div>
-          <div class="fgs"><label>تاریخ شروع</label><input type="date" id="f-start"></div>
-          <div class="fgs"><label>تاریخ پایان</label><input type="date" id="f-end"></div>
-          <div class="fgs"><label>بودجه (M)</label><input type="number" id="f-budget" placeholder="0"></div>
-          <div class="fgs"><label>هزینه واقعی (M)</label><input type="number" id="f-actual" placeholder="0"></div>
-          <div class="fgs"><label>مدیر پروژه</label><input id="f-manager" placeholder="نام مدیر"></div>
-          <div class="fgs"><label>دسته‌بندی</label><select id="f-cat"><option>زیرساخت</option><option>ساختمانی</option><option>معدنی</option><option>مشاوره</option><option>سایر</option></select></div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn" id="save-proj-btn">✓ ذخیره</button>
-          <button class="btn btn-sec" id="cancel-proj-btn">انصراف</button>
-        </div>
-        <div id="add-msg" style="margin-top:10px"></div>
-      </div>
-
-      <!-- Project list -->
-      <div id="proj-list-wrap">
-        <div class="table-wrap">
-          <table><thead><tr><th>نام پروژه</th><th>وضعیت</th><th>پیشرفت WBS</th><th>بودجه</th><th>هزینه</th><th>مدیر</th><th>عملیات</th></tr></thead>
-          <tbody id="proj-table"></tbody></table>
-        </div>
-      </div>
-
-      <!-- WBS panel -->
-      <div id="wbs-panel" style="display:none;margin-top:1.5rem;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+      <div class="sb-foot">
+        <div class="sb-user">
+          <div class="sb-avatar" id="sb-avatar">A</div>
           <div>
-            <div style="font-size:15px;font-weight:700;color:#534AB7;" id="wbs-proj-name"></div>
-            <div style="font-size:12px;color:#888;margin-top:2px;">ساختار شکست کار (WBS)</div>
-          </div>
-          <div style="display:flex;gap:7px;">
-            <button class="btn btn-sm" id="add-root-node-btn">➕ افزودن گره اصلی</button>
-            <button class="btn btn-sec btn-sm" id="close-wbs-btn">← بازگشت</button>
+            <div class="sb-uname" id="sb-uname">—</div>
+            <div class="sb-urole" id="sb-urole">—</div>
           </div>
         </div>
-        <div id="wbs-weight-status" style="margin-bottom:1rem;"></div>
-        <div id="wbs-tree" class="wbs-tree"></div>
+        <button class="sb-logout" id="main-logout-btn">خروج از حساب</button>
       </div>
     </div>
 
-    <!-- ADMIN -->
-    <div class="section" id="tab-admin">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-        <div class="section-title" style="margin-bottom:0">⚙️ مدیریت کاربران</div>
-        <button class="btn btn-sm" id="open-add-user-btn">➕ افزودن کاربر</button>
+    <!-- MAIN -->
+    <div class="main-area">
+      <div class="topbar">
+        <div class="topbar-title">
+          <span class="eyebrow" id="topbar-eyebrow">نمای کلی</span>
+          <span id="topbar-title">داشبورد</span>
+        </div>
+        <div id="header-badge"></div>
       </div>
-      <div style="margin-bottom:1.5rem;">
-        <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:8px;">⏳ در انتظار تأیید</div>
-        <div id="pending-list"></div>
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <div class="section" id="tab-dashboard">
+          <div class="metrics" id="dash-metrics"></div>
+          <div class="chart-box clickable" id="box-bar"><div class="chart-title"><span>پیشرفت پروژه‌ها (WBS)</span><span class="chart-hint">کلیک برای جزئیات هر پروژه ›</span></div><div style="height:220px"><canvas id="barChart"></canvas></div></div>
+          <div class="chart-row">
+            <div class="chart-box clickable" id="box-line"><div class="chart-title"><span>روند ماهانه هزینه</span><span class="chart-hint">کلیک برای جزئیات ماه ›</span></div><div class="legend"><span><span class="ld" style="background:var(--navy)"></span>واقعی</span><span><span class="ld" style="background:var(--green)"></span>برنامه</span></div><div style="height:180px"><canvas id="lineChart"></canvas></div></div>
+            <div class="chart-box clickable" id="box-pie"><div class="chart-title"><span>وضعیت پروژه‌ها</span><span class="chart-hint">کلیک برای فهرست ›</span></div><div class="legend" id="pie-legend"></div><div style="height:170px"><canvas id="pieChart"></canvas></div></div>
+          </div>
+          <div class="chart-row">
+            <div class="chart-box"><div class="chart-title">شاخص‌های EV</div><div style="height:100px"><canvas id="evChart"></canvas></div><div id="ev-stats" style="margin-top:10px"></div></div>
+            <div class="chart-box"><div class="chart-title">مقایسه ماه به ماه — <select id="cmp-proj" style="padding:4px 8px;border:1.5px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit;outline:none;"></select></div><div style="height:180px"><canvas id="compareChart"></canvas></div></div>
+          </div>
+          <div class="chart-full"><div class="chart-title">گانت چارت <span class="chart-hint">کلیک روی هر نوار برای جزئیات پروژه ›</span></div><div id="gantt"></div></div>
+        </div>
+
+        <!-- DASHBOARD DETAIL: project from bar/gantt click -->
+        <div class="detail-panel" id="panel-project-detail">
+          <button class="back-link" id="back-from-proj-detail">→ بازگشت به داشبورد</button>
+          <div class="section-title" id="pd-title"></div>
+          <div class="metrics" id="pd-metrics"></div>
+          <div class="detail-tabs">
+            <button class="detail-tab active" data-dtab="wbs">ساختار WBS</button>
+            <button class="detail-tab" data-dtab="monthly">روند ماهانه</button>
+            <button class="detail-tab" data-dtab="worklog">کارکردها</button>
+          </div>
+          <div id="pd-content-wbs"></div>
+          <div id="pd-content-monthly" style="display:none"><div class="chart-box"><div style="height:220px"><canvas id="pdMonthlyChart"></canvas></div></div><div id="pd-monthly-list"></div></div>
+          <div id="pd-content-worklog" style="display:none"><div id="pd-worklog-list"></div></div>
+        </div>
+
+        <!-- DASHBOARD DETAIL: month from line click -->
+        <div class="detail-panel" id="panel-month-detail">
+          <button class="back-link" id="back-from-month-detail">→ بازگشت به داشبورد</button>
+          <div class="section-title" id="md-title"></div>
+          <div id="md-content"></div>
+        </div>
+
+        <!-- DASHBOARD DETAIL: status list from pie click -->
+        <div class="detail-panel" id="panel-status-detail">
+          <button class="back-link" id="back-from-status-detail">→ بازگشت به داشبورد</button>
+          <div class="section-title" id="sd-title"></div>
+          <div id="sd-content"></div>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div class="section" id="tab-overview">
+          <div class="section-title">نمای کلی<span class="sub">پیشرفت همه پروژه‌ها در یک نگاه</span></div>
+          <div class="metrics" id="ov-metrics"></div>
+          <div class="chart-box"><div style="height:240px"><canvas id="ovChart"></canvas></div></div>
+          <div id="ov-list"></div>
+        </div>
+
+        <!-- TASKS -->
+        <div class="section" id="tab-tasks">
+          <div class="section-title">وظایف من<span class="sub">فعالیت‌های تخصیص‌یافته به شما</span></div>
+          <div id="tasks-list"><div class="loading">در حال بارگذاری...</div></div>
+        </div>
+
+        <!-- WORKLOG -->
+        <div class="section" id="tab-worklog">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;flex-wrap:wrap;gap:8px;">
+            <div class="section-title" style="margin-bottom:0;border:none;padding:0;">گزارش کارکرد</div>
+            <button class="btn btn-sm" id="open-worklog-btn">➕ ثبت کارکرد</button>
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
+            <div class="fgs"><label>فیلتر کاربر</label><select id="wl-filter-user" style="padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;min-width:150px;"><option value="">همه کاربران</option></select></div>
+            <div class="fgs"><label>فیلتر پروژه</label><select id="wl-filter-proj" style="padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;min-width:150px;"><option value="">همه پروژه‌ها</option></select></div>
+            <div class="fgs"><label>از تاریخ</label><input type="date" id="wl-from" style="padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"></div>
+            <div class="fgs"><label>تا تاریخ</label><input type="date" id="wl-to" style="padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"></div>
+            <div class="fgs" style="justify-content:flex-end;"><button class="btn btn-sec btn-sm" id="export-wl-btn">⬇ CSV</button></div>
+          </div>
+          <div class="metrics" id="wl-metrics"></div>
+          <div class="table-wrap"><table><thead><tr><th>تاریخ</th><th>کاربر</th><th>پروژه</th><th>فعالیت</th><th>ساعت</th><th>توضیحات</th><th>عملیات</th></tr></thead><tbody id="wl-table"></tbody></table></div>
+        </div>
+
+        <!-- MONTHLY -->
+        <div class="section" id="tab-monthly">
+          <div class="section-title">گزارش ماهانه</div>
+          <div style="display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:flex-end;">
+            <div class="fgs"><label>پروژه</label><select id="mr-proj" style="padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;min-width:170px;outline:none;"><option value="">انتخاب پروژه...</option></select></div>
+            <div class="fgs"><label>سال</label><select id="mr-year" style="padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"><option value="1403">۱۴۰۳</option><option value="1404" selected>۱۴۰۴</option><option value="1405">۱۴۰۵</option></select></div>
+            <button class="btn btn-sm" id="add-month-btn" style="display:none">➕ ثبت گزارش ماه</button>
+          </div>
+          <div id="monthly-chart-wrap" style="display:none" class="chart-box"><div style="height:220px"><canvas id="monthlyChart"></canvas></div></div>
+          <div id="monthly-list"></div>
+        </div>
+
+        <!-- PROJECTS -->
+        <div class="section" id="tab-projects">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;flex-wrap:wrap;gap:8px;">
+            <div class="section-title" style="margin-bottom:0;border:none;padding:0;">پروژه‌ها</div>
+            <div style="display:flex;gap:7px;">
+              <button class="btn btn-sm" id="add-proj-btn" style="display:none">➕ پروژه جدید</button>
+              <button class="btn btn-sec btn-sm" id="export-csv-btn">⬇ CSV</button>
+            </div>
+          </div>
+          <div id="proj-form-wrap" style="display:none;background:#fff;border:1px solid var(--line);border-radius:14px;padding:1.3rem;margin-bottom:1.3rem;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:1rem;" id="proj-form-title">➕ پروژه جدید</div>
+            <div class="form-grid">
+              <div class="fgs"><label>نام پروژه *</label><input id="f-name" placeholder="نام پروژه"></div>
+              <div class="fgs"><label>وضعیت</label><select id="f-status"><option>در حال اجرا</option><option>برنامه‌ریزی</option><option>تکمیل‌شده</option><option>متوقف‌شده</option></select></div>
+              <div class="fgs"><label>تاریخ شروع</label><input type="date" id="f-start"></div>
+              <div class="fgs"><label>تاریخ پایان</label><input type="date" id="f-end"></div>
+              <div class="fgs"><label>بودجه (M)</label><input type="number" id="f-budget" placeholder="0"></div>
+              <div class="fgs"><label>هزینه واقعی (M)</label><input type="number" id="f-actual" placeholder="0"></div>
+              <div class="fgs"><label>مدیر پروژه</label><input id="f-manager" placeholder="نام مدیر"></div>
+              <div class="fgs"><label>دسته‌بندی</label><select id="f-cat"><option>زیرساخت</option><option>ساختمانی</option><option>معدنی</option><option>مشاوره</option><option>سایر</option></select></div>
+            </div>
+            <div style="display:flex;gap:8px;"><button class="btn" id="save-proj-btn">✓ ذخیره</button><button class="btn btn-sec" id="cancel-proj-btn">انصراف</button></div>
+            <div id="add-msg" style="margin-top:10px"></div>
+          </div>
+          <div id="proj-list-wrap">
+            <div class="table-wrap"><table><thead><tr><th>نام پروژه</th><th>وضعیت</th><th>پیشرفت WBS</th><th>بودجه</th><th>هزینه</th><th>مدیر</th><th>عملیات</th></tr></thead><tbody id="proj-table"></tbody></table></div>
+          </div>
+          <div id="wbs-panel" style="display:none;margin-top:1.5rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+              <div><div style="font-size:15px;font-weight:800;color:var(--navy);" id="wbs-proj-name"></div><div style="font-size:12px;color:var(--muted);margin-top:2px;">ساختار شکست کار (WBS)</div></div>
+              <div style="display:flex;gap:7px;"><button class="btn btn-sm" id="add-root-node-btn">➕ افزودن گره اصلی</button><button class="btn btn-sec btn-sm" id="close-wbs-btn">← بازگشت</button></div>
+            </div>
+            <div id="wbs-weight-status" style="margin-bottom:1rem;"></div>
+            <div id="wbs-tree" class="wbs-tree"></div>
+          </div>
+        </div>
+
+        <!-- ADMIN -->
+        <div class="section" id="tab-admin">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;">
+            <div class="section-title" style="margin-bottom:0;border:none;padding:0;">مدیریت کاربران</div>
+            <button class="btn btn-sm" id="open-add-user-btn">➕ افزودن کاربر</button>
+          </div>
+          <div style="margin-bottom:1.5rem;"><div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;">⏳ در انتظار تأیید</div><div id="pending-list"></div></div>
+          <div><div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;">✅ کاربران فعال</div><div id="approved-list"></div></div>
+        </div>
+
       </div>
-      <div>
-        <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:8px;">✅ کاربران فعال</div>
-        <div id="approved-list"></div>
-      </div>
     </div>
   </div>
 </div>
 
-<!-- MODAL: WBS Node -->
-<div class="modal-overlay" id="wbs-node-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title" id="wbs-node-modal-title">افزودن گره WBS</div><button class="modal-close" data-close="wbs-node-modal">×</button></div>
-    <input type="hidden" id="wn-id">
-    <input type="hidden" id="wn-parent-id">
-    <input type="hidden" id="wn-project-id">
-    <div class="fg"><label>عنوان *</label><input id="wn-title" placeholder="عنوان این گره یا فعالیت" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"></div>
-    <div class="fg">
-      <label>نوع</label>
-      <select id="wn-type" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;">
-        <option value="group">گروه (دارای زیرمجموعه)</option>
-        <option value="leaf">فعالیت (سطح آخر)</option>
-      </select>
-    </div>
-    <div class="fg" id="wn-weight-wrap"><label>وزن (%) در گروه والد</label><input type="number" id="wn-weight" placeholder="0" min="0" max="100" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"></div>
-    <!-- assignees for leaf -->
-    <div id="wn-assignees-wrap" style="display:none;">
-      <div class="divider"></div>
-      <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:8px;">👤 تخصیص به کارشناس</div>
-      <div class="fg">
-        <label>کارشناس مسئول</label>
-        <select id="wn-assignee" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"><option value="">انتخاب کنید...</option></select>
-      </div>
-    </div>
-    <div id="wn-msg" style="margin-top:8px;"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">
-      <button class="btn btn-sec" data-close="wbs-node-modal">انصراف</button>
-      <button class="btn" id="save-wbs-node-btn">✓ ذخیره</button>
-    </div>
-  </div>
-</div>
+<!-- MODALS (unchanged structure) -->
+<div class="modal-overlay" id="wbs-node-modal"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title" id="wbs-node-modal-title">افزودن گره WBS</div><button class="modal-close" data-close="wbs-node-modal">×</button></div>
+  <input type="hidden" id="wn-id"><input type="hidden" id="wn-parent-id"><input type="hidden" id="wn-project-id">
+  <div class="fg"><label>عنوان *</label><input id="wn-title" placeholder="عنوان این گره یا فعالیت" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"></div>
+  <div class="fg"><label>نوع</label><select id="wn-type" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"><option value="group">گروه (دارای زیرمجموعه)</option><option value="leaf">فعالیت (سطح آخر)</option></select></div>
+  <div class="fg" id="wn-weight-wrap"><label>وزن (%) در گروه والد</label><input type="number" id="wn-weight" placeholder="0" min="0" max="100" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"></div>
+  <div id="wn-assignees-wrap" style="display:none;"><div class="divider"></div><div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;">👤 تخصیص به کارشناس</div><div class="fg"><label>کارشناس مسئول</label><select id="wn-assignee" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"><option value="">انتخاب کنید...</option></select></div></div>
+  <div id="wn-msg" style="margin-top:8px;"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;"><button class="btn btn-sec" data-close="wbs-node-modal">انصراف</button><button class="btn" id="save-wbs-node-btn">✓ ذخیره</button></div>
+</div></div>
 
-<!-- MODAL: Confirm user done -->
-<div class="modal-overlay" id="confirm-task-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title">✅ اعلام انجام فعالیت</div><button class="modal-close" data-close="confirm-task-modal">×</button></div>
-    <div id="confirm-task-info" style="font-size:13px;color:#555;margin-bottom:1rem;"></div>
-    <div class="fg"><label>توضیحات (اختیاری)</label><textarea id="confirm-task-desc" style="width:100%;padding:8px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;resize:vertical;min-height:60px;"></textarea></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-sec" data-close="confirm-task-modal">انصراف</button>
-      <button class="btn btn-green" id="do-confirm-user-btn">✓ انجام دادم (۸۰٪)</button>
-    </div>
-  </div>
-</div>
+<div class="modal-overlay" id="confirm-task-modal"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">✅ اعلام انجام فعالیت</div><button class="modal-close" data-close="confirm-task-modal">×</button></div>
+  <div id="confirm-task-info" style="font-size:13px;color:var(--ink);margin-bottom:1rem;"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-sec" data-close="confirm-task-modal">انصراف</button><button class="btn btn-green" id="do-confirm-user-btn">✓ انجام دادم (۸۰٪)</button></div>
+</div></div>
 
-<!-- MODAL: Manager approve -->
-<div class="modal-overlay" id="approve-task-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title">✅ تأیید مدیر</div><button class="modal-close" data-close="approve-task-modal">×</button></div>
-    <div id="approve-task-info" style="font-size:13px;color:#555;margin-bottom:1rem;"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-sec" data-close="approve-task-modal">انصراف</button>
-      <button class="btn" id="do-confirm-manager-btn">✓ تأیید (۱۰۰٪)</button>
-    </div>
-  </div>
-</div>
+<div class="modal-overlay" id="approve-task-modal"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">✅ تأیید مدیر</div><button class="modal-close" data-close="approve-task-modal">×</button></div>
+  <div id="approve-task-info" style="font-size:13px;color:var(--ink);margin-bottom:1rem;"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-sec" data-close="approve-task-modal">انصراف</button><button class="btn" id="do-confirm-manager-btn">✓ تأیید (۱۰۰٪)</button></div>
+</div></div>
 
-<!-- MODAL: Worklog -->
-<div class="modal-overlay" id="add-worklog-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title">⏱ ثبت کارکرد</div><button class="modal-close" data-close="add-worklog-modal">×</button></div>
-    <div class="fg"><label>پروژه *</label><select id="wl-proj" style="width:100%;padding:8px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"></select></div>
-    <div class="fg"><label>فعالیت (WBS) *</label><select id="wl-node" style="width:100%;padding:8px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"><option value="">ابتدا پروژه انتخاب کنید</option></select></div>
-    <div class="form-grid">
-      <div class="fgs"><label>تاریخ *</label><input type="date" id="wl-date"></div>
-      <div class="fgs"><label>ساعت *</label><input type="number" id="wl-hours" placeholder="0" min="0" max="24" step="0.5"></div>
-    </div>
-    <div class="fg"><label>توضیحات</label><textarea id="wl-desc" style="width:100%;padding:8px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;resize:vertical;min-height:60px;"></textarea></div>
-    <div id="wl-msg"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">
-      <button class="btn btn-sec" data-close="add-worklog-modal">انصراف</button>
-      <button class="btn" id="save-worklog-btn">✓ ثبت</button>
-    </div>
-  </div>
-</div>
+<div class="modal-overlay" id="add-worklog-modal"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">⏱ ثبت کارکرد</div><button class="modal-close" data-close="add-worklog-modal">×</button></div>
+  <div class="fg"><label>پروژه *</label><select id="wl-proj" style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"></select></div>
+  <div class="fg"><label>فعالیت (WBS) *</label><select id="wl-node" style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"><option value="">ابتدا پروژه انتخاب کنید</option></select></div>
+  <div class="form-grid"><div class="fgs"><label>تاریخ *</label><input type="date" id="wl-date"></div><div class="fgs"><label>ساعت *</label><input type="number" id="wl-hours" placeholder="0" min="0" max="24" step="0.5"></div></div>
+  <div class="fg"><label>توضیحات</label><textarea id="wl-desc" style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;resize:vertical;min-height:60px;"></textarea></div>
+  <div id="wl-msg"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;"><button class="btn btn-sec" data-close="add-worklog-modal">انصراف</button><button class="btn" id="save-worklog-btn">✓ ثبت</button></div>
+</div></div>
 
-<!-- MODAL: Monthly -->
-<div class="modal-overlay" id="add-monthly-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title">📅 ثبت گزارش ماهانه</div><button class="modal-close" data-close="add-monthly-modal">×</button></div>
-    <div class="form-grid">
-      <div class="fgs"><label>ماه</label><select id="nm-month" style="padding:8px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"><option value="1">فروردین</option><option value="2">اردیبهشت</option><option value="3">خرداد</option><option value="4">تیر</option><option value="5">مرداد</option><option value="6">شهریور</option><option value="7">مهر</option><option value="8">آبان</option><option value="9">آذر</option><option value="10">دی</option><option value="11">بهمن</option><option value="12">اسفند</option></select></div>
-      <div class="fgs"><label>سال</label><input type="number" id="nm-year" value="1404" style="padding:8px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"></div>
-      <div class="fgs"><label>بودجه (M)</label><input type="number" id="nm-budget" placeholder="0"></div>
-      <div class="fgs"><label>هزینه واقعی (M)</label><input type="number" id="nm-actual" placeholder="0"></div>
-      <div class="fgs"><label>پیشرفت برنامه (%)</label><input type="number" id="nm-planned" placeholder="0"></div>
-    </div>
-    <div class="fgs" style="margin-bottom:1rem;"><label>یادداشت</label><textarea id="nm-notes" style="width:100%;padding:8px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;resize:vertical;min-height:50px;"></textarea></div>
-    <div id="nm-msg"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:.8rem;">
-      <button class="btn btn-sec" data-close="add-monthly-modal">انصراف</button>
-      <button class="btn" id="save-monthly-btn">✓ ذخیره</button>
-    </div>
+<div class="modal-overlay" id="add-monthly-modal"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">📅 ثبت گزارش ماهانه</div><button class="modal-close" data-close="add-monthly-modal">×</button></div>
+  <div class="form-grid">
+    <div class="fgs"><label>ماه</label><select id="nm-month" style="padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"><option value="1">فروردین</option><option value="2">اردیبهشت</option><option value="3">خرداد</option><option value="4">تیر</option><option value="5">مرداد</option><option value="6">شهریور</option><option value="7">مهر</option><option value="8">آبان</option><option value="9">آذر</option><option value="10">دی</option><option value="11">بهمن</option><option value="12">اسفند</option></select></div>
+    <div class="fgs"><label>سال</label><input type="number" id="nm-year" value="1404" style="padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"></div>
+    <div class="fgs"><label>بودجه (M)</label><input type="number" id="nm-budget" placeholder="0"></div>
+    <div class="fgs"><label>هزینه واقعی (M)</label><input type="number" id="nm-actual" placeholder="0"></div>
+    <div class="fgs"><label>پیشرفت برنامه (%)</label><input type="number" id="nm-planned" placeholder="0"></div>
   </div>
-</div>
+  <div class="fgs" style="margin-bottom:1rem;"><label>یادداشت</label><textarea id="nm-notes" style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;resize:vertical;min-height:50px;"></textarea></div>
+  <div id="nm-msg"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:.8rem;"><button class="btn btn-sec" data-close="add-monthly-modal">انصراف</button><button class="btn" id="save-monthly-btn">✓ ذخیره</button></div>
+</div></div>
 
-<!-- MODAL: Access -->
-<div class="modal-overlay" id="access-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title">🔐 مدیریت دسترسی</div><button class="modal-close" data-close="access-modal">×</button></div>
-    <div id="access-user-name" style="font-size:13px;color:#888;margin-bottom:1rem;"></div>
-    <div class="access-grid" id="access-project-list"></div>
-    <div style="font-size:11px;color:#aaa;margin-top:6px;">بدون انتخاب = دسترسی به همه پروژه‌ها</div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">
-      <button class="btn btn-sec" data-close="access-modal">انصراف</button>
-      <button class="btn" id="save-access-btn">✓ ذخیره</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: User -->
-<div class="modal-overlay" id="user-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title" id="user-modal-title">افزودن کاربر</div><button class="modal-close" data-close="user-modal">×</button></div>
-    <input type="hidden" id="um-id">
-    <div class="fg"><label>نام *</label><input id="um-name" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"></div>
-    <div class="fg"><label>ایمیل *</label><input type="email" id="um-email" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"></div>
-    <div class="fg" id="um-pass-wrap"><label>پسورد *</label><input type="password" id="um-pass" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;"></div>
-    <div class="fg"><label>نقش</label>
-      <select id="um-role" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:Tahoma;outline:none;">
-        <option value="user">کاربر عادی</option><option value="manager">مدیر پروژه</option><option value="admin">ادمین</option><option value="superadmin">سوپر ادمین</option>
-      </select>
-    </div>
-    <div id="um-msg" style="margin-bottom:8px;"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-sec" data-close="user-modal">انصراف</button>
-      <button class="btn" id="save-user-btn">✓ ذخیره</button>
-    </div>
-  </div>
-</div>
+<div class="modal-overlay" id="user-modal"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title" id="user-modal-title">افزودن کاربر</div><button class="modal-close" data-close="user-modal">×</button></div>
+  <input type="hidden" id="um-id">
+  <div class="fg"><label>نام *</label><input id="um-name" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"></div>
+  <div class="fg"><label>ایمیل *</label><input type="email" id="um-email" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"></div>
+  <div class="fg" id="um-pass-wrap"><label>پسورد *</label><input type="password" id="um-pass" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"></div>
+  <div class="fg"><label>نقش</label><select id="um-role" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;outline:none;"><option value="user">کاربر عادی</option><option value="manager">مدیر پروژه</option><option value="admin">ادمین</option><option value="superadmin">سوپر ادمین</option></select></div>
+  <div id="um-msg" style="margin-bottom:8px;"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-sec" data-close="user-modal">انصراف</button><button class="btn" id="save-user-btn">✓ ذخیره</button></div>
+</div></div>
 
 <script>
 const SB_URL='https://lxcyhrkhpvgrojmygkli.supabase.co';
@@ -481,7 +470,7 @@ const SB_KEY='sb_publishable_scr-leP70exRtxBB0Jz8Ng_EPe4_2el';
 const SA_EMAIL='admin@dashboard.com';
 const SA_PASS='Arkavest@1234567';
 const MONTHS=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
-const COLORS=['#534AB7','#1D9E75','#D85A30','#378ADD','#BA7517','#A32D2D','#6A0DAD','#008080'];
+const COLORS=['#0f1631','#1d9e75','#c8102e','#3a7bd5','#c9a44c','#6a4ca6','#0e7c86','#a85d2e'];
 
 const {createClient}=supabase;
 const db=createClient(SB_URL,SB_KEY);
@@ -489,8 +478,8 @@ const db=createClient(SB_URL,SB_KEY);
 let CU=null,projects=[],allProjects=[],allUsers=[],wlData=[];
 let charts={};
 let currentWbsProjectId=null,wbsNodes=[],wbsAssignments=[];
-let pendingAssignId=null,accessTargetId=null,editingProjectId=null;
-let monthlyChartInst=null;
+let pendingAssignId=null,editingProjectId=null;
+let monthlyChartInst=null,pdMonthlyChartInst=null;
 
 function $(id){return document.getElementById(id);}
 function showMsg(id,txt,type){$(id).innerHTML='<div class="msg msg-'+type+'">'+txt+'</div>';}
@@ -501,6 +490,7 @@ function isAdmin(){return CU&&(CU.role==='superadmin'||CU.role==='admin');}
 function isManager(){return CU&&(CU.role==='superadmin'||CU.role==='admin'||CU.role==='manager');}
 function dl(content,name,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
 function statusBadge(s){const m={'در حال اجرا':'badge-blue','تکمیل‌شده':'badge-green','برنامه‌ریزی':'badge-amber','متوقف‌شده':'badge-red'};return '<span class="badge '+(m[s]||'badge-gray')+'">'+s+'</span>';}
+function initials(name){if(!name)return '?';const p=name.trim().split(' ');return p.length>1?(p[0][0]+p[1][0]):name.slice(0,2);}
 
 // ---- AUTH ----
 function switchAuth(tab){
@@ -510,10 +500,8 @@ function switchAuth(tab){
   $('tab-reg-btn').classList.toggle('active',tab==='register');
   $('auth-msg').innerHTML='';
 }
-
 async function login(){
-  const email=$('login-email').value.trim();
-  const pass=$('login-pass').value;
+  const email=$('login-email').value.trim();const pass=$('login-pass').value;
   if(!email||!pass){showMsg('auth-msg','همه فیلدها را پر کنید.','err');return;}
   if(email===SA_EMAIL&&pass===SA_PASS){CU={email:SA_EMAIL,name:'سوپر ادمین',role:'superadmin',approved:true,project_access:null};initApp();return;}
   const {data,error}=await db.from('users').select('*').eq('email',email).eq('password',pass).single();
@@ -521,11 +509,8 @@ async function login(){
   if(!data.approved){CU=data;showPending();return;}
   CU=data;initApp();
 }
-
 async function register(){
-  const name=$('reg-name').value.trim();
-  const email=$('reg-email').value.trim();
-  const pass=$('reg-pass').value;
+  const name=$('reg-name').value.trim();const email=$('reg-email').value.trim();const pass=$('reg-pass').value;
   if(!name||!email||!pass){showMsg('auth-msg','همه فیلدها را پر کنید.','err');return;}
   if(pass.length<8){showMsg('auth-msg','پسورد حداقل ۸ کاراکتر.','err');return;}
   const {data:ex}=await db.from('users').select('id').eq('email',email);
@@ -535,64 +520,38 @@ async function register(){
   showMsg('auth-msg','ثبت‌نام موفق! منتظر تأیید ادمین باشید.','ok');
   setTimeout(()=>switchAuth('login'),2000);
 }
-
-function logout(){
-  CU=null;projects=[];allProjects=[];allUsers=[];
-  $('auth-screen').style.display='flex';
-  $('pending-screen').style.display='none';
-  $('main-app').style.display='none';
-}
-
-function showPending(){
-  $('auth-screen').style.display='none';
-  $('pending-screen').style.display='flex';
-  $('main-app').style.display='none';
-}
+function logout(){CU=null;projects=[];allProjects=[];allUsers=[];$('auth-screen').style.display='flex';$('pending-screen').style.display='none';$('main-app').style.display='none';}
+function showPending(){$('auth-screen').style.display='none';$('pending-screen').style.display='flex';$('main-app').style.display='none';}
 
 function initApp(){
-  $('auth-screen').style.display='none';
-  $('pending-screen').style.display='none';
-  $('main-app').style.display='block';
-  $('header-user').textContent=CU.name||CU.email;
+  $('auth-screen').style.display='none';$('pending-screen').style.display='none';$('main-app').style.display='block';
+  $('sb-uname').textContent=CU.name||CU.email;
+  $('sb-avatar').textContent=initials(CU.name||CU.email);
+  const roleLabel={superadmin:'سوپر ادمین',admin:'ادمین',manager:'مدیر پروژه',user:'کاربر'}[CU.role]||CU.role;
+  $('sb-urole').textContent=roleLabel;
   if(isSA())$('header-badge').innerHTML='<span class="superadmin-badge">SUPER ADMIN</span>';
-  if(isAdmin())$('tab-btn-admin').style.display='block';
+  if(isAdmin())$('tab-btn-admin').style.display='flex';
   if(isManager())$('add-month-btn').style.display='block';
   if(isSA()||isAdmin())$('add-proj-btn').style.display='block';
   loadAll();
 }
 
-// ---- DATA ----
-async function loadAll(){
-  await loadProjects();
-  await loadUsers();
-}
-
+async function loadAll(){await loadProjects();await loadUsers();}
 async function loadProjects(){
   const {data}=await db.from('projects').select('*').order('id',{ascending:false});
   allProjects=data||[];
-  if(!isSA()&&CU.project_access&&CU.project_access.length>0)
-    projects=allProjects.filter(p=>CU.project_access.includes(p.id));
+  if(!isSA()&&CU.project_access&&CU.project_access.length>0) projects=allProjects.filter(p=>CU.project_access.includes(p.id));
   else projects=allProjects;
-  refreshDash();
-  populateSelects();
+  refreshDash();populateSelects();
 }
-
-async function loadUsers(){
-  const {data}=await db.from('users').select('*').order('id');
-  allUsers=data||[];
-  populateWlFilters();
-}
-
+async function loadUsers(){const {data}=await db.from('users').select('*').order('id');allUsers=data||[];populateWlFilters();}
 function populateSelects(){
   ['mr-proj','wl-proj','cmp-proj'].forEach(sid=>{
-    const el=$(sid);if(!el)return;
-    const cur=el.value;
-    const hasAll=['mr-proj'].includes(sid);
+    const el=$(sid);if(!el)return;const cur=el.value;const hasAll=['mr-proj'].includes(sid);
     el.innerHTML=(hasAll?'<option value="">انتخاب پروژه...</option>':'')+projects.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
     if(cur)el.value=cur;
   });
 }
-
 function populateWlFilters(){
   const el=$('wl-filter-user');if(!el)return;
   el.innerHTML='<option value="">همه کاربران</option>'+allUsers.map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+'</option>').join('');
@@ -601,49 +560,32 @@ function populateWlFilters(){
 }
 
 // ---- WBS LOGIC ----
-// پیشرفت یک گره = میانگین وزنی فرزندان
 function calcNodeProgress(nodeId,nodes,assignments){
   const children=nodes.filter(n=>n.parent_id===nodeId);
   if(!children.length){
-    // leaf: بر اساس assignment
     const asgn=assignments.find(a=>a.node_id===nodeId);
     if(!asgn)return 0;
     if(asgn.confirmed_by_manager)return 100;
     if(asgn.confirmed_by_user)return 80;
     return 0;
   }
-  // group: میانگین وزنی فرزندان
   let total=0,totalWeight=0;
-  for(const child of children){
-    const w=child.weight||0;
-    const p=calcNodeProgress(child.id,nodes,assignments);
-    total+=w*p;
-    totalWeight+=w;
-  }
+  for(const child of children){const w=child.weight||0;const p=calcNodeProgress(child.id,nodes,assignments);total+=w*p;totalWeight+=w;}
   return totalWeight>0?total/totalWeight:0;
 }
-
 function calcProjectProgress(projectId,nodes,assignments){
   const roots=nodes.filter(n=>n.project_id===projectId&&!n.parent_id);
   if(!roots.length)return 0;
   let total=0,totalWeight=0;
-  for(const root of roots){
-    const w=root.weight||0;
-    const p=calcNodeProgress(root.id,nodes,assignments);
-    total+=w*p;
-    totalWeight+=w;
-  }
+  for(const root of roots){const w=root.weight||0;const p=calcNodeProgress(root.id,nodes,assignments);total+=w*p;totalWeight+=w;}
   return totalWeight>0?Math.round(total/totalWeight):0;
 }
-
 async function loadWbsForProject(projectId){
   const {data:nodes}=await db.from('wbs_nodes').select('*').eq('project_id',projectId).order('id');
   const {data:assigns}=await db.from('wbs_assignments').select('*');
-  wbsNodes=nodes||[];
-  wbsAssignments=assigns||[];
+  wbsNodes=nodes||[];wbsAssignments=assigns||[];
   return {nodes:wbsNodes,assignments:wbsAssignments};
 }
-
 async function recalcAndSaveProgress(projectId){
   const {nodes,assignments}=await loadWbsForProject(projectId);
   const progress=calcProjectProgress(projectId,nodes,assignments);
@@ -651,38 +593,31 @@ async function recalcAndSaveProgress(projectId){
   await loadProjects();
 }
 
-// ---- WBS TREE RENDER ----
-function renderWbsTree(){
-  const roots=wbsNodes.filter(n=>n.project_id===currentWbsProjectId&&!n.parent_id);
+function renderWbsTree(targetId,nodes,assignments,projectId,editable){
+  const roots=nodes.filter(n=>n.project_id===projectId&&!n.parent_id);
   const totalRootWeight=roots.reduce((s,n)=>s+n.weight,0);
-  const ws=$('wbs-weight-status');
-  if(roots.length>0){
-    const ok=Math.abs(totalRootWeight-100)<0.01;
-    ws.innerHTML=ok?
-      '<div style="background:#EAF3DE;border-radius:8px;padding:8px 12px;font-size:12px;color:#3B6D11;">✓ مجموع وزن گره‌های اصلی: ۱۰۰٪</div>':
-      '<div class="weight-warning">⚠ مجموع وزن گره‌های اصلی: '+totalRootWeight+'٪ (باید ۱۰۰٪ باشد)</div>';
-  } else {ws.innerHTML='';}
-  $('wbs-tree').innerHTML=roots.map(n=>renderNode(n,0)).join('');
+  if(editable){
+    const ws=$('wbs-weight-status');
+    if(roots.length>0){
+      const ok=Math.abs(totalRootWeight-100)<0.01;
+      ws.innerHTML=ok?'<div style="background:#E8F5EE;border-radius:9px;padding:8px 12px;font-size:12px;color:#1a7a56;font-weight:600;">✓ مجموع وزن گره‌های اصلی: ۱۰۰٪</div>':'<div class="weight-warning">⚠ مجموع وزن گره‌های اصلی: '+totalRootWeight+'٪ (باید ۱۰۰٪ باشد)</div>';
+    } else ws.innerHTML='';
+  }
+  $(targetId).innerHTML=roots.map(n=>renderNode(n,nodes,assignments,projectId,editable)).join('')||'<div class="loading">هنوز ساختاری تعریف نشده</div>';
 }
-
-function renderNode(node,depth){
-  const children=wbsNodes.filter(n=>n.parent_id===node.id);
-  const asgn=wbsAssignments.find(a=>a.node_id===node.id);
-  const progress=calcNodeProgress(node.id,wbsNodes,wbsAssignments);
+function renderNode(node,nodes,assignments,projectId,editable){
+  const children=nodes.filter(n=>n.parent_id===node.id);
+  const asgn=assignments.find(a=>a.node_id===node.id);
+  const progress=calcNodeProgress(node.id,nodes,assignments);
   const u=asgn?allUsers.find(u=>u.id===asgn.user_id):null;
   const isLeaf=node.is_leaf;
-  const canEdit=isManager();
-  const sibWeight=wbsNodes.filter(n=>n.parent_id===node.parent_id&&n.project_id===currentWbsProjectId);
+  const sibWeight=nodes.filter(n=>n.parent_id===node.parent_id&&n.project_id===projectId);
   const sibTotalW=sibWeight.reduce((s,n)=>s+n.weight,0);
   const warnW=sibWeight.length>1&&Math.abs(sibTotalW-100)>0.01&&node.parent_id;
-
-  let progressColor='#534AB7';
-  if(progress>=100)progressColor='#1D9E75';
-  else if(progress>=80)progressColor='#378ADD';
-  else if(progress>0)progressColor='#BA7517';
-
+  let progressColor='#0f1631';
+  if(progress>=100)progressColor='#1d9e75';else if(progress>=80)progressColor='#3a7bd5';else if(progress>0)progressColor='#c98a2e';
   let html='<div class="wbs-node" data-id="'+node.id+'">';
-  html+='<div class="wbs-row '+(isLeaf?'leaf':'')+'" style="margin-right:'+(depth*0)+'px">';
+  html+='<div class="wbs-row '+(isLeaf?'leaf':'')+'">';
   html+='<span style="font-size:14px;">'+(isLeaf?'📋':'📁')+'</span>';
   html+='<div class="wbs-title">'+node.title+'</div>';
   html+='<div class="wbs-weight">وزن: '+node.weight+'٪'+(warnW?' ⚠':'')+'</div>';
@@ -695,7 +630,7 @@ function renderNode(node,depth){
       else html+='<span class="badge badge-amber">در انتظار</span>';
     }
   }
-  if(canEdit){
+  if(editable){
     html+='<div class="wbs-actions">';
     if(!isLeaf)html+='<button class="btn btn-sm btn-sec" onclick="openAddChildNode('+node.id+')">+ زیرمجموعه</button>';
     html+='<button class="btn btn-sm btn-warn" onclick="openEditNode('+node.id+')">✏️</button>';
@@ -707,8 +642,8 @@ function renderNode(node,depth){
     const childTotalW=children.reduce((s,n)=>s+n.weight,0);
     const childWarnW=Math.abs(childTotalW-100)>0.01;
     html+='<div class="wbs-children">';
-    if(childWarnW)html+='<div class="weight-warning" style="margin-bottom:6px;">⚠ مجموع وزن فرزندان: '+childTotalW+'٪ (باید ۱۰۰٪ باشد)</div>';
-    html+=children.map(c=>renderNode(c,depth+1)).join('');
+    if(editable&&childWarnW)html+='<div class="weight-warning" style="margin-bottom:6px;">⚠ مجموع وزن فرزندان: '+childTotalW+'٪ (باید ۱۰۰٪ باشد)</div>';
+    html+=children.map(c=>renderNode(c,nodes,assignments,projectId,editable)).join('');
     html+='</div>';
   }
   html+='</div>';
@@ -719,112 +654,74 @@ async function openWbs(projectId){
   currentWbsProjectId=projectId;
   const proj=allProjects.find(p=>p.id===projectId);
   $('wbs-proj-name').textContent=proj?proj.name:'';
-  $('proj-list-wrap').style.display='none';
-  $('proj-form-wrap').style.display='none';
-  $('wbs-panel').style.display='block';
+  $('proj-list-wrap').style.display='none';$('proj-form-wrap').style.display='none';$('wbs-panel').style.display='block';
   await loadWbsForProject(projectId);
-  renderWbsTree();
+  renderWbsTree('wbs-tree',wbsNodes,wbsAssignments,projectId,true);
 }
-
-function closeWbs(){
-  $('proj-list-wrap').style.display='block';
-  $('wbs-panel').style.display='none';
-  currentWbsProjectId=null;
-}
-
+function closeWbs(){$('proj-list-wrap').style.display='block';$('wbs-panel').style.display='none';currentWbsProjectId=null;}
 function openAddRootNode(){
   $('wbs-node-modal-title').textContent='افزودن گره اصلی';
-  $('wn-id').value='';$('wn-parent-id').value='';
-  $('wn-project-id').value=currentWbsProjectId;
-  $('wn-title').value='';$('wn-weight').value='';$('wn-type').value='group';
-  $('wn-assignees-wrap').style.display='none';
-  $('wn-msg').innerHTML='';
+  $('wn-id').value='';$('wn-parent-id').value='';$('wn-project-id').value=currentWbsProjectId;
+  $('wn-title').value='';$('wn-weight').value='';$('wn-type').value='group';$('wn-assignees-wrap').style.display='none';$('wn-msg').innerHTML='';
   openModal('wbs-node-modal');
 }
-
 function openAddChildNode(parentId){
   $('wbs-node-modal-title').textContent='افزودن زیرمجموعه';
-  $('wn-id').value='';$('wn-parent-id').value=parentId;
-  $('wn-project-id').value=currentWbsProjectId;
-  $('wn-title').value='';$('wn-weight').value='';$('wn-type').value='group';
-  $('wn-assignees-wrap').style.display='none';
-  $('wn-msg').innerHTML='';
+  $('wn-id').value='';$('wn-parent-id').value=parentId;$('wn-project-id').value=currentWbsProjectId;
+  $('wn-title').value='';$('wn-weight').value='';$('wn-type').value='group';$('wn-assignees-wrap').style.display='none';$('wn-msg').innerHTML='';
   openModal('wbs-node-modal');
 }
-
 function openEditNode(nodeId){
   const node=wbsNodes.find(n=>n.id===nodeId);if(!node)return;
   $('wbs-node-modal-title').textContent='ویرایش گره';
-  $('wn-id').value=nodeId;$('wn-parent-id').value=node.parent_id||'';
-  $('wn-project-id').value=currentWbsProjectId;
-  $('wn-title').value=node.title;$('wn-weight').value=node.weight;
-  $('wn-type').value=node.is_leaf?'leaf':'group';
+  $('wn-id').value=nodeId;$('wn-parent-id').value=node.parent_id||'';$('wn-project-id').value=currentWbsProjectId;
+  $('wn-title').value=node.title;$('wn-weight').value=node.weight;$('wn-type').value=node.is_leaf?'leaf':'group';
   toggleWbsType();
-  if(node.is_leaf){
-    const asgn=wbsAssignments.find(a=>a.node_id===nodeId);
-    if(asgn)$('wn-assignee').value=asgn.user_id;
-  }
+  if(node.is_leaf){const asgn=wbsAssignments.find(a=>a.node_id===nodeId);if(asgn)$('wn-assignee').value=asgn.user_id;}
   $('wn-msg').innerHTML='';
   openModal('wbs-node-modal');
 }
-
 function toggleWbsType(){
   const isLeaf=$('wn-type').value==='leaf';
   $('wn-assignees-wrap').style.display=isLeaf?'block':'none';
-  // populate assignees
-  if(isLeaf){
-    $('wn-assignee').innerHTML='<option value="">انتخاب کارشناس...</option>'+allUsers.filter(u=>u.approved).map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+'</option>').join('');
-  }
+  if(isLeaf)$('wn-assignee').innerHTML='<option value="">انتخاب کارشناس...</option>'+allUsers.filter(u=>u.approved).map(u=>'<option value="'+u.id+'">'+(u.name||u.email)+'</option>').join('');
 }
-
 async function saveWbsNode(){
-  const id=$('wn-id').value;
-  const parentId=$('wn-parent-id').value;
-  const projectId=+$('wn-project-id').value;
-  const title=$('wn-title').value.trim();
-  const weight=+$('wn-weight').value||0;
-  const isLeaf=$('wn-type').value==='leaf';
+  const id=$('wn-id').value;const parentId=$('wn-parent-id').value;const projectId=+$('wn-project-id').value;
+  const title=$('wn-title').value.trim();const weight=+$('wn-weight').value||0;const isLeaf=$('wn-type').value==='leaf';
   const assigneeId=isLeaf?+$('wn-assignee').value:null;
   if(!title){showMsg('wn-msg','عنوان الزامی است.','err');return;}
   if(isLeaf&&!assigneeId){showMsg('wn-msg','کارشناس مسئول را انتخاب کنید.','err');return;}
-
   let nodeId;
   if(id){
     const {error}=await db.from('wbs_nodes').update({title,weight,is_leaf:isLeaf,parent_id:parentId||null}).eq('id',+id);
     if(error){showMsg('wn-msg','خطا: '+error.message,'err');return;}
     nodeId=+id;
-    // update assignment if leaf
     if(isLeaf){
       const existing=wbsAssignments.find(a=>a.node_id===nodeId);
-      if(existing){
-        await db.from('wbs_assignments').update({user_id:assigneeId}).eq('id',existing.id);
-      } else {
-        await db.from('wbs_assignments').insert([{node_id:nodeId,user_id:assigneeId,share_percent:100,confirmed_by_user:false,confirmed_by_manager:false}]);
-      }
+      if(existing)await db.from('wbs_assignments').update({user_id:assigneeId}).eq('id',existing.id);
+      else await db.from('wbs_assignments').insert([{node_id:nodeId,user_id:assigneeId,share_percent:100,confirmed_by_user:false,confirmed_by_manager:false}]);
     }
   } else {
     const {data:newNode,error}=await db.from('wbs_nodes').insert([{project_id:projectId,parent_id:parentId||null,title,weight,is_leaf:isLeaf}]).select().single();
     if(error){showMsg('wn-msg','خطا: '+error.message,'err');return;}
     nodeId=newNode.id;
-    if(isLeaf&&assigneeId){
-      await db.from('wbs_assignments').insert([{node_id:nodeId,user_id:assigneeId,share_percent:100,confirmed_by_user:false,confirmed_by_manager:false}]);
-    }
+    if(isLeaf&&assigneeId)await db.from('wbs_assignments').insert([{node_id:nodeId,user_id:assigneeId,share_percent:100,confirmed_by_user:false,confirmed_by_manager:false}]);
   }
   closeModal('wbs-node-modal');
   await loadWbsForProject(projectId);
-  renderWbsTree();
+  renderWbsTree('wbs-tree',wbsNodes,wbsAssignments,projectId,true);
   await recalcAndSaveProgress(projectId);
 }
-
 async function deleteWbsNode(nodeId){
   if(!confirm('این گره و تمام زیرمجموعه‌هایش حذف شود؟'))return;
   await db.from('wbs_nodes').delete().eq('id',nodeId);
   await loadWbsForProject(currentWbsProjectId);
-  renderWbsTree();
+  renderWbsTree('wbs-tree',wbsNodes,wbsAssignments,currentWbsProjectId,true);
   await recalcAndSaveProgress(currentWbsProjectId);
 }
 
-// ---- TASKS (وظایف من) ----
+// ---- TASKS ----
 async function loadMyTasks(){
   if(!CU||!CU.id){$('tasks-list').innerHTML='<div class="loading">لاگین کنید</div>';return;}
   const {data:myAssigns}=await db.from('wbs_assignments').select('*').eq('user_id',CU.id);
@@ -834,71 +731,46 @@ async function loadMyTasks(){
   $('tasks-list').innerHTML=(nodes||[]).map(node=>{
     const asgn=myAssigns.find(a=>a.node_id===node.id);
     const proj=allProjects.find(p=>p.id===node.project_id);
-    const isDone=asgn.confirmed_by_manager;
-    const isUD=asgn.confirmed_by_user&&!asgn.confirmed_by_manager;
-    const sc=isDone?'done':isUD?'partial':'pending';
-    const progress=isDone?100:isUD?80:0;
+    const isDone=asgn.confirmed_by_manager;const isUD=asgn.confirmed_by_user&&!asgn.confirmed_by_manager;
+    const sc=isDone?'done':isUD?'partial':'pending';const progress=isDone?100:isUD?80:0;
     return '<div class="act-card '+sc+'">'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
-        '<div style="font-size:14px;font-weight:600;">'+node.title+'</div>'+
-        '<div>'+(isDone?'<span class="badge badge-green">✓ تأیید شده ۱۰۰٪</span>':isUD?'<span class="badge badge-blue">منتظر تأیید مدیر ۸۰٪</span>':'<span class="badge badge-amber">در انتظار انجام</span>')+'</div>'+
-      '</div>'+
-      '<div style="font-size:12px;color:#888;margin-bottom:8px;">📁 '+(proj?proj.name:'—')+'</div>'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+
-        '<div class="pb-wrap"><div class="pb-fill" style="width:'+progress+'%;background:'+(isDone?'#1D9E75':isUD?'#378ADD':'#ddd')+'"></div></div>'+
-        '<span style="font-size:12px;font-weight:600;">'+progress+'٪</span>'+
-      '</div>'+
-      (!isDone&&!isUD?'<button class="btn btn-green btn-sm" onclick="openConfirmTask('+asgn.id+',\''+node.title.replace(/'/g,"\\'")+'\')" >✓ انجام دادم</button>':'')+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:14px;font-weight:700;">'+node.title+'</div><div>'+(isDone?'<span class="badge badge-green">✓ تأیید شده ۱۰۰٪</span>':isUD?'<span class="badge badge-blue">منتظر تأیید مدیر ۸۰٪</span>':'<span class="badge badge-amber">در انتظار انجام</span>')+'</div></div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📁 '+(proj?proj.name:'—')+'</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div class="pb-wrap"><div class="pb-fill" style="width:'+progress+'%;background:'+(isDone?'#1d9e75':isUD?'#3a7bd5':'#ddd')+'"></div></div><span style="font-size:12px;font-weight:700;">'+progress+'٪</span></div>'+
+      (!isDone&&!isUD?'<button class="btn btn-green btn-sm" onclick="openConfirmTask('+asgn.id+',\''+node.title.replace(/'/g,"\\'")+'\')">✓ انجام دادم</button>':'')+
       (isUD&&isManager()?'<button class="btn btn-sm" onclick="openApproveTask('+asgn.id+',\''+node.title.replace(/'/g,"\\'")+'\')">✓ تأیید مدیر</button>':'')+
     '</div>';
   }).join('');
-
-  // اگر مدیر هستیم، وظایف منتظر تأیید رو هم نشون بده
   if(isManager()){
     const {data:allAssigns}=await db.from('wbs_assignments').select('*').eq('confirmed_by_user',true).eq('confirmed_by_manager',false);
     if(allAssigns&&allAssigns.length){
       const pendNodeIds=allAssigns.map(a=>a.node_id);
       const {data:pendNodes}=await db.from('wbs_nodes').select('*').in('id',pendNodeIds);
-      $('tasks-list').innerHTML+='<div style="font-size:14px;font-weight:600;color:#534AB7;margin:1.5rem 0 .8rem;">⏳ منتظر تأیید مدیر</div>'+
+      $('tasks-list').innerHTML+='<div style="font-size:14px;font-weight:700;color:var(--navy);margin:1.5rem 0 .8rem;">⏳ منتظر تأیید مدیر</div>'+
       (pendNodes||[]).map(node=>{
-        const asgn=allAssigns.find(a=>a.node_id===node.id);
-        const u=allUsers.find(u=>u.id===asgn.user_id);
-        const proj=allProjects.find(p=>p.id===node.project_id);
-        return '<div class="act-card partial">'+
-          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
-            '<div style="font-size:14px;font-weight:600;">'+node.title+'</div>'+
-            '<span class="badge badge-blue">منتظر تأیید مدیر</span>'+
-          '</div>'+
-          '<div style="font-size:12px;color:#888;margin-bottom:8px;">📁 '+(proj?proj.name:'—')+' | 👤 '+(u?u.name||u.email:'—')+'</div>'+
-          '<button class="btn btn-sm" onclick="openApproveTask('+asgn.id+',\''+node.title.replace(/'/g,"\\'")+'\')" >✓ تأیید مدیر</button>'+
-        '</div>';
+        const asgn=allAssigns.find(a=>a.node_id===node.id);const u=allUsers.find(u=>u.id===asgn.user_id);const proj=allProjects.find(p=>p.id===node.project_id);
+        return '<div class="act-card partial"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:14px;font-weight:700;">'+node.title+'</div><span class="badge badge-blue">منتظر تأیید مدیر</span></div><div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📁 '+(proj?proj.name:'—')+' | 👤 '+(u?u.name||u.email:'—')+'</div><button class="btn btn-sm" onclick="openApproveTask('+asgn.id+',\''+node.title.replace(/'/g,"\\'")+'\')">✓ تأیید مدیر</button></div>';
       }).join('');
     }
   }
 }
-
 function openConfirmTask(assignId,title){
   pendingAssignId=assignId;
-  $('confirm-task-info').innerHTML='فعالیت «<strong>'+title+'</strong>» را انجام داده‌اید؟<br><small style="color:#888">بعد از تأیید، پیشرفت ۸۰٪ ثبت می‌شود.</small>';
-  $('confirm-task-desc').value='';
+  $('confirm-task-info').innerHTML='فعالیت «<strong>'+title+'</strong>» را انجام داده‌اید؟<br><small style="color:var(--muted)">بعد از تأیید، پیشرفت ۸۰٪ ثبت می‌شود.</small>';
   openModal('confirm-task-modal');
 }
-
 async function doConfirmUser(){
   await db.from('wbs_assignments').update({confirmed_by_user:true}).eq('id',pendingAssignId);
   closeModal('confirm-task-modal');
-  // recalc progress
   const {data:asgn}=await db.from('wbs_assignments').select('*').eq('id',pendingAssignId).single();
   if(asgn){const {data:node}=await db.from('wbs_nodes').select('*').eq('id',asgn.node_id).single();if(node)await recalcAndSaveProgress(node.project_id);}
   loadMyTasks();
 }
-
 function openApproveTask(assignId,title){
   pendingAssignId=assignId;
-  $('approve-task-info').innerHTML='تأیید انجام کامل فعالیت «<strong>'+title+'</strong>»<br><small style="color:#888">بعد از تأیید، پیشرفت ۱۰۰٪ ثبت می‌شود.</small>';
+  $('approve-task-info').innerHTML='تأیید انجام کامل فعالیت «<strong>'+title+'</strong>»<br><small style="color:var(--muted)">بعد از تأیید، پیشرفت ۱۰۰٪ ثبت می‌شود.</small>';
   openModal('approve-task-modal');
 }
-
 async function doConfirmManager(){
   await db.from('wbs_assignments').update({confirmed_by_manager:true,confirmed_at:new Date().toISOString()}).eq('id',pendingAssignId);
   closeModal('approve-task-modal');
@@ -913,109 +785,61 @@ async function saveProject(){
   if(!n){showMsg('add-msg','نام پروژه الزامی است.','err');return;}
   const data={name:n,status:$('f-status').value,start_date:$('f-start').value||new Date().toISOString().slice(0,10),end_date:$('f-end').value||(new Date(Date.now()+365*864e5)).toISOString().slice(0,10),budget:+$('f-budget').value||0,actual:+$('f-actual').value||0,manager:$('f-manager').value||'—',category:$('f-cat').value,progress:0,planned:0};
   let error;
-  if(editingProjectId){
-    delete data.progress;
-    ({error}=await db.from('projects').update(data).eq('id',editingProjectId));
-  } else {
-    ({error}=await db.from('projects').insert([data]));
-  }
+  if(editingProjectId){delete data.progress;({error}=await db.from('projects').update(data).eq('id',editingProjectId));}
+  else ({error}=await db.from('projects').insert([data]));
   if(error){showMsg('add-msg','خطا: '+error.message,'err');return;}
   showMsg('add-msg','✓ ذخیره شد!','ok');
   editingProjectId=null;$('proj-form-wrap').style.display='none';
   await loadProjects();
 }
-
 function openEditProject(id){
   const p=projects.find(x=>x.id===id);if(!p)return;
   editingProjectId=id;
   $('proj-form-title').textContent='✏️ ویرایش پروژه';
-  $('f-name').value=p.name;$('f-status').value=p.status;
-  $('f-start').value=p.start_date;$('f-end').value=p.end_date;
-  $('f-budget').value=p.budget;$('f-actual').value=p.actual;
-  $('f-manager').value=p.manager;$('f-cat').value=p.category;
-  $('add-msg').innerHTML='';
-  $('proj-form-wrap').style.display='block';
-  $('proj-form-wrap').scrollIntoView({behavior:'smooth'});
+  $('f-name').value=p.name;$('f-status').value=p.status;$('f-start').value=p.start_date;$('f-end').value=p.end_date;
+  $('f-budget').value=p.budget;$('f-actual').value=p.actual;$('f-manager').value=p.manager;$('f-cat').value=p.category;
+  $('add-msg').innerHTML='';$('proj-form-wrap').style.display='block';$('proj-form-wrap').scrollIntoView({behavior:'smooth'});
 }
-
-async function deleteProject(id){
-  if(!confirm('پروژه حذف شود؟'))return;
-  await db.from('projects').delete().eq('id',id);
-  await loadProjects();
-}
-
+async function deleteProject(id){if(!confirm('پروژه حذف شود؟'))return;await db.from('projects').delete().eq('id',id);await loadProjects();}
 function exportCSV(){
   const h='name,status,start_date,end_date,budget,actual,progress,manager,category';
   const rows=projects.map(p=>[p.name,p.status,p.start_date,p.end_date,p.budget,p.actual,p.progress,p.manager,p.category].join(','));
   dl('\uFEFF'+[h,...rows].join('\n'),'projects.csv','text/csv');
 }
-
 function updateProjTable(){
   const tb=$('proj-table');
-  if(!projects.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem;">پروژه‌ای وجود ندارد</td></tr>';return;}
-  tb.innerHTML=projects.map(p=>'<tr>'+
-    '<td style="font-weight:600;">'+p.name+'</td>'+
-    '<td>'+statusBadge(p.status)+'</td>'+
-    '<td><div style="display:flex;align-items:center;gap:5px;"><div class="pb-wrap"><div class="pb-fill" style="width:'+p.progress+'%;background:'+(p.progress>=(p.planned||0)?'#1D9E75':'#D85A30')+'"></div></div><span style="font-size:12px;">'+p.progress+'٪</span></div></td>'+
-    '<td>'+p.budget+'M</td><td>'+p.actual+'M</td><td>'+p.manager+'</td>'+
-    '<td style="display:flex;gap:5px;">'+
-      '<button class="btn btn-sm btn-warn" onclick="openWbs('+p.id+')" title="مدیریت WBS">🏗 WBS</button>'+
-      (isManager()?'<button onclick="openEditProject('+p.id+')" style="background:none;border:none;cursor:pointer;font-size:15px;">✏️</button>':'')+
-      (isSA()?'<button onclick="deleteProject('+p.id+')" style="background:none;border:none;cursor:pointer;font-size:15px;">🗑</button>':'')+
-    '</td>'+
-  '</tr>').join('');
+  if(!projects.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem;">پروژه‌ای وجود ندارد</td></tr>';return;}
+  tb.innerHTML=projects.map(p=>'<tr><td style="font-weight:700;">'+p.name+'</td><td>'+statusBadge(p.status)+'</td><td><div style="display:flex;align-items:center;gap:5px;"><div class="pb-wrap"><div class="pb-fill" style="width:'+p.progress+'%;background:'+(p.progress>=(p.planned||0)?'#1d9e75':'#c8102e')+'"></div></div><span style="font-size:12px;">'+p.progress+'٪</span></div></td><td>'+p.budget+'M</td><td>'+p.actual+'M</td><td>'+p.manager+'</td><td style="display:flex;gap:5px;"><button class="btn btn-sm btn-warn" onclick="openWbs('+p.id+')">🏗 WBS</button>'+(isManager()?'<button onclick="openEditProject('+p.id+')" style="background:none;border:none;cursor:pointer;font-size:15px;">✏️</button>':'')+(isSA()?'<button onclick="deleteProject('+p.id+')" style="background:none;border:none;cursor:pointer;font-size:15px;">🗑</button>':'')+'</td></tr>').join('');
 }
 
 // ---- WORKLOG ----
 async function loadWlNodes(){
-  const projId=$('wl-proj').value;
-  const sel=$('wl-node');
+  const projId=$('wl-proj').value;const sel=$('wl-node');
   if(!projId){sel.innerHTML='<option value="">ابتدا پروژه انتخاب کنید</option>';return;}
   const {data}=await db.from('wbs_nodes').select('*').eq('project_id',+projId).eq('is_leaf',true);
   sel.innerHTML=(data&&data.length?data.map(n=>'<option value="'+n.id+'">'+n.title+'</option>').join(''):'<option value="">فعالیتی وجود ندارد</option>');
 }
-
-function openAddWorklog(){
-  $('wl-desc').value='';$('wl-hours').value='';
-  $('wl-date').value=new Date().toISOString().slice(0,10);
-  $('wl-msg').innerHTML='';
-  openModal('add-worklog-modal');
-}
-
+function openAddWorklog(){$('wl-desc').value='';$('wl-hours').value='';$('wl-date').value=new Date().toISOString().slice(0,10);$('wl-msg').innerHTML='';openModal('add-worklog-modal');}
 async function saveWorklog(){
-  const projId=+$('wl-proj').value;
-  const nodeId=+$('wl-node').value;
-  const hours=+$('wl-hours').value||0;
-  const date=$('wl-date').value;
-  const desc=$('wl-desc').value.trim();
+  const projId=+$('wl-proj').value;const nodeId=+$('wl-node').value;const hours=+$('wl-hours').value||0;const date=$('wl-date').value;const desc=$('wl-desc').value.trim();
   if(!projId||!nodeId||!hours||!date){showMsg('wl-msg','همه فیلدهای اجباری را پر کنید.','err');return;}
   const {error}=await db.from('work_logs').insert([{user_id:CU.id,project_id:projId,activity_id:nodeId,hours,log_date:date,description:desc}]);
   if(error){showMsg('wl-msg','خطا: '+error.message,'err');return;}
   closeModal('add-worklog-modal');loadWorklog();
 }
-
 async function loadWorklog(){
-  const uf=$('wl-filter-user').value;
-  const pf=$('wl-filter-proj').value;
-  const from=$('wl-from').value;
-  const to=$('wl-to').value;
+  const uf=$('wl-filter-user').value;const pf=$('wl-filter-proj').value;const from=$('wl-from').value;const to=$('wl-to').value;
   let q=db.from('work_logs').select('*').order('log_date',{ascending:false});
-  if(!isAdmin())q=q.eq('user_id',CU.id);
-  else if(uf)q=q.eq('user_id',+uf);
-  if(pf)q=q.eq('project_id',+pf);
-  if(from)q=q.gte('log_date',from);
-  if(to)q=q.lte('log_date',to);
-  const {data}=await q;
-  wlData=data||[];
+  if(!isAdmin())q=q.eq('user_id',CU.id);else if(uf)q=q.eq('user_id',+uf);
+  if(pf)q=q.eq('project_id',+pf);if(from)q=q.gte('log_date',from);if(to)q=q.lte('log_date',to);
+  const {data}=await q;wlData=data||[];
   const totalH=wlData.reduce((s,r)=>s+r.hours,0);
   $('wl-metrics').innerHTML='<div class="metric"><div class="metric-label">رکوردها</div><div class="metric-value">'+wlData.length+'</div></div><div class="metric g"><div class="metric-label">مجموع ساعات</div><div class="metric-value">'+totalH+'h</div></div>';
   $('wl-table').innerHTML=wlData.map(r=>{
-    const u=allUsers.find(u=>u.id===r.user_id);
-    const p=allProjects.find(p=>p.id===r.project_id);
-    return '<tr><td>'+r.log_date+'</td><td>'+(u?u.name||u.email:'—')+'</td><td>'+(p?p.name:'—')+'</td><td>'+(r.activity_id||'—')+'</td><td><strong>'+r.hours+'h</strong></td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(r.description||'—')+'</td><td>'+(isAdmin()?'<button onclick="deleteWorklog('+r.id+')" style="background:none;border:none;cursor:pointer;">🗑</button>':'')+' </td></tr>';
-  }).join('')||'<tr><td colspan="7" style="text-align:center;color:#aaa;padding:2rem;">رکوردی وجود ندارد</td></tr>';
+    const u=allUsers.find(u=>u.id===r.user_id);const p=allProjects.find(p=>p.id===r.project_id);
+    return '<tr><td>'+r.log_date+'</td><td>'+(u?u.name||u.email:'—')+'</td><td>'+(p?p.name:'—')+'</td><td>'+(r.activity_id||'—')+'</td><td><strong>'+r.hours+'h</strong></td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(r.description||'—')+'</td><td>'+(isAdmin()?'<button onclick="deleteWorklog('+r.id+')" style="background:none;border:none;cursor:pointer;">🗑</button>':'')+'</td></tr>';
+  }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem;">رکوردی وجود ندارد</td></tr>';
 }
-
 async function deleteWorklog(id){if(!confirm('حذف شود؟'))return;await db.from('work_logs').delete().eq('id',id);loadWorklog();}
 function exportWorklog(){
   const h='date,user,project,hours,description';
@@ -1025,38 +849,28 @@ function exportWorklog(){
 
 // ---- MONTHLY ----
 async function loadMonthlyReports(){
-  const projId=$('mr-proj').value;
-  const year=$('mr-year').value;
-  const list=$('monthly-list');
-  const cw=$('monthly-chart-wrap');
+  const projId=$('mr-proj').value;const year=$('mr-year').value;const list=$('monthly-list');const cw=$('monthly-chart-wrap');
   if(!projId){list.innerHTML='<div class="loading">یک پروژه انتخاب کنید</div>';cw.style.display='none';return;}
   const {data}=await db.from('monthly_reports').select('*').eq('project_id',+projId).eq('year',+year).order('month');
   cw.style.display=data&&data.length?'block':'none';
   if(data&&data.length){
     if(monthlyChartInst)monthlyChartInst.destroy();
-    monthlyChartInst=new Chart($('monthlyChart'),{type:'line',data:{labels:data.map(r=>MONTHS[r.month-1]),datasets:[{label:'پیشرفت برنامه',data:data.map(r=>r.planned),borderColor:'#1D9E75',borderDash:[5,3],tension:.4},{label:'هزینه',data:data.map(r=>r.actual),borderColor:'#D85A30',tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v}}}}});
-    list.innerHTML='<div class="table-wrap"><table><thead><tr><th>ماه</th><th>بودجه</th><th>هزینه</th><th>پیشرفت برنامه</th><th>یادداشت</th>'+(isManager()?'<th></th>':'')+' </tr></thead><tbody>'+data.map(r=>'<tr><td>'+MONTHS[r.month-1]+'</td><td>'+r.budget+'M</td><td>'+r.actual+'M</td><td>'+r.planned+'٪</td><td style="font-size:12px;color:#888;">'+(r.notes||'—')+'</td>'+(isManager()?'<td><button onclick="deleteMonthly('+r.id+')" style="background:none;border:none;cursor:pointer;">🗑</button></td>':'')+' </tr>').join('')+'</tbody></table></div>';
-  } else {list.innerHTML='<div class="loading">گزارشی ثبت نشده</div>';}
+    monthlyChartInst=new Chart($('monthlyChart'),{type:'line',data:{labels:data.map(r=>MONTHS[r.month-1]),datasets:[{label:'پیشرفت برنامه',data:data.map(r=>r.planned),borderColor:'#1d9e75',borderDash:[5,3],tension:.4},{label:'هزینه',data:data.map(r=>r.actual),borderColor:'#c8102e',tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+    list.innerHTML='<div class="table-wrap"><table><thead><tr><th>ماه</th><th>بودجه</th><th>هزینه</th><th>پیشرفت برنامه</th><th>یادداشت</th>'+(isManager()?'<th></th>':'')+'</tr></thead><tbody>'+data.map(r=>'<tr><td>'+MONTHS[r.month-1]+'</td><td>'+r.budget+'M</td><td>'+r.actual+'M</td><td>'+r.planned+'٪</td><td style="font-size:12px;color:var(--muted);">'+(r.notes||'—')+'</td>'+(isManager()?'<td><button onclick="deleteMonthly('+r.id+')" style="background:none;border:none;cursor:pointer;">🗑</button></td>':'')+'</tr>').join('')+'</tbody></table></div>';
+  } else list.innerHTML='<div class="loading">گزارشی ثبت نشده</div>';
 }
-
 function openAddMonthly(){
-  const projId=$('mr-proj').value;
-  if(!projId){alert('ابتدا پروژه انتخاب کنید');return;}
+  const projId=$('mr-proj').value;if(!projId){alert('ابتدا پروژه انتخاب کنید');return;}
   ['nm-budget','nm-actual','nm-planned','nm-notes'].forEach(i=>$(i).value='');
-  $('nm-year').value=$('mr-year').value||1404;$('nm-msg').innerHTML='';
-  openModal('add-monthly-modal');
+  $('nm-year').value=$('mr-year').value||1404;$('nm-msg').innerHTML='';openModal('add-monthly-modal');
 }
-
 async function saveMonthlyReport(){
-  const projId=+$('mr-proj').value;
-  const month=+$('nm-month').value;
-  const year=+$('nm-year').value;
+  const projId=+$('mr-proj').value;const month=+$('nm-month').value;const year=+$('nm-year').value;
   const rep={project_id:projId,month,year,budget:+$('nm-budget').value||0,actual:+$('nm-actual').value||0,planned:+$('nm-planned').value||0,notes:$('nm-notes').value};
   const {error}=await db.from('monthly_reports').upsert([rep],{onConflict:'project_id,year,month'});
   if(error){showMsg('nm-msg','خطا: '+error.message,'err');return;}
   closeModal('add-monthly-modal');loadMonthlyReports();
 }
-
 async function deleteMonthly(id){if(!confirm('حذف شود؟'))return;await db.from('monthly_reports').delete().eq('id',id);loadMonthlyReports();}
 
 // ---- ADMIN ----
@@ -1064,136 +878,161 @@ async function loadAdminUsers(){
   const {data}=await db.from('users').select('*').order('id');
   const roleLabel=r=>({superadmin:'سوپر ادمین',admin:'ادمین',manager:'مدیر',user:'کاربر'}[r]||r);
   const roleBadge=r=>'<span class="badge '+({superadmin:'badge-red',admin:'badge-gold',manager:'badge-blue',user:'badge-green'}[r]||'badge-gray')+'">'+roleLabel(r)+'</span>';
-  const pending=(data||[]).filter(u=>!u.approved);
-  const approved=(data||[]).filter(u=>u.approved);
-  $('pending-list').innerHTML=pending.length?pending.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-green" onclick="approveUser('+u.id+')">✓ تأیید</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">✗ رد</button></div></div>').join(''):'<div style="color:#aaa;font-size:13px;padding:.8rem;">کاربری در انتظار نیست.</div>';
-  $('approved-list').innerHTML=approved.length?approved.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+' '+roleBadge(u.role)+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-sec" onclick="openEditUser('+u.id+')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">🗑</button></div></div>').join(''):'<div style="color:#aaa;font-size:13px;padding:.8rem;">کاربری وجود ندارد.</div>';
+  const pending=(data||[]).filter(u=>!u.approved);const approved=(data||[]).filter(u=>u.approved);
+  $('pending-list').innerHTML=pending.length?pending.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-green" onclick="approveUser('+u.id+')">✓ تأیید</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">✗ رد</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری در انتظار نیست.</div>';
+  $('approved-list').innerHTML=approved.length?approved.map(u=>'<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+' '+roleBadge(u.role)+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-sec" onclick="openEditUser('+u.id+')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">🗑</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری وجود ندارد.</div>';
 }
-
 async function approveUser(id){await db.from('users').update({approved:true}).eq('id',id);loadAdminUsers();await loadUsers();}
 async function deleteUser(id){if(!confirm('حذف شود؟'))return;await db.from('users').delete().eq('id',id);loadAdminUsers();await loadUsers();}
-
 function openEditUser(id){
   const u=allUsers.find(x=>x.id===id);if(!u)return;
   $('um-id').value=id;$('um-name').value=u.name||'';$('um-email').value=u.email;$('um-role').value=u.role;
-  $('user-modal-title').textContent='✏️ ویرایش کاربر';
-  $('um-pass-wrap').style.display='none';$('um-pass').value='';$('um-msg').innerHTML='';
+  $('user-modal-title').textContent='✏️ ویرایش کاربر';$('um-pass-wrap').style.display='none';$('um-pass').value='';$('um-msg').innerHTML='';
   openModal('user-modal');
 }
-
 function openAddUser(){
   $('um-id').value='';$('um-name').value='';$('um-email').value='';$('um-pass').value='';$('um-role').value='user';
-  $('user-modal-title').textContent='➕ افزودن کاربر';
-  $('um-pass-wrap').style.display='block';$('um-msg').innerHTML='';
+  $('user-modal-title').textContent='➕ افزودن کاربر';$('um-pass-wrap').style.display='block';$('um-msg').innerHTML='';
   openModal('user-modal');
 }
-
 async function saveUser(){
-  const id=$('um-id').value;
-  const name=$('um-name').value.trim();
-  const email=$('um-email').value.trim();
-  const pass=$('um-pass').value;
-  const role=$('um-role').value;
+  const id=$('um-id').value;const name=$('um-name').value.trim();const email=$('um-email').value.trim();const pass=$('um-pass').value;const role=$('um-role').value;
   if(!name||!email){showMsg('um-msg','نام و ایمیل الزامی است.','err');return;}
   let error;
-  if(id){
-    ({error}=await db.from('users').update({name,email,role}).eq('id',+id));
-  } else {
-    if(!pass||pass.length<8){showMsg('um-msg','پسورد حداقل ۸ کاراکتر.','err');return;}
-    ({error}=await db.from('users').insert([{name,email,password:pass,role,approved:true,project_access:null}]));
-  }
+  if(id)({error}=await db.from('users').update({name,email,role}).eq('id',+id));
+  else{if(!pass||pass.length<8){showMsg('um-msg','پسورد حداقل ۸ کاراکتر.','err');return;}({error}=await db.from('users').insert([{name,email,password:pass,role,approved:true,project_access:null}]));}
   if(error){showMsg('um-msg','خطا: '+error.message,'err');return;}
   closeModal('user-modal');loadAdminUsers();await loadUsers();
 }
 
-// ---- CHARTS ----
+// ---- CHARTS (with click-to-detail) ----
 function buildProgressChart(){
   if(charts.bar)charts.bar.destroy();
   if(!projects.length)return;
-  charts.bar=new Chart($('barChart'),{type:'bar',data:{labels:projects.map(p=>p.name.length>10?p.name.slice(0,10)+'…':p.name),datasets:[{label:'پیشرفت WBS',data:projects.map(p=>p.progress),backgroundColor:projects.map(p=>p.progress>=(p.planned||0)?'#1D9E75':'#D85A30'),borderRadius:5},{label:'برنامه',data:projects.map(p=>p.planned||0),backgroundColor:'rgba(83,74,183,.2)',borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'٪'}}}}});
+  charts.bar=new Chart($('barChart'),{type:'bar',data:{labels:projects.map(p=>p.name.length>10?p.name.slice(0,10)+'…':p.name),datasets:[{label:'پیشرفت WBS',data:projects.map(p=>p.progress),backgroundColor:projects.map(p=>p.progress>=(p.planned||0)?'#1d9e75':'#c8102e'),borderRadius:6},{label:'برنامه',data:projects.map(p=>p.planned||0),backgroundColor:'rgba(15,22,49,.15)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'٪'}}},onClick:(e,els)=>{if(els.length){const idx=els[0].index;openProjectDetail(projects[idx].id);}}}});
 }
-
 async function buildCostChart(){
   if(charts.line)charts.line.destroy();
   const {data:mr}=await db.from('monthly_reports').select('*').order('year').order('month');
   const map={};(mr||[]).forEach(r=>{const k=r.year+'-'+String(r.month).padStart(2,'0');if(!map[k])map[k]={actual:0,budget:0};map[k].actual+=r.actual;map[k].budget+=r.budget;});
-  const keys=Object.keys(map).sort();
-  const labels=keys.map(k=>{const[y,m]=k.split('-');return MONTHS[+m-1]+' '+y;});
-  charts.line=new Chart($('lineChart'),{type:'line',data:{labels,datasets:[{label:'هزینه واقعی',data:keys.map(k=>map[k].actual),borderColor:'#534AB7',backgroundColor:'rgba(83,74,183,.08)',tension:.4,fill:true,pointRadius:4},{label:'بودجه',data:keys.map(k=>map[k].budget),borderColor:'#1D9E75',borderDash:[5,3],tension:.4,fill:false,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
+  const keys=Object.keys(map).sort();const labels=keys.map(k=>{const[y,m]=k.split('-');return MONTHS[+m-1]+' '+y;});
+  charts.line=new Chart($('lineChart'),{type:'line',data:{labels,datasets:[{label:'هزینه واقعی',data:keys.map(k=>map[k].actual),borderColor:'#0f1631',backgroundColor:'rgba(15,22,49,.07)',tension:.4,fill:true,pointRadius:4},{label:'بودجه',data:keys.map(k=>map[k].budget),borderColor:'#1d9e75',borderDash:[5,3],tension:.4,fill:false,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}},onClick:(e,els)=>{if(els.length){const idx=els[0].index;openMonthDetail(keys[idx],labels[idx]);}}}});
 }
-
 function buildPieChart(){
   if(charts.pie)charts.pie.destroy();
   if(!projects.length)return;
   const sc={};projects.forEach(p=>{sc[p.status]=(sc[p.status]||0)+1;});
-  const sL=Object.keys(sc);
-  const sC={'در حال اجرا':'#534AB7','تکمیل‌شده':'#1D9E75','برنامه‌ریزی':'#BA7517','متوقف‌شده':'#A32D2D'};
+  const sL=Object.keys(sc);const sC={'در حال اجرا':'#3a7bd5','تکمیل‌شده':'#1d9e75','برنامه‌ریزی':'#c9a44c','متوقف‌شده':'#c8102e'};
   $('pie-legend').innerHTML=sL.map(s=>'<span><span class="ld" style="background:'+(sC[s]||'#888')+'"></span>'+s+' ('+sc[s]+')</span>').join('');
-  charts.pie=new Chart($('pieChart'),{type:'doughnut',data:{labels:sL,datasets:[{data:sL.map(s=>sc[s]),backgroundColor:sL.map(s=>sC[s]||'#888')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  charts.pie=new Chart($('pieChart'),{type:'doughnut',data:{labels:sL,datasets:[{data:sL.map(s=>sc[s]),backgroundColor:sL.map(s=>sC[s]||'#888')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},onClick:(e,els)=>{if(els.length){const idx=els[0].index;openStatusDetail(sL[idx]);}}}});
 }
-
 function buildEVChart(){
   if(charts.ev)charts.ev.destroy();
-  if(!projects.length){$('ev-stats').innerHTML='<div style="color:#aaa;font-size:13px;">پروژه‌ای وجود ندارد</div>';return;}
-  const pv=projects.reduce((a,p)=>a+(p.budget*(p.planned||0)/100),0);
-  const ev_=projects.reduce((a,p)=>a+(p.budget*p.progress/100),0);
-  const ac=projects.reduce((a,p)=>a+p.actual,0);
-  charts.ev=new Chart($('evChart'),{type:'bar',data:{labels:['PV','EV','AC'],datasets:[{data:[Math.round(pv),Math.round(ev_),ac],backgroundColor:['#534AB7','#1D9E75','#D85A30'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
+  if(!projects.length){$('ev-stats').innerHTML='<div style="color:var(--muted);font-size:13px;">پروژه‌ای وجود ندارد</div>';return;}
+  const pv=projects.reduce((a,p)=>a+(p.budget*(p.planned||0)/100),0);const ev_=projects.reduce((a,p)=>a+(p.budget*p.progress/100),0);const ac=projects.reduce((a,p)=>a+p.actual,0);
+  charts.ev=new Chart($('evChart'),{type:'bar',data:{labels:['PV','EV','AC'],datasets:[{data:[Math.round(pv),Math.round(ev_),ac],backgroundColor:['#0f1631','#1d9e75','#c8102e'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}});
   const sv=(ev_-pv).toFixed(0);const cv=(ev_-ac).toFixed(0);const spi=pv?(ev_/pv).toFixed(2):'-';const cpi=ac?(ev_/ac).toFixed(2):'-';
-  const row=(l,v,c)=>'<div class="ev-stat"><span>'+l+'</span><span style="font-weight:600;color:'+(c||'#333')+'">'+v+'</span></div>';
-  $('ev-stats').innerHTML=row('PV',Math.round(pv)+'M')+row('EV',Math.round(ev_)+'M')+row('AC',ac+'M')+row('SV',(sv>=0?'+':'')+sv+'M',sv>=0?'#1D9E75':'#A32D2D')+row('CV',(cv>=0?'+':'')+cv+'M',cv>=0?'#1D9E75':'#A32D2D')+row('SPI',spi,spi>=1?'#1D9E75':'#A32D2D')+row('CPI',cpi,cpi>=1?'#1D9E75':'#A32D2D');
+  const row=(l,v,c)=>'<div class="ev-stat"><span>'+l+'</span><span style="font-weight:700;color:'+(c||'#1a1d29')+'">'+v+'</span></div>';
+  $('ev-stats').innerHTML=row('PV',Math.round(pv)+'M')+row('EV',Math.round(ev_)+'M')+row('AC',ac+'M')+row('SV',(sv>=0?'+':'')+sv+'M',sv>=0?'#1d9e75':'#c8102e')+row('CV',(cv>=0?'+':'')+cv+'M',cv>=0?'#1d9e75':'#c8102e')+row('SPI',spi,spi>=1?'#1d9e75':'#c8102e')+row('CPI',cpi,cpi>=1?'#1d9e75':'#c8102e');
 }
-
 async function buildCompareChart(){
   if(charts.compare)charts.compare.destroy();
   const projId=$('cmp-proj').value;if(!projId)return;
   const {data:mr}=await db.from('monthly_reports').select('*').eq('project_id',+projId).order('year').order('month');
   if(!mr||!mr.length)return;
-  charts.compare=new Chart($('compareChart'),{type:'bar',data:{labels:mr.map(r=>MONTHS[r.month-1]+' '+r.year),datasets:[{label:'برنامه',data:mr.map(r=>r.planned),backgroundColor:'rgba(29,158,117,.4)',borderRadius:4},{label:'هزینه',data:mr.map(r=>r.actual),backgroundColor:'#D85A30',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}});
+  charts.compare=new Chart($('compareChart'),{type:'bar',data:{labels:mr.map(r=>MONTHS[r.month-1]+' '+r.year),datasets:[{label:'برنامه',data:mr.map(r=>r.planned),backgroundColor:'rgba(29,158,117,.45)',borderRadius:4},{label:'هزینه',data:mr.map(r=>r.actual),backgroundColor:'#c8102e',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}});
 }
-
 function buildGantt(){
   const g=$('gantt');
   if(!projects.length){g.innerHTML='<div class="loading">پروژه‌ای وجود ندارد</div>';return;}
-  const starts=projects.map(p=>new Date(p.start_date).getTime());
-  const ends=projects.map(p=>new Date(p.end_date).getTime());
+  const starts=projects.map(p=>new Date(p.start_date).getTime());const ends=projects.map(p=>new Date(p.end_date).getTime());
   const minT=Math.min(...starts),maxT=Math.max(...ends);const range=maxT-minT||1;
-  g.innerHTML=projects.map((p,i)=>{const s=(new Date(p.start_date).getTime()-minT)/range*100;const w=Math.max(2,(new Date(p.end_date).getTime()-new Date(p.start_date).getTime())/range*100);return '<div class="gantt-row"><div class="gantt-label" title="'+p.name+'">'+p.name+'</div><div class="gantt-track"><div class="gantt-bar" style="left:'+s.toFixed(1)+'%;width:'+w.toFixed(1)+'%;background:'+COLORS[i%COLORS.length]+';">'+p.progress+'٪</div></div></div>';}).join('');
+  g.innerHTML=projects.map((p,i)=>{const s=(new Date(p.start_date).getTime()-minT)/range*100;const w=Math.max(2,(new Date(p.end_date).getTime()-new Date(p.start_date).getTime())/range*100);return '<div class="gantt-row"><div class="gantt-label" title="'+p.name+'">'+p.name+'</div><div class="gantt-track" onclick="openProjectDetail('+p.id+')"><div class="gantt-bar" style="left:'+s.toFixed(1)+'%;width:'+w.toFixed(1)+'%;background:'+COLORS[i%COLORS.length]+';">'+p.progress+'٪</div></div></div>';}).join('');
 }
-
 function buildOverview(){
   if(charts.ov)charts.ov.destroy();
   const total=projects.length,done=projects.filter(p=>p.status==='تکمیل‌شده').length,active=projects.filter(p=>p.status==='در حال اجرا').length;
   const avg=total?Math.round(projects.reduce((a,p)=>a+p.progress,0)/total):0;
   $('ov-metrics').innerHTML='<div class="metric"><div class="metric-label">کل</div><div class="metric-value">'+total+'</div></div><div class="metric g"><div class="metric-label">تکمیل‌شده</div><div class="metric-value">'+done+'</div></div><div class="metric b"><div class="metric-label">در حال اجرا</div><div class="metric-value">'+active+'</div></div><div class="metric r"><div class="metric-label">پیشرفت کل</div><div class="metric-value">'+avg+'٪</div></div>';
-  if(projects.length)charts.ov=new Chart($('ovChart'),{type:'bar',data:{labels:projects.map(p=>p.name.length>10?p.name.slice(0,10)+'…':p.name),datasets:[{label:'پیشرفت WBS',data:projects.map(p=>p.progress),backgroundColor:projects.map(p=>p.progress>=(p.planned||0)?'#1D9E75':'#D85A30'),borderRadius:5},{label:'برنامه',data:projects.map(p=>p.planned||0),backgroundColor:'rgba(0,0,0,.08)',borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:100,ticks:{callback:v=>v+'٪'}}}}});
-  $('ov-list').innerHTML=projects.map(p=>'<div class="pov-row"><div style="font-size:13px;font-weight:600;min-width:130px;">'+p.name+'</div><div style="flex:1;"><div style="display:flex;gap:4px;align-items:center;"><div class="pb-wrap"><div class="pb-fill" style="width:'+p.progress+'%;background:'+(p.progress>=(p.planned||0)?'#1D9E75':'#D85A30')+'"></div></div><span style="font-size:12px;font-weight:600;min-width:35px;">'+p.progress+'٪</span></div></div><div>'+(p.progress>=(p.planned||0)?'<span class="badge badge-green">✓</span>':'<span class="badge badge-red">⚠</span>')+'</div></div>').join('');
+  if(projects.length)charts.ov=new Chart($('ovChart'),{type:'bar',data:{labels:projects.map(p=>p.name.length>10?p.name.slice(0,10)+'…':p.name),datasets:[{label:'پیشرفت WBS',data:projects.map(p=>p.progress),backgroundColor:projects.map(p=>p.progress>=(p.planned||0)?'#1d9e75':'#c8102e'),borderRadius:6},{label:'برنامه',data:projects.map(p=>p.planned||0),backgroundColor:'rgba(15,22,49,.1)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:100,ticks:{callback:v=>v+'٪'}}},onClick:(e,els)=>{if(els.length)openProjectDetail(projects[els[0].index].id);}}});
+  $('ov-list').innerHTML=projects.map(p=>'<div class="pov-row" onclick="openProjectDetail('+p.id+')"><div style="font-size:13px;font-weight:700;min-width:130px;">'+p.name+'</div><div style="flex:1;"><div style="display:flex;gap:4px;align-items:center;"><div class="pb-wrap"><div class="pb-fill" style="width:'+p.progress+'%;background:'+(p.progress>=(p.planned||0)?'#1d9e75':'#c8102e')+'"></div></div><span style="font-size:12px;font-weight:700;min-width:35px;">'+p.progress+'٪</span></div></div><div>'+(p.progress>=(p.planned||0)?'<span class="badge badge-green">✓</span>':'<span class="badge badge-red">⚠</span>')+'</div></div>').join('');
 }
-
 function updateMetrics(){
   $('dash-metrics').innerHTML='<div class="metric"><div class="metric-label">کل پروژه‌ها</div><div class="metric-value">'+projects.length+'</div></div><div class="metric g"><div class="metric-label">در حال اجرا</div><div class="metric-value">'+projects.filter(p=>p.status==='در حال اجرا').length+'</div></div><div class="metric b"><div class="metric-label">میانگین پیشرفت</div><div class="metric-value">'+(projects.length?Math.round(projects.reduce((a,p)=>a+p.progress,0)/projects.length):0)+'٪</div></div><div class="metric r"><div class="metric-label">بودجه کل (M)</div><div class="metric-value">'+projects.reduce((a,p)=>a+p.budget,0)+'</div></div>';
 }
+async function buildDashCharts(){updateMetrics();buildProgressChart();await buildCostChart();buildPieChart();buildEVChart();buildGantt();await buildCompareChart();}
+function refreshDash(){updateMetrics();updateProjTable();if($('tab-dashboard')&&$('tab-dashboard').classList.contains('active'))setTimeout(buildDashCharts,50);}
 
-async function buildDashCharts(){
-  updateMetrics();
-  buildProgressChart();
-  await buildCostChart();
-  buildPieChart();
-  buildEVChart();
-  buildGantt();
-  await buildCompareChart();
+// ---- DETAIL PANELS ----
+function showDashboardMain(){
+  document.querySelectorAll('.detail-panel').forEach(p=>p.classList.remove('open'));
+  $('tab-dashboard').style.display='block';
+}
+function hideDashboardMain(){$('tab-dashboard').style.display='none';document.querySelectorAll('.detail-panel').forEach(p=>p.classList.remove('open'));}
+
+async function openProjectDetail(projectId){
+  hideDashboardMain();
+  $('panel-project-detail').classList.add('open');
+  const p=allProjects.find(x=>x.id===projectId);if(!p)return;
+  $('pd-title').innerHTML=p.name+' <span class="sub">جزئیات کامل پروژه</span>';
+  $('pd-metrics').innerHTML='<div class="metric"><div class="metric-label">پیشرفت WBS</div><div class="metric-value">'+p.progress+'٪</div></div><div class="metric b"><div class="metric-label">وضعیت</div><div class="metric-value" style="font-size:14px;">'+statusBadge(p.status)+'</div></div><div class="metric"><div class="metric-label">بودجه</div><div class="metric-value">'+p.budget+'M</div></div><div class="metric r"><div class="metric-label">هزینه واقعی</div><div class="metric-value">'+p.actual+'M</div></div><div class="metric g"><div class="metric-label">مدیر پروژه</div><div class="metric-value" style="font-size:14px;">'+p.manager+'</div></div>';
+  await loadWbsForProject(projectId);
+  renderWbsTree('pd-content-wbs',wbsNodes,wbsAssignments,projectId,false);
+  // set up detail tabs
+  document.querySelectorAll('#panel-project-detail .detail-tab').forEach(t=>t.onclick=()=>switchPdTab(t.dataset.dtab,projectId));
+  switchPdTab('wbs',projectId);
+}
+async function switchPdTab(tab,projectId){
+  document.querySelectorAll('#panel-project-detail .detail-tab').forEach(t=>t.classList.toggle('active',t.dataset.dtab===tab));
+  $('pd-content-wbs').style.display=tab==='wbs'?'block':'none';
+  $('pd-content-monthly').style.display=tab==='monthly'?'block':'none';
+  $('pd-content-worklog').style.display=tab==='worklog'?'block':'none';
+  if(tab==='monthly'){
+    const {data}=await db.from('monthly_reports').select('*').eq('project_id',projectId).order('year').order('month');
+    if(pdMonthlyChartInst)pdMonthlyChartInst.destroy();
+    if(data&&data.length){
+      pdMonthlyChartInst=new Chart($('pdMonthlyChart'),{type:'line',data:{labels:data.map(r=>MONTHS[r.month-1]+' '+r.year),datasets:[{label:'برنامه',data:data.map(r=>r.planned),borderColor:'#1d9e75',borderDash:[5,3],tension:.4},{label:'هزینه',data:data.map(r=>r.actual),borderColor:'#c8102e',tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+      $('pd-monthly-list').innerHTML=data.map(r=>'<div class="mini-list-item"><span>'+MONTHS[r.month-1]+' '+r.year+'</span><span>بودجه: '+r.budget+'M | هزینه: '+r.actual+'M | برنامه: '+r.planned+'٪</span></div>').join('');
+    } else {$('pd-monthly-list').innerHTML='<div class="loading">گزارشی ثبت نشده</div>';}
+  }
+  if(tab==='worklog'){
+    const {data}=await db.from('work_logs').select('*').eq('project_id',projectId).order('log_date',{ascending:false}).limit(30);
+    $('pd-worklog-list').innerHTML=(data&&data.length)?data.map(r=>{const u=allUsers.find(u=>u.id===r.user_id);return '<div class="mini-list-item"><span>'+r.log_date+' — '+(u?u.name||u.email:'—')+'</span><span><strong>'+r.hours+'h</strong> '+(r.description?'| '+r.description:'')+'</span></div>';}).join(''):'<div class="loading">کارکردی ثبت نشده</div>';
+  }
 }
 
-function refreshDash(){
-  updateMetrics();updateProjTable();
-  if($('tab-dashboard').classList.contains('active'))setTimeout(buildDashCharts,50);
+function openMonthDetail(key,label){
+  hideDashboardMain();
+  $('panel-month-detail').classList.add('open');
+  $('md-title').innerHTML=label+' <span class="sub">جزئیات هزینه این ماه به تفکیک پروژه</span>';
+  const [year,month]=key.split('-');
+  loadMonthDetailContent(+year,+month);
+}
+async function loadMonthDetailContent(year,month){
+  const {data}=await db.from('monthly_reports').select('*').eq('year',year).eq('month',month);
+  if(!data||!data.length){$('md-content').innerHTML='<div class="loading">داده‌ای برای این ماه ثبت نشده</div>';return;}
+  $('md-content').innerHTML=data.map(r=>{
+    const p=allProjects.find(p=>p.id===r.project_id);
+    return '<div class="mini-list-item" style="cursor:pointer" onclick="openProjectDetail('+r.project_id+')"><span style="font-weight:700;">'+(p?p.name:'—')+'</span><span>بودجه: '+r.budget+'M | هزینه: '+r.actual+'M | برنامه: '+r.planned+'٪'+(r.notes?' | '+r.notes:'')+'</span></div>';
+  }).join('');
 }
 
-// ---- TABS ----
+function openStatusDetail(status){
+  hideDashboardMain();
+  $('panel-status-detail').classList.add('open');
+  $('sd-title').innerHTML=status+' <span class="sub">فهرست پروژه‌های این وضعیت</span>';
+  const filtered=projects.filter(p=>p.status===status);
+  $('sd-content').innerHTML=filtered.length?filtered.map(p=>'<div class="mini-list-item" style="cursor:pointer" onclick="openProjectDetail('+p.id+')"><span style="font-weight:700;">'+p.name+'</span><span>پیشرفت: '+p.progress+'٪ | بودجه: '+p.budget+'M | مدیر: '+p.manager+'</span></div>').join(''):'<div class="loading">پروژه‌ای با این وضعیت نیست</div>';
+}
+
+// ---- NAVIGATION ----
 function showTab(id){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  const sec=$('tab-'+id);if(sec)sec.classList.add('active');
+  document.querySelectorAll('.sb-link').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));
+  document.querySelectorAll('.section').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.detail-panel').forEach(p=>p.classList.remove('open'));
+  const sec=$('tab-'+id);if(sec)sec.style.display='block';
+  const titles={dashboard:['نمای کلی','داشبورد'],overview:['نمای کلی','نمای کلی شرکت'],tasks:['کار من','وظایف من'],worklog:['کار من','گزارش کارکرد'],monthly:['مدیریت','گزارش ماهانه'],projects:['مدیریت','پروژه‌ها'],admin:['مدیریت','کاربران']};
+  if(titles[id]){$('topbar-eyebrow').textContent=titles[id][0];$('topbar-title').textContent=titles[id][1];}
   if(id==='dashboard')setTimeout(buildDashCharts,50);
   if(id==='overview')setTimeout(buildOverview,50);
   if(id==='tasks')loadMyTasks();
@@ -1211,19 +1050,14 @@ document.addEventListener('DOMContentLoaded',function(){
   $('reg-btn').addEventListener('click',register);
   $('pending-logout-btn').addEventListener('click',logout);
   $('main-logout-btn').addEventListener('click',logout);
+  document.querySelectorAll('.sb-link[data-tab]').forEach(btn=>btn.addEventListener('click',()=>showTab(btn.dataset.tab)));
+  document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.close)));
+  document.querySelectorAll('.modal-overlay').forEach(overlay=>overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('open');}));
 
-  document.querySelectorAll('.tab[data-tab]').forEach(btn=>{
-    btn.addEventListener('click',()=>showTab(btn.dataset.tab));
-  });
+  $('back-from-proj-detail').addEventListener('click',showDashboardMain);
+  $('back-from-month-detail').addEventListener('click',showDashboardMain);
+  $('back-from-status-detail').addEventListener('click',showDashboardMain);
 
-  document.querySelectorAll('[data-close]').forEach(btn=>{
-    btn.addEventListener('click',()=>closeModal(btn.dataset.close));
-  });
-  document.querySelectorAll('.modal-overlay').forEach(overlay=>{
-    overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('open');});
-  });
-
-  // Project
   $('add-proj-btn').addEventListener('click',()=>{
     editingProjectId=null;$('proj-form-title').textContent='➕ پروژه جدید';
     ['f-name','f-start','f-end','f-budget','f-actual','f-manager'].forEach(i=>$(i).value='');
@@ -1233,17 +1067,14 @@ document.addEventListener('DOMContentLoaded',function(){
   $('save-proj-btn').addEventListener('click',saveProject);
   $('export-csv-btn').addEventListener('click',exportCSV);
 
-  // WBS
   $('add-root-node-btn').addEventListener('click',openAddRootNode);
   $('close-wbs-btn').addEventListener('click',closeWbs);
   $('save-wbs-node-btn').addEventListener('click',saveWbsNode);
   $('wn-type').addEventListener('change',toggleWbsType);
 
-  // Tasks
   $('do-confirm-user-btn').addEventListener('click',doConfirmUser);
   $('do-confirm-manager-btn').addEventListener('click',doConfirmManager);
 
-  // Worklog
   $('open-worklog-btn').addEventListener('click',openAddWorklog);
   $('save-worklog-btn').addEventListener('click',saveWorklog);
   $('export-wl-btn').addEventListener('click',exportWorklog);
@@ -1253,13 +1084,11 @@ document.addEventListener('DOMContentLoaded',function(){
   $('wl-to').addEventListener('change',loadWorklog);
   $('wl-proj').addEventListener('change',loadWlNodes);
 
-  // Monthly
   $('add-month-btn').addEventListener('click',openAddMonthly);
   $('save-monthly-btn').addEventListener('click',saveMonthlyReport);
   $('mr-proj').addEventListener('change',loadMonthlyReports);
   $('mr-year').addEventListener('change',loadMonthlyReports);
 
-  // Admin
   $('open-add-user-btn').addEventListener('click',openAddUser);
   $('save-user-btn').addEventListener('click',saveUser);
   $('cmp-proj').addEventListener('change',buildCompareChart);
