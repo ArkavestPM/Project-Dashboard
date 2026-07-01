@@ -469,7 +469,7 @@ tr:hover td{background:#f8f9fc;}
           <div class="chat-container">
             <div class="chat-sidebar">
               <div class="chat-sidebar-header">
-                <h3>📨 مکالمات</h3>
+                <h3>📨 مکالمات <span id="total-unread" style="background:var(--red);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:8px;"></span></h3>
               </div>
               <div class="chat-sidebar-search">
                 <input type="text" id="chat-search" placeholder="جستجو..." oninput="filterChatContacts(this.value)">
@@ -484,7 +484,7 @@ tr:hover td{background:#f8f9fc;}
                   <div class="name" id="chat-recipient-name">انتخاب مخاطب</div>
                   <div class="info" id="chat-recipient-info">یک مکالمه را انتخاب کنید</div>
                 </div>
-                <div>
+                <div style="display:flex;gap:8px;">
                   <button class="btn btn-sm btn-sec" id="chat-new-group-btn" onclick="openNewGroupModal()">➕ گروه جدید</button>
                 </div>
               </div>
@@ -495,8 +495,18 @@ tr:hover td{background:#f8f9fc;}
                 </div>
               </div>
               <div class="chat-input" id="chat-input-area" style="display:none;">
-                <textarea id="chat-input-text" placeholder="پیام خود را بنویسید..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
-                <button class="btn btn-red" onclick="sendChatMessage()">📤</button>
+                <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="btn btn-sm btn-sec" onclick="document.getElementById('chat-file-input').click()">📎</button>
+                    <input type="file" id="chat-file-input" style="display:none;" onchange="handleFileAttachment(this)">
+                    <textarea id="chat-input-text" placeholder="پیام خود را بنویسید..." rows="1" style="flex:1;padding:8px 14px;border:2px solid var(--line);border-radius:12px;font-size:13px;font-family:inherit;resize:none;outline:none;min-height:42px;max-height:120px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+                    <button class="btn btn-red" onclick="sendChatMessage()">📤</button>
+                  </div>
+                  <div id="chat-attachment-preview" style="display:none;background:#f8f9fc;padding:8px 12px;border-radius:8px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;">
+                    <span id="chat-attachment-name"></span>
+                    <button class="btn btn-sm btn-danger" onclick="removeFileAttachment()">✕</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -597,6 +607,7 @@ tr:hover td{background:#f8f9fc;}
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button class="btn btn-red btn-sm" id="open-add-user-btn">➕ افزودن کاربر</button>
               <button class="btn btn-sec btn-sm" id="import-users-btn">📥 وارد کردن اکسل</button>
+              <button class="btn btn-sec btn-sm" id="export-users-btn">📤 خروجی اکسل</button>
             </div>
           </div>
           <div style="margin-bottom:1.5rem;">
@@ -742,7 +753,35 @@ tr:hover td{background:#f8f9fc;}
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;"><button class="btn btn-sec" data-close="import-users-modal">انصراف</button><button class="btn btn-red" id="import-users-btn-confirm">📥 وارد کردن</button></div>
 </div></div>
 
-<!-- مودال تغییر رمز -->
+<!-- مودال تغییر پسورد کاربر توسط ادمین -->
+<div class="modal-overlay" id="change-user-password-modal"><div class="modal modal-sm">
+  <div class="modal-header">
+    <div class="modal-title">🔑 تغییر پسورد کاربر</div>
+    <button class="modal-close" data-close="change-user-password-modal">×</button>
+  </div>
+  <input type="hidden" id="cup-user-id">
+  <div style="margin-bottom:1rem;padding:10px;background:#f8f9fc;border-radius:10px;">
+    <div style="font-size:14px;font-weight:700;color:var(--navy);" id="cup-user-name"></div>
+    <div style="font-size:12px;color:var(--muted);" id="cup-user-email"></div>
+  </div>
+  <div class="fg password-wrapper">
+    <label>پسورد جدید *</label>
+    <input type="password" id="cup-new-pass" placeholder="حداقل ۸ کاراکتر">
+    <span class="password-toggle" onclick="togglePassword('cup-new-pass', this)">👁️</span>
+  </div>
+  <div class="fg password-wrapper">
+    <label>تکرار پسورد جدید *</label>
+    <input type="password" id="cup-confirm-pass" placeholder="تکرار پسورد جدید">
+    <span class="password-toggle" onclick="togglePassword('cup-confirm-pass', this)">👁️</span>
+  </div>
+  <div id="cup-msg" style="margin-top:8px;"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">
+    <button class="btn btn-sec" data-close="change-user-password-modal">انصراف</button>
+    <button class="btn btn-red" id="save-user-password-btn">✓ تغییر پسورد</button>
+  </div>
+</div></div>
+
+<!-- مودال تغییر رمز کاربر -->
 <div class="modal-overlay" id="change-password-modal"><div class="modal modal-sm">
   <div class="modal-header"><div class="modal-title">🔑 تغییر رمز عبور</div><button class="modal-close" data-close="change-password-modal">×</button></div>
   <div class="fg password-wrapper">
@@ -836,6 +875,7 @@ let monthlyChartInst=null,pdMonthlyChartInst=null;
 let loginType='personnel';
 let myManagedProjects=[];
 let chatContacts=[],currentChatContact=null,chatMessages=[],chatInterval=null;
+var chatFileAttachment = null;
 
 // ===== توابع کمکی =====
 function $(id){return document.getElementById(id);}
@@ -981,13 +1021,12 @@ function initApp(){
     document.getElementById('tab-btn-projects').style.display='flex';
   }
   
-  // مدیر پروژه - فقط پروژه‌های خودش و درخواست WBS
+  // مدیر پروژه - فقط پروژه‌های خودش
   if(isManager()&&!isAdmin()&&!isSA()){
     document.getElementById('add-month-btn').style.display='block';
     document.getElementById('add-proj-btn').style.display='block';
-    document.getElementById('tab-btn-wbs-requests').style.display='flex';
+    document.getElementById('tab-btn-wbs-requests').style.display='none';
     document.getElementById('wl-filter-user-wrap').style.display='none';
-    // بخش مدیریت رو مخفی کن
     document.getElementById('admin-section-label').style.display='none';
     document.getElementById('tab-btn-admin').style.display='none';
     document.getElementById('tab-btn-settings').style.display='none';
@@ -1011,8 +1050,6 @@ function initApp(){
   if(isSA()) document.getElementById('header-badge').innerHTML='<span class="superadmin-badge">SUPER ADMIN</span>';
   
   loadAll();
-  
-  // چت رو بعد از بارگذاری کاربران راه‌اندازی کن
   setTimeout(function(){loadChatContacts();}, 1000);
 }
 
@@ -1139,10 +1176,21 @@ async function loadChatContacts() {
   if(!CU) return;
   
   var contacts=[];
+  var totalUnread = 0;
   
-  // کاربران دیگر
   var otherUsers=allUsers.filter(function(u){return u.id!==CU.id && u.approved;});
-  otherUsers.forEach(function(u){
+  
+  for(var i=0; i<otherUsers.length; i++){
+    var u = otherUsers[i];
+    var unreadResult = await db.from('chat_messages')
+      .select('id', {count: 'exact'})
+      .eq('sender_id', u.id)
+      .eq('receiver_id', CU.id)
+      .eq('is_read', false);
+    
+    var unreadCount = unreadResult.count || 0;
+    totalUnread += unreadCount;
+    
     contacts.push({
       id: 'user_'+u.id,
       user_id: u.id,
@@ -1151,17 +1199,26 @@ async function loadChatContacts() {
       avatar: initials(u.name||u.email),
       last_message: '',
       last_time: '',
-      unread: 0
+      unread: unreadCount
     });
-  });
+  }
   
-  // گروه‌هایی که کاربر عضو آنهاست
   var memberGroupsResult=await db.from('chat_group_members')
     .select('group_id, chat_groups(*)')
     .eq('user_id', CU.id);
   
-  (memberGroupsResult.data||[]).forEach(function(m){
+  for(var j=0; j<(memberGroupsResult.data||[]).length; j++){
+    var m = memberGroupsResult.data[j];
     if(m.chat_groups){
+      var groupUnread = await db.from('chat_messages')
+        .select('id', {count: 'exact'})
+        .eq('group_id', m.chat_groups.id)
+        .neq('sender_id', CU.id)
+        .eq('is_read', false);
+      
+      var gUnread = groupUnread.count || 0;
+      totalUnread += gUnread;
+      
       contacts.push({
         id: 'group_'+m.chat_groups.id,
         group_id: m.chat_groups.id,
@@ -1170,12 +1227,13 @@ async function loadChatContacts() {
         avatar: '👥',
         last_message: '',
         last_time: '',
-        unread: 0
+        unread: gUnread
       });
     }
-  });
+  }
   
   chatContacts=contacts;
+  document.getElementById('total-unread').textContent = totalUnread > 0 ? '🔔 ' + totalUnread : '';
   renderChatContacts();
 }
 
@@ -1252,6 +1310,13 @@ async function loadChatMessages(contact) {
   var result=await query.order('created_at', {ascending:true});
   chatMessages=result.data||[];
   
+  var msgIds=chatMessages.map(function(m){return m.id;});
+  var attachments = [];
+  if(msgIds.length){
+    var attResult = await db.from('chat_attachments').select('*').in('message_id', msgIds);
+    attachments = attResult.data || [];
+  }
+  
   if(!chatMessages.length){
     container.innerHTML='<div class="chat-empty"><div class="icon">💬</div><div>هنوز پیامی ارسال نشده است</div><div style="font-size:12px;color:var(--muted);">اولین پیام را شما بفرستید!</div></div>';
     return;
@@ -1260,10 +1325,22 @@ async function loadChatMessages(contact) {
   container.innerHTML=chatMessages.map(function(msg){
     var isMine=msg.sender_id===CU.id;
     var sender=allUsers.find(function(u){return u.id===msg.sender_id;});
+    var msgAttachments = attachments.filter(function(a){return a.message_id === msg.id;});
+    
+    var attachHtml = '';
+    if(msgAttachments.length){
+      attachHtml = '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">';
+      msgAttachments.forEach(function(a){
+        attachHtml += '<a href="'+a.file_url+'" target="_blank" style="background:#e8ecf1;padding:4px 10px;border-radius:6px;font-size:11px;text-decoration:none;color:var(--navy);">📎 '+a.file_name+'</a>';
+      });
+      attachHtml += '</div>';
+    }
+    
     return '<div class="chat-message '+(isMine?'mine':'other')+'">'+
       '<div class="bubble">'+
         (!isMine && sender ? '<div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px;">'+sender.name+'</div>' : '')+
         msg.message+
+        attachHtml+
       '</div>'+
       '<div class="time">'+new Date(msg.created_at).toLocaleTimeString('fa-IR')+'</div>'+
     '</div>';
@@ -1271,21 +1348,30 @@ async function loadChatMessages(contact) {
   
   container.scrollTop=container.scrollHeight;
   
-  // علامت‌گذاری پیام‌ها به عنوان خوانده شده
   if(contact.type==='user'){
     await db.from('chat_messages')
       .update({is_read:true, read_at:new Date().toISOString()})
       .eq('sender_id', contact.user_id)
       .eq('receiver_id', CU.id)
       .eq('is_read', false);
+  } else {
+    await db.from('chat_messages')
+      .update({is_read:true, read_at:new Date().toISOString()})
+      .eq('group_id', contact.group_id)
+      .neq('sender_id', CU.id)
+      .eq('is_read', false);
   }
 }
 
 async function sendChatMessage() {
   var text=document.getElementById('chat-input-text').value.trim();
-  if(!text || !currentChatContact) return;
+  if(!text && !chatFileAttachment) return;
+  if(!currentChatContact) return;
   
-  var messageData={sender_id: CU.id, message: text};
+  var messageData = {
+    sender_id: CU.id,
+    message: text || '(ضمیمه)'
+  };
   
   if(currentChatContact.type==='user'){
     messageData.receiver_id=currentChatContact.user_id;
@@ -1293,12 +1379,50 @@ async function sendChatMessage() {
     messageData.group_id=currentChatContact.group_id;
   }
   
-  var result=await db.from('chat_messages').insert([messageData]);
+  var result=await db.from('chat_messages').insert([messageData]).select().single();
   if(result.error){alert('خطا در ارسال پیام: '+result.error.message);return;}
+  
+  var messageId = result.data.id;
+  
+  if(chatFileAttachment){
+    var fileName = chatFileAttachment.name;
+    var filePath = 'chat_attachments/' + Date.now() + '_' + fileName;
+    
+    var uploadResult = await db.storage.from('chat-files').upload(filePath, chatFileAttachment);
+    if(uploadResult.error){
+      alert('خطا در آپلود فایل: ' + uploadResult.error.message);
+    } else {
+      var publicUrl = db.storage.from('chat-files').getPublicUrl(filePath);
+      await db.from('chat_attachments').insert([{
+        message_id: messageId,
+        file_name: fileName,
+        file_url: publicUrl.data.publicUrl,
+        file_size: chatFileAttachment.size,
+        file_type: chatFileAttachment.type
+      }]);
+    }
+    chatFileAttachment = null;
+    document.getElementById('chat-attachment-preview').style.display = 'none';
+  }
   
   document.getElementById('chat-input-text').value='';
   await loadChatMessages(currentChatContact);
   await loadChatContacts();
+}
+
+function handleFileAttachment(input) {
+  var file = input.files[0];
+  if(!file) return;
+  
+  chatFileAttachment = file;
+  document.getElementById('chat-attachment-name').textContent = '📎 ' + file.name + ' (' + (file.size/1024).toFixed(1) + 'KB)';
+  document.getElementById('chat-attachment-preview').style.display = 'flex';
+}
+
+function removeFileAttachment() {
+  chatFileAttachment = null;
+  document.getElementById('chat-attachment-preview').style.display = 'none';
+  document.getElementById('chat-file-input').value = '';
 }
 
 function openNewGroupModal() {
@@ -1473,7 +1597,64 @@ async function reviewWbsRequest(requestId, status) {
   alert('✅ درخواست '+(status==='approved'?'تایید':'رد')+' شد!');
 }
 
-// ===== تغییر رمز عبور =====
+// ===== تغییر رمز عبور کاربر =====
+function openChangeUserPassword(userId) {
+  var user = allUsers.find(function(u){return u.id === userId;});
+  if(!user) return;
+  
+  document.getElementById('cup-user-id').value = userId;
+  document.getElementById('cup-user-name').textContent = user.name || 'بدون نام';
+  document.getElementById('cup-user-email').textContent = '📧 ' + user.email;
+  document.getElementById('cup-new-pass').value = '';
+  document.getElementById('cup-confirm-pass').value = '';
+  document.getElementById('cup-msg').innerHTML = '';
+  openModal('change-user-password-modal');
+}
+
+async function saveUserPassword() {
+  var userId = +document.getElementById('cup-user-id').value;
+  var newPass = document.getElementById('cup-new-pass').value;
+  var confirmPass = document.getElementById('cup-confirm-pass').value;
+  
+  if(!newPass || !confirmPass) {
+    showMsg('cup-msg','همه فیلدها را پر کنید.','err');
+    return;
+  }
+  if(newPass.length < 8) {
+    showMsg('cup-msg','پسورد حداقل ۸ کاراکتر باشد.','err');
+    return;
+  }
+  if(newPass !== confirmPass) {
+    showMsg('cup-msg','پسورد و تکرار آن مطابقت ندارند.','err');
+    return;
+  }
+  
+  var result = await db.from('users').update({password: newPass}).eq('id', userId);
+  if(result.error) {
+    showMsg('cup-msg','خطا: ' + result.error.message, 'err');
+    return;
+  }
+  
+  showMsg('cup-msg','✅ پسورد با موفقیت تغییر کرد!','ok');
+  setTimeout(function(){closeModal('change-user-password-modal');}, 1500);
+}
+
+// ===== خروجی اکسل کاربران =====
+function exportUsersCSV() {
+  var headers = 'name,email,personnel_id,role,status';
+  var rows = allUsers.map(function(u){
+    return [
+      u.name || '',
+      u.email,
+      u.personnel_id || '',
+      u.role || 'user',
+      u.approved ? 'approved' : 'pending'
+    ].join(',');
+  });
+  dl('\uFEFF' + [headers].concat(rows).join('\n'), 'users_export.csv', 'text/csv');
+}
+
+// ===== تغییر رمز کاربر =====
 function openChangePassword(){
   document.getElementById('cp-current-pass').value='';
   document.getElementById('cp-new-pass').value='';
@@ -1950,9 +2131,29 @@ async function loadAdminUsers(){
   var result=await db.from('users').select('*').order('id');
   var roleLabel=function(r){return {superadmin:'سوپر ادمین',admin:'ادمین',manager:'مدیر',user:'کاربر'}[r]||r;};
   var roleBadge=function(r){return '<span class="badge '+({superadmin:'badge-red',admin:'badge-gold',manager:'badge-blue',user:'badge-green'}[r]||'badge-gray')+'">'+roleLabel(r)+'</span>';};
-  var pending=(result.data||[]).filter(function(u){return !u.approved;});var approved=(result.data||[]).filter(function(u){return u.approved;});
-  document.getElementById('pending-list').innerHTML=pending.length?pending.map(function(u){return '<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+(u.personnel_id?' <span style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:11px;">🆔 '+u.personnel_id+'</span>':'')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-green" onclick="approveUser('+u.id+')">✓ تأیید</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">✗ رد</button></div></div>';}).join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری در انتظار نیست.</div>';
-  document.getElementById('approved-list').innerHTML=approved.length?approved.map(function(u){return '<div class="admin-card"><div class="admin-card-info">'+(u.name||'بدون نام')+' '+roleBadge(u.role)+(u.personnel_id?' <span style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:11px;">🆔 '+u.personnel_id+'</span>':'')+'<span>'+u.email+'</span></div><div class="admin-actions"><button class="btn btn-sm btn-gold" onclick="openAccessManager('+u.id+')" title="مدیریت دسترسی پروژه‌ها">🔑</button><button class="btn btn-sm btn-sec" onclick="openEditUser('+u.id+')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">🗑</button></div></div>';}).join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری وجود ندارد.</div>';
+  var pending=(result.data||[]).filter(function(u){return !u.approved;});
+  var approved=(result.data||[]).filter(function(u){return u.approved;});
+  
+  document.getElementById('pending-list').innerHTML=pending.length?pending.map(function(u){
+    return '<div class="admin-card"><div class="admin-card-info">'+
+      (u.name||'بدون نام')+
+      (u.personnel_id?' <span style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:11px;">🆔 '+u.personnel_id+'</span>':'')+
+      '<span>'+u.email+'</span></div>'+
+      '<div class="admin-actions"><button class="btn btn-sm btn-green" onclick="approveUser('+u.id+')">✓ تأیید</button><button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">✗ رد</button></div></div>';
+  }).join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری در انتظار نیست.</div>';
+  
+  document.getElementById('approved-list').innerHTML=approved.length?approved.map(function(u){
+    return '<div class="admin-card"><div class="admin-card-info">'+
+      (u.name||'بدون نام')+' '+roleBadge(u.role)+
+      (u.personnel_id?' <span style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:11px;">🆔 '+u.personnel_id+'</span>':'')+
+      '<span>'+u.email+'</span></div>'+
+      '<div class="admin-actions">'+
+        '<button class="btn btn-sm btn-gold" onclick="openAccessManager('+u.id+')" title="مدیریت دسترسی پروژه‌ها">🔑</button>'+
+        '<button class="btn btn-sm btn-warn" onclick="openChangeUserPassword('+u.id+')" title="تغییر پسورد">🔐</button>'+
+        '<button class="btn btn-sm btn-sec" onclick="openEditUser('+u.id+')">✏️</button>'+
+        '<button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+')">🗑</button>'+
+      '</div></div>';
+  }).join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem;">کاربری وجود ندارد.</div>';
 }
 
 async function approveUser(id){await db.from('users').update({approved:true}).eq('id',id);loadAdminUsers();await loadUsers();}
@@ -2266,6 +2467,12 @@ document.addEventListener('DOMContentLoaded',function(){
   // تغییر رمز
   document.getElementById('change-password-btn').addEventListener('click',openChangePassword);
   document.getElementById('save-password-btn').addEventListener('click',savePassword);
+  
+  // تغییر پسورد کاربر توسط ادمین
+  document.getElementById('save-user-password-btn').addEventListener('click',saveUserPassword);
+  
+  // خروجی اکسل کاربران
+  document.getElementById('export-users-btn').addEventListener('click',exportUsersCSV);
   
   // چت
   document.getElementById('save-group-btn').addEventListener('click',createNewGroup);
