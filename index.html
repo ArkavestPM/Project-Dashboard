@@ -2211,7 +2211,7 @@ function openStatusDetail(status){
 }
 
 // ===== NAVIGATION =====
-function showTab(id){
+async function showTab(id){
   document.querySelectorAll('.sb-link').forEach(function(t){t.classList.toggle('active',t.dataset.tab===id);});
   document.querySelectorAll('.section').forEach(function(s){s.style.display='none';});
   document.querySelectorAll('.detail-panel').forEach(function(p){p.classList.remove('open');});
