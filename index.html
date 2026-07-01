@@ -370,14 +370,18 @@ tr:hover td{background:#f8f9fc;}
         <div class="sb-section-label">نمای کلی</div>
         <button class="sb-link active" data-tab="dashboard"><span class="sb-ic">📊</span><span>داشبورد</span></button>
         <button class="sb-link" data-tab="overview"><span class="sb-ic">🏢</span><span>نمای کلی</span></button>
+        
         <div class="sb-section-label">ارتباطات</div>
         <button class="sb-link" data-tab="chat"><span class="sb-ic">💬</span><span>چت</span></button>
+        
         <div class="sb-section-label">کار من</div>
         <button class="sb-link" data-tab="tasks"><span class="sb-ic">✅</span><span>وظایف من</span></button>
         <button class="sb-link" data-tab="worklog"><span class="sb-ic">⏱</span><span>گزارش کارکرد</span></button>
-        <div class="sb-section-label">مدیریت</div>
-        <button class="sb-link" data-tab="monthly" id="tab-btn-monthly"><span class="sb-ic">📅</span><span>گزارش ماهانه</span></button>
-        <button class="sb-link" data-tab="projects" id="tab-btn-projects"><span class="sb-ic">📁</span><span>پروژه‌ها</span></button>
+        
+        <!-- مدیریت - فقط برای ادمین و سوپرادمین -->
+        <div class="sb-section-label" id="admin-section-label" style="display:none;">مدیریت</div>
+        <button class="sb-link" data-tab="monthly" id="tab-btn-monthly" style="display:none"><span class="sb-ic">📅</span><span>گزارش ماهانه</span></button>
+        <button class="sb-link" data-tab="projects" id="tab-btn-projects" style="display:none"><span class="sb-ic">📁</span><span>پروژه‌ها</span></button>
         <button class="sb-link" data-tab="wbs-requests" id="tab-btn-wbs-requests" style="display:none"><span class="sb-ic">📋</span><span>درخواست‌های WBS</span></button>
         <button class="sb-link" data-tab="admin" id="tab-btn-admin" style="display:none"><span class="sb-ic">⚙️</span><span>مدیریت کاربران</span></button>
         <button class="sb-link" data-tab="settings" id="tab-btn-settings" style="display:none"><span class="sb-ic">🔧</span><span>تنظیمات</span></button>
@@ -626,15 +630,7 @@ tr:hover td{background:#f8f9fc;}
                 <div class="fgs"><label>سال مالی جاری</label><input type="number" id="setting-fiscal-year" value="1404"></div>
                 <div class="fgs"><label>واحد پول</label><input id="setting-currency" value="تومان"></div>
               </div>
-              <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);">
-                  <input type="checkbox" id="setting-chat-enabled" checked> فعال بودن چت
-                </label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);">
-                  <input type="checkbox" id="setting-wbs-requests-enabled" checked> فعال بودن درخواست تغییر WBS
-                </label>
-              </div>
-              <button class="btn btn-red" id="save-settings-btn" style="margin-top:12px;">💾 ذخیره تنظیمات</button>
+              <button class="btn btn-red" id="save-settings-btn">💾 ذخیره تنظیمات</button>
             </div>
           </div>
         </div>
@@ -972,30 +968,52 @@ function initApp(){
   
   document.getElementById('change-password-btn').style.display='block';
   
+  // فقط ادمین و سوپرادمین بخش مدیریت رو ببینند
   if(isAdmin()||isSA()){
+    document.getElementById('admin-section-label').style.display='block';
     document.getElementById('tab-btn-admin').style.display='flex';
     document.getElementById('tab-btn-settings').style.display='flex';
     document.getElementById('tab-btn-wbs-requests').style.display='flex';
     document.getElementById('add-proj-btn').style.display='block';
     document.getElementById('add-month-btn').style.display='block';
     document.getElementById('wl-filter-user-wrap').style.display='block';
+    document.getElementById('tab-btn-monthly').style.display='flex';
+    document.getElementById('tab-btn-projects').style.display='flex';
   }
   
+  // مدیر پروژه - فقط پروژه‌های خودش و درخواست WBS
   if(isManager()&&!isAdmin()&&!isSA()){
     document.getElementById('add-month-btn').style.display='block';
     document.getElementById('add-proj-btn').style.display='block';
     document.getElementById('tab-btn-wbs-requests').style.display='flex';
     document.getElementById('wl-filter-user-wrap').style.display='none';
+    // بخش مدیریت رو مخفی کن
+    document.getElementById('admin-section-label').style.display='none';
+    document.getElementById('tab-btn-admin').style.display='none';
+    document.getElementById('tab-btn-settings').style.display='none';
+    document.getElementById('tab-btn-monthly').style.display='none';
+    document.getElementById('tab-btn-projects').style.display='none';
   }
   
+  // کاربر عادی - فقط خودش
   if(CU.role==='user'){
     document.getElementById('wl-filter-user-wrap').style.display='none';
+    document.getElementById('admin-section-label').style.display='none';
+    document.getElementById('tab-btn-admin').style.display='none';
+    document.getElementById('tab-btn-settings').style.display='none';
+    document.getElementById('tab-btn-wbs-requests').style.display='none';
+    document.getElementById('add-proj-btn').style.display='none';
+    document.getElementById('add-month-btn').style.display='none';
+    document.getElementById('tab-btn-monthly').style.display='none';
+    document.getElementById('tab-btn-projects').style.display='none';
   }
   
   if(isSA()) document.getElementById('header-badge').innerHTML='<span class="superadmin-badge">SUPER ADMIN</span>';
   
   loadAll();
-  setTimeout(function(){loadChatContacts();}, 500);
+  
+  // چت رو بعد از بارگذاری کاربران راه‌اندازی کن
+  setTimeout(function(){loadChatContacts();}, 1000);
 }
 
 async function loadAll(){await loadProjects();await loadUsers();await loadCategories();await loadUserAccess();await loadWbsChangeRequests();}
@@ -1122,10 +1140,12 @@ async function loadChatContacts() {
   
   var contacts=[];
   
+  // کاربران دیگر
   var otherUsers=allUsers.filter(function(u){return u.id!==CU.id && u.approved;});
   otherUsers.forEach(function(u){
     contacts.push({
-      id: u.id,
+      id: 'user_'+u.id,
+      user_id: u.id,
       name: u.name||u.email,
       type: 'user',
       avatar: initials(u.name||u.email),
@@ -1135,29 +1155,19 @@ async function loadChatContacts() {
     });
   });
   
-  var groupsResult=await db.from('chat_groups').select('*, chat_group_members(user_id)').eq('created_by', CU.id);
-  (groupsResult.data||[]).forEach(function(g){
-    contacts.push({
-      id: 'g_'+g.id,
-      name: g.name,
-      type: 'group',
-      avatar: '👥',
-      group_id: g.id,
-      last_message: '',
-      last_time: '',
-      unread: 0
-    });
-  });
+  // گروه‌هایی که کاربر عضو آنهاست
+  var memberGroupsResult=await db.from('chat_group_members')
+    .select('group_id, chat_groups(*)')
+    .eq('user_id', CU.id);
   
-  var memberGroupsResult=await db.from('chat_group_members').select('group_id, chat_groups(*)').eq('user_id', CU.id);
   (memberGroupsResult.data||[]).forEach(function(m){
-    if(m.chat_groups && m.chat_groups.created_by!==CU.id){
+    if(m.chat_groups){
       contacts.push({
-        id: 'g_'+m.chat_groups.id,
+        id: 'group_'+m.chat_groups.id,
+        group_id: m.chat_groups.id,
         name: m.chat_groups.name,
         type: 'group',
         avatar: '👥',
-        group_id: m.chat_groups.id,
         last_message: '',
         last_time: '',
         unread: 0
@@ -1234,7 +1244,7 @@ async function loadChatMessages(contact) {
   var query=db.from('chat_messages').select('*');
   
   if(contact.type==='user'){
-    query=query.or('sender_id.eq.'+CU.id+',receiver_id.eq.'+CU.id).or('sender_id.eq.'+contact.id+',receiver_id.eq.'+contact.id);
+    query=query.or('sender_id.eq.'+CU.id+',receiver_id.eq.'+CU.id).or('sender_id.eq.'+contact.user_id+',receiver_id.eq.'+contact.user_id);
   } else {
     query=query.eq('group_id', contact.group_id);
   }
@@ -1261,8 +1271,13 @@ async function loadChatMessages(contact) {
   
   container.scrollTop=container.scrollHeight;
   
+  // علامت‌گذاری پیام‌ها به عنوان خوانده شده
   if(contact.type==='user'){
-    await db.from('chat_messages').update({is_read:true, read_at:new Date().toISOString()}).eq('sender_id', contact.id).eq('receiver_id', CU.id).eq('is_read', false);
+    await db.from('chat_messages')
+      .update({is_read:true, read_at:new Date().toISOString()})
+      .eq('sender_id', contact.user_id)
+      .eq('receiver_id', CU.id)
+      .eq('is_read', false);
   }
 }
 
@@ -1273,7 +1288,7 @@ async function sendChatMessage() {
   var messageData={sender_id: CU.id, message: text};
   
   if(currentChatContact.type==='user'){
-    messageData.receiver_id=currentChatContact.id;
+    messageData.receiver_id=currentChatContact.user_id;
   } else {
     messageData.group_id=currentChatContact.group_id;
   }
@@ -2232,26 +2247,38 @@ async function showTab(id){
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',function(){
+  // ورود
   document.getElementById('login-type-personnel').addEventListener('click',function(){switchLoginType('personnel');});
   document.getElementById('login-type-client').addEventListener('click',function(){switchLoginType('client');});
   document.getElementById('tab-login-btn').addEventListener('click',function(){switchAuth('login');});
   document.getElementById('tab-reg-btn').addEventListener('click',function(){switchAuth('register');});
   document.getElementById('login-btn').addEventListener('click',login);
   document.getElementById('reg-btn').addEventListener('click',register);
+  
+  // Enter key for login
+  document.getElementById('login-pass').addEventListener('keydown',function(e){if(e.key==='Enter'){login();}});
+  document.getElementById('login-personnel-id').addEventListener('keydown',function(e){if(e.key==='Enter'){login();}});
+  document.getElementById('login-email').addEventListener('keydown',function(e){if(e.key==='Enter'){login();}});
+  
   document.getElementById('pending-logout-btn').addEventListener('click',logout);
   document.getElementById('main-logout-btn').addEventListener('click',logout);
   
+  // تغییر رمز
   document.getElementById('change-password-btn').addEventListener('click',openChangePassword);
   document.getElementById('save-password-btn').addEventListener('click',savePassword);
   
+  // چت
   document.getElementById('save-group-btn').addEventListener('click',createNewGroup);
   
+  // WBS Change Requests
   document.getElementById('save-wbs-change-request-btn').addEventListener('click',saveWbsChangeRequest);
   
+  // ناوبری
   document.querySelectorAll('.sb-link[data-tab]').forEach(function(btn){
     btn.addEventListener('click',function(){showTab(this.dataset.tab);});
   });
   
+  // بستن مودال‌ها
   document.querySelectorAll('[data-close]').forEach(function(btn){
     btn.addEventListener('click',function(){closeModal(this.dataset.close);});
   });
@@ -2259,10 +2286,12 @@ document.addEventListener('DOMContentLoaded',function(){
     overlay.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
   });
 
+  // بازگشت
   document.getElementById('back-from-proj-detail').addEventListener('click',showDashboardMain);
   document.getElementById('back-from-month-detail').addEventListener('click',showDashboardMain);
   document.getElementById('back-from-status-detail').addEventListener('click',showDashboardMain);
 
+  // پروژه‌ها
   document.getElementById('add-proj-btn').addEventListener('click',function(){
     editingProjectId=null;
     document.getElementById('proj-form-title').textContent='➕ پروژه جدید';
@@ -2276,14 +2305,17 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('save-proj-btn').addEventListener('click',saveProject);
   document.getElementById('export-csv-btn').addEventListener('click',exportCSV);
 
+  // WBS
   document.getElementById('add-root-node-btn').addEventListener('click',openAddRootNode);
   document.getElementById('close-wbs-btn').addEventListener('click',closeWbs);
   document.getElementById('save-wbs-node-btn').addEventListener('click',saveWbsNode);
   document.getElementById('wn-type').addEventListener('change',toggleWbsType);
 
+  // وظایف
   document.getElementById('do-confirm-user-btn').addEventListener('click',doConfirmUser);
   document.getElementById('do-confirm-manager-btn').addEventListener('click',doConfirmManager);
 
+  // گزارش کارکرد
   document.getElementById('open-worklog-btn').addEventListener('click',openAddWorklog);
   document.getElementById('save-worklog-btn').addEventListener('click',saveWorklog);
   document.getElementById('export-wl-btn').addEventListener('click',exportWorklog);
@@ -2293,25 +2325,31 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('wl-to').addEventListener('change',loadWorklog);
   document.getElementById('wl-proj').addEventListener('change',loadWlNodes);
 
+  // گزارش ماهانه
   document.getElementById('add-month-btn').addEventListener('click',openAddMonthly);
   document.getElementById('save-monthly-btn').addEventListener('click',saveMonthlyReport);
   document.getElementById('mr-proj').addEventListener('change',loadMonthlyReports);
   document.getElementById('mr-year').addEventListener('change',loadMonthlyReports);
 
+  // مدیریت کاربران
   document.getElementById('open-add-user-btn').addEventListener('click',openAddUser);
   document.getElementById('save-user-btn').addEventListener('click',saveUser);
   document.getElementById('cmp-proj').addEventListener('change',buildCompareChart);
   
+  // دسته‌بندی‌ها
   document.getElementById('add-category-btn').addEventListener('click',openAddCategory);
   document.getElementById('save-category-btn').addEventListener('click',saveCategory);
   
+  // ایمپورت کاربران
   document.getElementById('import-users-btn').addEventListener('click',openImportUsers);
   document.getElementById('import-users-btn-confirm').addEventListener('click',importUsersFromFile);
   
+  // تنظیمات
   document.getElementById('save-settings-btn').addEventListener('click',function(){
     alert('تنظیمات ذخیره شد!');
   });
   
+  // دسترسی پروژه‌ها
   document.getElementById('select-all-projects').addEventListener('click',function(){
     document.querySelectorAll('.project-access-check').forEach(function(cb){
       cb.checked=true;
