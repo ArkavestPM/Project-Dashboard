@@ -1043,12 +1043,22 @@ async function register() {
 }
 
 function logout(){
-  CU=null;projects=[];allProjects=[];allUsers=[];clearSession();
+  CU=null;
+  projects=[];
+  allProjects=[];
+  allUsers=[];
+  clearSession();
   if(chatInterval)clearInterval(chatInterval);
   if(inactivityTimer)clearTimeout(inactivityTimer);
+  
   document.getElementById('auth-screen').style.display='flex';
   document.getElementById('pending-screen').style.display='none';
   document.getElementById('main-app').style.display='none';
+  
+  document.getElementById('login-personnel-id').value='';
+  document.getElementById('login-email').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('auth-msg').innerHTML='';
 }
 function showPending(){document.getElementById('auth-screen').style.display='none';document.getElementById('pending-screen').style.display='flex';document.getElementById('main-app').style.display='none';}
 
@@ -1065,11 +1075,7 @@ function initApp(){
   document.getElementById('sb-urole').textContent=roleLabel;
   
   // فقط سوپرادمین دکمه تغییر رمز رو ببینه
-  if(isSA()){
-    document.getElementById('change-password-btn').style.display='block';
-  } else {
-    document.getElementById('change-password-btn').style.display='none';
-  }
+  document.getElementById('change-password-btn').style.display='block';
   
   // فقط ادمین و سوپرادمین بخش مدیریت رو ببینند
   if(isAdmin()||isSA()){
