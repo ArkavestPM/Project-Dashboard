@@ -2603,19 +2603,7 @@ async function showTab(id){
 }
 
 // ===== INIT =====
-document.addEventListener('DOMContentLoaded',function(){
-  // ثبت listener های مشترک قبل از هر چیز
-  var logoutBtns = document.querySelectorAll('[id$="-logout-btn"]');
-  logoutBtns.forEach(function(btn){ btn.onclick = logout; });
-  
-  // بررسی نشست ذخیره شده
-  var savedUser = getSession();
-  if(savedUser){
-    CU = savedUser;
-    initApp();
-    return;
-  }
-  
+function initListeners(){
   // ورود
   document.getElementById('login-type-personnel').addEventListener('click',function(){switchLoginType('personnel');});
   document.getElementById('login-type-client').addEventListener('click',function(){switchLoginType('client');});
@@ -2629,17 +2617,16 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('login-personnel-id').addEventListener('keydown',function(e){if(e.key==='Enter'){login();}});
   document.getElementById('login-email').addEventListener('keydown',function(e){if(e.key==='Enter'){login();}});
   
+  // خروج
   document.getElementById('pending-logout-btn').addEventListener('click',logout);
   document.getElementById('main-logout-btn').addEventListener('click',logout);
   
   // تغییر رمز
   document.getElementById('change-password-btn').addEventListener('click',openChangePassword);
   document.getElementById('save-password-btn').addEventListener('click',savePassword);
-  
-  // تغییر پسورد کاربر توسط ادمین
   document.getElementById('save-user-password-btn').addEventListener('click',saveUserPassword);
   
-  // خروجی اکسل کاربران
+  // خروجی کاربران
   document.getElementById('export-users-btn').addEventListener('click',exportUsersCSV);
   
   // چت
@@ -2648,7 +2635,7 @@ document.addEventListener('DOMContentLoaded',function(){
   // WBS Change Requests
   document.getElementById('save-wbs-change-request-btn').addEventListener('click',saveWbsChangeRequest);
   
-  // ناوبری
+  // ناوبری sidebar
   document.querySelectorAll('.sb-link[data-tab]').forEach(function(btn){
     btn.addEventListener('click',function(){showTab(this.dataset.tab);});
   });
@@ -2661,7 +2648,7 @@ document.addEventListener('DOMContentLoaded',function(){
     overlay.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
   });
 
-  // بازگشت
+  // بازگشت از detail panels
   document.getElementById('back-from-proj-detail').addEventListener('click',showDashboardMain);
   document.getElementById('back-from-month-detail').addEventListener('click',showDashboardMain);
   document.getElementById('back-from-status-detail').addEventListener('click',showDashboardMain);
@@ -2720,9 +2707,7 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('import-users-btn-confirm').addEventListener('click',importUsersFromFile);
   
   // تنظیمات
-  document.getElementById('save-settings-btn').addEventListener('click',function(){
-    alert('تنظیمات ذخیره شد!');
-  });
+  document.getElementById('save-settings-btn').addEventListener('click',function(){alert('تنظیمات ذخیره شد!');});
   
   // دسترسی پروژه‌ها
   document.getElementById('select-all-projects').addEventListener('click',function(){
@@ -2732,7 +2717,6 @@ document.addEventListener('DOMContentLoaded',function(){
       if(select)select.style.opacity='1';
     });
   });
-  
   document.getElementById('deselect-all-projects').addEventListener('click',function(){
     document.querySelectorAll('.project-access-check').forEach(function(cb){
       cb.checked=false;
@@ -2740,19 +2724,22 @@ document.addEventListener('DOMContentLoaded',function(){
       if(select)select.style.opacity='0.5';
     });
   });
-  
   document.getElementById('save-access-btn').addEventListener('click',saveProjectAccess);
-});
+}
 
-// ======================================================
-// SUPABASE SETUP REQUIRED:
-// 1. Storage bucket: 'work-files' (public)
-// 2. Storage bucket: 'chat-files' (public)  
-// 3. work_logs table needs: file_url TEXT, file_name TEXT
-// Run this SQL:
-// ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS file_url TEXT;
-// ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS file_name TEXT;
-// ======================================================
+document.addEventListener('DOMContentLoaded',function(){
+  // اول همه listener ها رو ثبت کن
+  initListeners();
+  
+  // بعد بررسی نشست ذخیره شده
+  var savedUser = getSession();
+  if(savedUser){
+    CU = savedUser;
+    initApp();
+    return;
+  }
+  // اگه session نبود، صفحه auth نمایش داده میشه (default)
+});
 </script>
 </body>
 </html>
