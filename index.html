@@ -358,7 +358,7 @@ tr:hover td{background:#f8f9fc;}
     <div style="font-size:48px;margin-bottom:1rem;">⏳</div>
     <div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px;">در انتظار تأیید</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:1.5rem;">حساب شما ثبت شده و منتظر تأیید مدیر است.</div>
-    <button class="btn-primary" id="pending-logout-btn">خروج</button>
+    <button class="btn-primary" id="pending-logout-btn" onclick="logout()">خروج</button>
   </div>
 </div>
 
@@ -402,7 +402,7 @@ tr:hover td{background:#f8f9fc;}
             <div class="sb-urole" id="sb-urole">—</div>
           </div>
         </div>
-        <button class="sb-logout" id="main-logout-btn">خروج از حساب</button>
+        <button class="sb-logout" id="main-logout-btn" onclick="logout()">خروج از حساب</button>
       </div>
     </div>
 
@@ -546,7 +546,7 @@ tr:hover td{background:#f8f9fc;}
             <div class="fgs" style="justify-content:flex-end;"><button class="btn btn-sec btn-sm" id="export-wl-btn">⬇ CSV</button></div>
           </div>
           <div class="metrics" id="wl-metrics"></div>
-          <div class="table-wrap"><table><thead><tr><th>تاریخ</th><th>کاربر</th><th>پروژه</th><th>فعالیت</th><th>ساعت</th><th>توضیحات</th><th>عملیات</th></tr></thead><tbody id="wl-table"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>تاریخ</th><th>کاربر</th><th>پروژه</th><th>فعالیت</th><th>ساعت</th><th>توضیحات</th><th>فایل</th><th>عملیات</th></tr></thead><tbody id="wl-table"></tbody></table></div>
         </div>
 
         <!-- MONTHLY -->
@@ -825,6 +825,13 @@ tr:hover td{background:#f8f9fc;}
   <div class="fg"><label>فعالیت (WBS) *</label><select id="wl-node" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"><option value="">ابتدا پروژه انتخاب کنید</option></select></div>
   <div class="form-grid"><div class="fgs"><label>تاریخ *</label><input type="date" id="wl-date" style="padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"></div><div class="fgs"><label>ساعت *</label><input type="number" id="wl-hours" placeholder="0" min="0" max="24" step="0.5" style="padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;"></div></div>
   <div class="fg"><label>توضیحات</label><textarea id="wl-desc" style="width:100%;padding:9px 13px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;outline:none;resize:vertical;min-height:60px;background:#fafbfc;"></textarea></div>
+  <div class="fg"><label>📎 فایل ضمیمه (اختیاری)</label>
+    <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px dashed var(--line);border-radius:12px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .2s;" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--line)'">
+      <span style="font-size:20px;">📎</span>
+      <span id="wl-file-label" style="flex:1;">انتخاب فایل...</span>
+      <input type="file" id="wl-file-input" style="display:none;" onchange="document.getElementById('wl-file-label').textContent=this.files[0]?'✓ '+this.files[0].name:'انتخاب فایل...'">
+    </label>
+  </div>
   <div id="wl-msg"></div>
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;"><button class="btn btn-sec" data-close="add-worklog-modal">انصراف</button><button class="btn btn-red" id="save-worklog-btn">✓ ثبت</button></div>
 </div></div>
@@ -1124,7 +1131,7 @@ function initApp(){
   document.addEventListener('keydown', resetInactivityTimer);
   document.addEventListener('scroll', resetInactivityTimer);
   
-  loadAll();
+  loadAll().then(function(){showTab('dashboard');});
   setTimeout(function(){loadChatContacts();}, 1000);
 }
 
@@ -2145,9 +2152,23 @@ async function saveWorklog(){
   var date=document.getElementById('wl-date').value;
   var desc=document.getElementById('wl-desc').value.trim();
   if(!projId||!nodeId||!hours||!date){showMsg('wl-msg','همه فیلدهای اجباری را پر کنید.','err');return;}
-  var result=await db.from('work_logs').insert([{user_id:CU.id,project_id:projId,activity_id:nodeId,hours:hours,log_date:date,description:desc}]);
+  var fileUrl=null,fileName=null;
+  var fileInp=document.getElementById('wl-file-input');
+  if(fileInp&&fileInp.files&&fileInp.files[0]){
+    var file=fileInp.files[0];
+    var filePath='work_logs/'+Date.now()+'_'+file.name;
+    var upRes=await db.storage.from('work-files').upload(filePath,file);
+    if(upRes.error){showMsg('wl-msg','خطا در آپلود: '+upRes.error.message,'err');return;}
+    var urlData=db.storage.from('work-files').getPublicUrl(filePath);
+    fileUrl=urlData.data.publicUrl;fileName=file.name;
+  }
+  var logData={user_id:CU.id,project_id:projId,activity_id:nodeId,hours:hours,log_date:date,description:desc};
+  if(fileUrl){logData.file_url=fileUrl;logData.file_name=fileName;}
+  var result=await db.from('work_logs').insert([logData]);
   if(result.error){showMsg('wl-msg','خطا: '+result.error.message,'err');return;}
-  closeModal('add-worklog-modal');loadWorklog();
+  if(fileInp){fileInp.value='';document.getElementById('wl-file-label').textContent='انتخاب فایل...';}
+  closeModal('add-worklog-modal');
+  loadWorklog();
 }
 
 async function loadWorklog(){
@@ -2186,8 +2207,8 @@ async function loadWorklog(){
   document.getElementById('wl-metrics').innerHTML='<div class="metric"><div class="metric-label">رکوردها</div><div class="metric-value">'+wlData.length+'</div></div><div class="metric g"><div class="metric-label">مجموع ساعات</div><div class="metric-value">'+totalH+'h</div></div>';
   document.getElementById('wl-table').innerHTML=wlData.map(function(r){
     var u=allUsers.find(function(u){return u.id===r.user_id;});var p=allProjects.find(function(p){return p.id===r.project_id;});
-    return '<tr><td>'+r.log_date+'</td><td>'+(u?u.name||u.email:'—')+'</td><td>'+(p?p.name:'—')+'</td><td>'+(r.activity_id||'—')+'</td><td><strong>'+r.hours+'h</strong></td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(r.description||'—')+'</td><td>'+(isAdmin()?'<button onclick="deleteWorklog('+r.id+')" style="background:none;border:none;cursor:pointer;color:var(--red);">🗑</button>':'')+'</td></tr>';
-  }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem;">رکوردی وجود ندارد</td></tr>';
+    return '<tr><td>'+r.log_date+'</td><td>'+(u?u.name||u.email:'—')+'</td><td>'+(p?p.name:'—')+'</td><td>'+(r.activity_id||'—')+'</td><td><strong>'+r.hours+'h</strong></td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(r.description||'—')+'</td><td>'+(r.file_url?'<a href="'+r.file_url+'" target="_blank" style="color:var(--red);font-size:11px;font-weight:600;">📎 '+(r.file_name||'فایل')+'</a>':'—')+'</td><td>'+(isAdmin()?'<button onclick="deleteWorklog('+r.id+')" style="background:none;border:none;cursor:pointer;color:var(--red);">🗑</button>':'')+'</td></tr>';
+  }).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem;">رکوردی وجود ندارد</td></tr>';
 }
 
 async function deleteWorklog(id){if(!confirm('حذف شود؟'))return;await db.from('work_logs').delete().eq('id',id);loadWorklog();}
@@ -2583,6 +2604,10 @@ async function showTab(id){
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',function(){
+  // ثبت listener های مشترک قبل از هر چیز
+  var logoutBtns = document.querySelectorAll('[id$="-logout-btn"]');
+  logoutBtns.forEach(function(btn){ btn.onclick = logout; });
+  
   // بررسی نشست ذخیره شده
   var savedUser = getSession();
   if(savedUser){
@@ -2718,6 +2743,16 @@ document.addEventListener('DOMContentLoaded',function(){
   
   document.getElementById('save-access-btn').addEventListener('click',saveProjectAccess);
 });
+
+// ======================================================
+// SUPABASE SETUP REQUIRED:
+// 1. Storage bucket: 'work-files' (public)
+// 2. Storage bucket: 'chat-files' (public)  
+// 3. work_logs table needs: file_url TEXT, file_name TEXT
+// Run this SQL:
+// ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS file_url TEXT;
+// ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS file_name TEXT;
+// ======================================================
 </script>
 </body>
 </html>
