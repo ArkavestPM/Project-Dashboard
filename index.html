@@ -3102,7 +3102,23 @@ function populateWbsAssigneeSelect(){
 // لود تیم پروژه‌ها
 // ============================================
 async function loadTeam(){
-  const r = await db.from('team_members').select('*').order('project_code').order('id');
+  let q = db.from('team_members').select('*').order('project_code').order('id');
+  
+  // فیلتر بر اساس سطح دسترسی
+  if(!isSA() && !isAdmin() && !isExec()){
+    // مدیر پروژه یا کاربر عادی: فقط پروژه‌های خودش
+    const allowedIds = projects.map(p => p.id);
+    if(allowedIds.length){
+      q = q.in('project_id', allowedIds);
+    } else {
+      allTeamMembers = [];
+      renderTeamTable();
+      updateTeamMetrics();
+      return;
+    }
+  }
+  
+  const r = await q;
   allTeamMembers = r.data || [];
   renderTeamTable();
   updateTeamMetrics();
