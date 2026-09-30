@@ -3397,7 +3397,20 @@ async function deleteRisk(id){
 // لود گزارش هفتگی
 // ============================================
 async function loadWeekly(){
-  const r = await db.from('weekly_progress').select('*').order('project_code').order('week_number');
+  let q = db.from('weekly_progress').select('*').order('project_code').order('week_number');
+  
+  if(!isSA() && !isAdmin() && !isExec()){
+    const allowedIds = projects.map(p => p.id);
+    if(allowedIds.length){
+      q = q.in('project_id', allowedIds);
+    } else {
+      allWeekly = [];
+      renderWeeklyTable();
+      return;
+    }
+  }
+  
+  const r = await q;
   allWeekly = r.data || [];
   renderWeeklyTable();
 }
