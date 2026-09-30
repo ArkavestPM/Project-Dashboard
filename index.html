@@ -1364,6 +1364,7 @@ tr:hover td{background:#f8f9fc;}
         <button class="sb-link" data-tab="wbs-requests" id="tab-btn-wbs-requests" style="display:none"><span class="sb-ic">📋</span><span>درخواست‌های WBS</span></button>
         <button class="sb-link" data-tab="admin" id="tab-btn-admin" style="display:none"><span class="sb-ic">⚙️</span><span>مدیریت کاربران</span></button>
         <button class="sb-link" data-tab="settings" id="tab-btn-settings" style="display:none"><span class="sb-ic">🔧</span><span>تنظیمات</span></button>
+                 <button class="sb-link" data-tab="logs" id="tab-btn-logs" style="display:none"><span class="sb-ic">📜</span><span>لاگ فعالیت‌ها</span></button>
       </nav>
 
       <div class="sb-foot">
@@ -1813,6 +1814,66 @@ tr:hover td{background:#f8f9fc;}
              بخش ۱۳: تنظیمات
              ========================================== -->
         <section class="section" id="tab-settings">
+                   <!-- ==========================================
+             بخش ۱۴: لاگ فعالیت‌ها (فقط سوپر ادمین)
+             ========================================== -->
+        <section class="section" id="tab-logs">
+          <div class="flex-between" style="margin-bottom:1.1rem;">
+            <div class="section-title" style="margin-bottom:0;border:none;padding:0;">
+              <span class="red">📜</span> لاگ فعالیت‌ها
+              <span class="sub">تمام حرکات کاربران در سیستم (فقط سوپر ادمین)</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-sec btn-sm" id="refresh-logs-btn">🔄 بروزرسانی</button>
+              <button class="btn btn-sec btn-sm" id="export-logs-btn">⬇ CSV</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
+            <div class="fgs">
+              <label>فیلتر کاربر</label>
+              <select id="log-filter-user"><option value="">همه کاربران</option></select>
+            </div>
+            <div class="fgs">
+              <label>فیلتر نوع</label>
+              <select id="log-filter-action">
+                <option value="">همه</option>
+                <option value="create">➕ ایجاد</option>
+                <option value="update">✏️ ویرایش</option>
+                <option value="delete">🗑 حذف</option>
+                <option value="approve">✅ تایید</option>
+                <option value="reject">❌ رد</option>
+                <option value="login">🔑 ورود</option>
+              </select>
+            </div>
+            <div class="fgs">
+              <label>از تاریخ</label>
+              <input type="date" id="log-from">
+            </div>
+            <div class="fgs">
+              <label>تا تاریخ</label>
+              <input type="date" id="log-to">
+            </div>
+          </div>
+
+          <div class="metrics" id="log-metrics"></div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>زمان</th>
+                  <th>کاربر</th>
+                  <th>نقش</th>
+                  <th>عملیات</th>
+                  <th>موضوع</th>
+                  <th>توضیحات</th>
+                </tr>
+              </thead>
+              <tbody id="log-table"></tbody>
+            </table>
+          </div>
+        </section>
           <div class="section-title">
             <span class="red">🔧</span> تنظیمات سیستم
             <span class="sub">مدیریت دسته‌بندی‌ها و واحدها</span>
@@ -2752,6 +2813,7 @@ function applyRoleUI(){
     setDisplay('tab-btn-wbs-requests', true);
     setDisplay('tab-btn-admin', true);
     setDisplay('tab-btn-settings', true);
+     setDisplay('tab-btn-settings', true);
     setBlock('add-proj-btn', true);
     setBlock('add-month-btn', true);
     setBlock('add-team-member-btn', true);
@@ -5350,7 +5412,9 @@ async function showTab(id){
     monthly: ['مدیریت', 'گزارش ماهانه'],
     'wbs-requests': ['مدیریت', 'درخواست‌های WBS'],
     admin: ['مدیریت', 'کاربران'],
-    settings: ['مدیریت', 'تنظیمات']
+    settings: ['مدیریت', 'تنظیمات'],
+         logs: ['مدیریت', 'لاگ فعالیت‌ها']
+
   };
 
   if(titles[id]){
@@ -5370,6 +5434,7 @@ async function showTab(id){
   if(id === 'risks'){ renderRiskTable(); updateRiskMetrics(); }
   if(id === 'weekly'){ renderWeeklyTable(); }
   if(id === 'settings'){ renderUnits(); renderCategories(); }
+     if(id === 'logs'){ await loadActivityLogs(); }
   if(id === 'wbs-requests') loadWbsChangeRequests();
 }
 
@@ -5497,6 +5562,13 @@ function initListeners(){
 
   // تنظیمات عمومی
   $('save-settings-btn').addEventListener('click', () => alert('تنظیمات ذخیره شد!'));
+     // لاگ فعالیت‌ها
+  if($('refresh-logs-btn')) $('refresh-logs-btn').addEventListener('click', loadActivityLogs);
+  if($('export-logs-btn')) $('export-logs-btn').addEventListener('click', exportLogsCSV);
+  if($('log-filter-user')) $('log-filter-user').addEventListener('change', loadActivityLogs);
+  if($('log-filter-action')) $('log-filter-action').addEventListener('change', loadActivityLogs);
+  if($('log-from')) $('log-from').addEventListener('change', loadActivityLogs);
+  if($('log-to')) $('log-to').addEventListener('change', loadActivityLogs);
 
   // نمودار مقایسه
   $('cmp-proj').addEventListener('change', buildCompareChart);
@@ -5512,6 +5584,109 @@ function exportProjectsCSV(){
     p.status || '', p.rag_status || ''
   ].join(','));
   dl([h].concat(rows).join('\n'), 'projects.csv', 'text/csv;charset=utf-8');
+}
+// ============================================
+// لاگ فعالیت‌ها
+// ============================================
+async function loadActivityLogs(){
+  const userFilter = $('log-filter-user') ? $('log-filter-user').value : '';
+  const actionFilter = $('log-filter-action') ? $('log-filter-action').value : '';
+  const fromDate = $('log-from') ? $('log-from').value : '';
+  const toDate = $('log-to') ? $('log-to').value : '';
+
+  let q = db.from('activity_logs').select('*').order('id', { ascending: false }).limit(500);
+  if(userFilter) q = q.eq('user_id', +userFilter);
+  if(actionFilter) q = q.eq('action', actionFilter);
+  if(fromDate) q = q.gte('created_at', fromDate + 'T00:00:00');
+  if(toDate) q = q.lte('created_at', toDate + 'T23:59:59');
+
+  const r = await q;
+  const logs = r.data || [];
+
+  // متریک‌ها
+  const today = new Date().toISOString().slice(0,10);
+  const todayLogs = logs.filter(l => l.created_at && l.created_at.slice(0,10) === today);
+  const uniqueUsers = new Set(logs.map(l => l.user_id)).size;
+
+  $('log-metrics').innerHTML =
+    '<div class="metric"><div class="metric-label">کل رکوردها</div><div class="metric-value">' + logs.length + '</div></div>' +
+    '<div class="metric b"><div class="metric-label">امروز</div><div class="metric-value">' + todayLogs.length + '</div></div>' +
+    '<div class="metric g"><div class="metric-label">کاربران فعال</div><div class="metric-value">' + uniqueUsers + '</div></div>';
+
+  // جدول
+  const actionLabels = {
+    'create': '➕ ایجاد',
+    'update': '✏️ ویرایش',
+    'delete': '🗑 حذف',
+    'approve': '✅ تایید',
+    'reject': '❌ رد',
+    'login': '🔑 ورود',
+    'logout': '🚪 خروج',
+    'test': '🧪 تست',
+    'request': '📤 درخواست'
+  };
+  const entityLabels = {
+    'project': '📁 پروژه',
+    'weekly': '📈 گزارش هفتگی',
+    'monthly': '📅 گزارش ماهانه',
+    'wbs': '🏗 WBS',
+    'risk': '⚠️ ریسک',
+    'team': '👥 تیم',
+    'user': '👤 کاربر',
+    'category': '📂 دسته‌بندی',
+    'unit': '🏢 واحد',
+    'worklog': '⏱ کارکرد',
+    'chat': '💬 چت',
+    'test': '🧪 تست'
+  };
+  const roleLabels = {
+    'superadmin': '👑 سوپر ادمین',
+    'executive': '🏢 مدیر ارشد',
+    'admin': '⚙️ ادمین',
+    'manager': '📋 مدیر پروژه',
+    'user': '👤 کاربر'
+  };
+
+  if(!logs.length){
+    $('log-table').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem;">هیچ لاگی ثبت نشده</td></tr>';
+    return;
+  }
+
+  $('log-table').innerHTML = logs.map(l => {
+    const dt = l.created_at ? new Date(l.created_at).toLocaleString('fa-IR') : '—';
+    const actionCls = l.action === 'create' ? 'badge-green' : l.action === 'update' ? 'badge-blue' :
+                     l.action === 'delete' ? 'badge-red' : l.action === 'approve' ? 'badge-green' :
+                     l.action === 'reject' ? 'badge-red' : 'badge-gray';
+    return '<tr>' +
+      '<td style="font-size:12px;white-space:nowrap;">' + dt + '</td>' +
+      '<td style="font-weight:600;">' + (l.user_name || '—') + '</td>' +
+      '<td style="font-size:11.5px;">' + (roleLabels[l.user_role] || l.user_role || '—') + '</td>' +
+      '<td><span class="badge ' + actionCls + '">' + (actionLabels[l.action] || l.action) + '</span></td>' +
+      '<td style="font-size:12px;">' + (entityLabels[l.entity_type] || l.entity_type || '—') + '</td>' +
+      '<td style="font-size:12px;">' + (l.description || '—') + '</td>' +
+    '</tr>';
+  }).join('');
+
+  // پر کردن فیلتر کاربر
+  const sel = $('log-filter-user');
+  if(sel){
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">همه کاربران</option>' +
+      allUsers.map(u => '<option value="' + u.id + '">' + (u.name || u.email) + '</option>').join('');
+    if(cur) sel.value = cur;
+  }
+}
+
+function exportLogsCSV(){
+  const rows = [];
+  document.querySelectorAll('#log-table tr').forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if(cells.length){
+      rows.push(Array.from(cells).map(c => '"' + c.textContent.replace(/"/g, '""') + '"').join(','));
+    }
+  });
+  const h = 'زمان,کاربر,نقش,عملیات,موضوع,توضیحات';
+  dl([h].concat(rows).join('\n'), 'activity_logs.csv', 'text/csv;charset=utf-8');
 }
 
 // ============================================
