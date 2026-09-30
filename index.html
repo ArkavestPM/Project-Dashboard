@@ -3238,7 +3238,21 @@ async function deleteTeam(id){
 // لود ریسک‌ها
 // ============================================
 async function loadRisks(){
-  const r = await db.from('project_risks').select('*').order('id', { ascending: false });
+  let q = db.from('project_risks').select('*').order('id', { ascending: false });
+  
+  if(!isSA() && !isAdmin() && !isExec()){
+    const allowedIds = projects.map(p => p.id);
+    if(allowedIds.length){
+      q = q.in('project_id', allowedIds);
+    } else {
+      allRisks = [];
+      renderRiskTable();
+      updateRiskMetrics();
+      return;
+    }
+  }
+  
+  const r = await q;
   allRisks = r.data || [];
   renderRiskTable();
   updateRiskMetrics();
