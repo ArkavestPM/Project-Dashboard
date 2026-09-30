@@ -2385,6 +2385,35 @@ let lastActivityTime = Date.now();
 // توابع کمکی
 // ============================================
 function $(id){ return document.getElementById(id); }
+   // ============================================
+// لاگ فعالیت‌ها
+// ============================================
+async function logActivity(action, entityType, entityId, description, oldData, newData){
+  try{
+    const logData = {
+      user_id: CU ? CU.id : null,
+      user_name: CU ? (CU.name || CU.email) : 'مهمان',
+      user_role: CU ? CU.role : null,
+      action: action,
+      entity_type: entityType || null,
+      entity_id: entityId || null,
+      description: description || '',
+      old_data: oldData || null,
+      new_data: newData || null
+    };
+    const r = await db.from('activity_logs').insert([logData]);
+    if(r.error){
+      console.warn('خطا در ثبت لاگ:', r.error.message);
+    }
+  }catch(e){
+    console.warn('خطا در ثبت لاگ:', e.message);
+  }
+}
+   // تابع تستی - بعداً پاک می‌شه
+async function testLog(){
+  await logActivity('test', 'test', null, 'تست لاگ‌گیری - اگه این رو می‌بینی یعنی کار می‌کنه');
+  alert('✅ لاگ ثبت شد! برو توی Supabase چک کن.');
+}
 function showMsg(id, txt, type){
   const el = $(id);
   if(!el) return;
