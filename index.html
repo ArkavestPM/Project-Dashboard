@@ -2565,9 +2565,9 @@ async function login(){
     if(isPersonnel) query = query.eq('personnel_id', identifier);
     else query = query.eq('email', identifier);
 
-    const result = await query.eq('password', pass).single();
-    const data = result.data;
-    const error = result.error;
+    const result = await query.eq('password', pass).maybeSingle();
+const data = result.data;
+const error = result.error;
 
     if(error || !data){
       showMsg('auth-msg', isPersonnel ? 'کد پرسنلی یا پسورد اشتباه است.' : 'ایمیل یا پسورد اشتباه است.', 'err');
