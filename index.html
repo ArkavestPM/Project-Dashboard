@@ -2839,6 +2839,7 @@ if(lg) lg.style.display = isSA() ? 'flex' : 'none';
     setDisplay('tab-btn-weekly', true);
     setBlock('add-proj-btn', true);
     setBlock('add-month-btn', true);
+   setDisplay('tab-btn-monthly', true);
     setBlock('add-team-member-btn', true);
     setBlock('add-risk-btn', true);
     setBlock('add-weekly-btn', true);
@@ -3038,7 +3039,9 @@ async function loadProjects(){
   }
 
   if(!isSA() && !isAdmin() && !isExec() && CU && CU.id){
-    const ar = await db.from('user_project_access').select('project_id').eq('user_id', CU.id);
+        const ar = await db.from('user_project_access').select('project_id, access_level').eq('user_id', CU.id);
+    accessMap = {};
+    (ar.data || []).forEach(a => { accessMap[a.project_id] = a.access_level; });
     const accessibleIds = (ar.data || []).map(a => a.project_id);
     const managedIds = myManagedProjects.map(p => p.id);
     const allIds = [...new Set([...accessibleIds, ...managedIds])];
@@ -3054,10 +3057,15 @@ async function loadProjects(){
   populateProjSelects();
   refreshDash();
 }
-
+function getEditableProjects(){
+  if(isSA() || (CU && CU.role === 'admin')) return allProjects;
+  if(CU && CU.role === 'manager')
+    return projects.filter(p => p.manager_id === CU.id || ['edit','manage'].includes(accessMap[p.id]));
+  return projects;
+}
 function populateProjSelects(){
-  const list = isManager() && !isAdmin() && !isSA() && !isExec() ? myManagedProjects : projects;
-  const opts = list.map(p => '<option value="' + p.id + '">' + p.name + ' (' + (p.code || '') + ')</option>').join('');
+  const list = getEditableProjects();
+   const opts = list.map(p => '<option value="' + p.id + '">' + p.name + ' (' + (p.code || '') + ')</option>').join('');
 
   ['mr-proj','wl-proj','cmp-proj','ng-project','team-filter-proj','risk-filter-proj','weekly-filter-proj','tm-project','rk-project','wk-project']
   .forEach(id => {
