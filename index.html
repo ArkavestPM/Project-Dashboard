@@ -1681,7 +1681,7 @@ tr:hover td{background:#f8f9fc;}
                 <div style="font-size:12px;color:var(--muted);margin-top:2px;">🏗 ساختار شکست کار (WBS)</div>
               </div>
               <div style="display:flex;gap:7px;flex-wrap:wrap;">
-                <button class="btn btn-sm btn-gold" onclick="openWbsChangeRequest()">📝 درخواست تغییر</button>
+                <button class="btn btn-sm btn-gold" id="wbs-request-change-btn" onclick="openWbsChangeRequest()">📝 درخواست تغییر</button>
                 <button class="btn btn-red btn-sm" id="add-root-node-btn">➕ گره اصلی</button>
                 <button class="btn btn-sec btn-sm" id="close-wbs-btn">← بازگشت</button>
               </div>
@@ -1813,7 +1813,7 @@ tr:hover td{background:#f8f9fc;}
         <!-- ==========================================
              بخش ۱۳: تنظیمات
              ========================================== -->
-        <section class="section" id="tab-settings">
+    
                    <!-- ==========================================
              بخش ۱۴: لاگ فعالیت‌ها (فقط سوپر ادمین)
              ========================================== -->
@@ -1874,6 +1874,7 @@ tr:hover td{background:#f8f9fc;}
             </table>
           </div>
         </section>
+         <section class="section" id="tab-settings">
           <div class="section-title">
             <span class="red">🔧</span> تنظیمات سیستم
             <span class="sub">مدیریت دسته‌بندی‌ها و واحدها</span>
@@ -2389,8 +2390,7 @@ tr:hover td{background:#f8f9fc;}
      فایل JavaScript اینجا اضافه میشه (بخش ۳ و ۴)
      ============================================ -->
 
-</body>
-</html>
+
 <script>
 // ============================================
 // تنظیمات اولیه
@@ -2433,6 +2433,7 @@ let monthlyChartInst = null;
 let pdMonthlyChartInst = null;
 let weeklyChartInst = null;
 let loginType = 'personnel';
+let accessMap = {};
 let myManagedProjects = [];
 let chatContacts = [];
 let currentChatContact = null;
@@ -2801,7 +2802,8 @@ function applyRoleUI(){
   $('add-risk-btn').style.display = 'none';
   $('add-weekly-btn').style.display = 'none';
   $('wl-filter-user-wrap').style.display = 'none';
-
+const lg = $('tab-btn-logs');
+if(lg) lg.style.display = isSA() ? 'flex' : 'none';
   if(isSA() || isAdmin()){
     // ادمین: همه چیز به جز تغییرات حساس
     $('admin-section-label').style.display = 'block';
@@ -3515,7 +3517,7 @@ function renderWeeklyTable(){
 
   if(!list.length){
     tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem;">گزارشی یافت نشد</td></tr>';
-    $('#weekly-chart-wrap').style.display = 'none';
+   $('weekly-chart-wrap').style.display = 'none';
     return;
   }
   tb.innerHTML = list.map(w => {
@@ -3538,7 +3540,7 @@ function renderWeeklyTable(){
   if(filterProj){
     drawWeeklyChart(list);
   } else {
-    $('#weekly-chart-wrap').style.display = 'none';
+   $('weekly-chart-wrap').style.display = 'none';
   }
 }
 
@@ -3712,7 +3714,7 @@ async function saveProject(){
     const v = data.variance / 100;
     if(v >= -0.05) data.rag_status = 'وضعیت مطلوب';
     else if(v >= -0.15) data.rag_status = 'تاخیر جزئی';
-    else data.rag_status = 'بحریانی';
+    else data.rag_status = 'بحرانی';
   }
 
   let err;
@@ -5701,3 +5703,5 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
+   </body>
+</html>
