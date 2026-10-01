@@ -5702,12 +5702,18 @@ function exportLogsCSV(){
 // ============================================
 // راه‌اندازی
 // ============================================
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', async function(){
   initListeners();
   const savedUser = getSession();
   if(savedUser){
-    CU = savedUser;
-    initApp();
+    const r = await db.from('users').select('*').eq('id', savedUser.id).maybeSingle();
+    if(r.data && r.data.approved && r.data.is_active !== false){
+      CU = r.data;
+      saveSession(CU);
+      initApp();
+    } else {
+      clearSession();
+    }
   }
 });
 </script>
