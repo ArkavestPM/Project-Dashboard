@@ -5726,5 +5726,630 @@ document.addEventListener('DOMContentLoaded', async function(){
   }
 });
 </script>
+   <script>
+// ============ افزونه KX: مراحل ۲ و ۳ و قابلیت‌های جدید ============
+const KX = { nodes:[], asg:[], delays:[], reqs:[] };
+let kBusy=false, kAgain=false, kResubId=null, kWC=[];
+const kesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function kToday(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function kDays(a,b){ return Math.round((new Date(a)-new Date(b))/864e5); }
+function kCanEditProj(pid){
+  if(!CU) return false; if(isAdmin()) return true; if(CU.role!=='manager') return false;
+  const am = (typeof accessMap!=='undefined') ? accessMap : {};
+  return allProjects.some(p=>p.id===pid && (p.manager_id===CU.id || ['edit','manage'].includes(am[p.id])));
+}
+const K_CATS=['کمبود نیروی انسانی','کمبود تجهیزات / ماشین‌آلات','تاخیر تامین مصالح','تاخیر کارفرما / مجوزها','شرایط جوی','مشکل فنی','مشکل مالی / پرداخت','تغییر محدوده کار','سایر'];
+const K_ENT={weekly:'گزارش هفتگی',monthly:'گزارش ماهانه',wbs_node:'فعالیت WBS'};
+const K_ACT={update:'ویرایش',delete:'حذف',extend:'تمدید زمان'};
+const K_CA={submit:'ارسال',resubmit:'ارسال مجدد',approve:'تایید',reject:'رد',comment:'کامنت',direct:'اعمال مستقیم'};
+
+// ---------- استایل‌ها ----------
+document.head.insertAdjacentHTML('beforeend','<style>body.ro-mode #tab-team td .btn,body.ro-mode #tab-risks td .btn,body.ro-mode #tab-weekly td .btn,body.ro-mode #tab-projects td .btn-icon{display:none!important}.wbs-change-item,.access-project-item{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:8px;flex-wrap:wrap}.ev-stat{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px dashed var(--line)}.kx-diff-add td{background:var(--green-bg)!important}.kx-diff-edit td{background:var(--amber-bg)!important}.kx-diff-del td{background:var(--red-bg)!important}</style>');
+
+// ---------- مودال عمومی ----------
+document.body.insertAdjacentHTML('beforeend','<div class="modal-overlay" id="kx-modal"><div class="modal modal-lg"><div class="modal-header"><div class="modal-title" id="kx-m-title"></div><button class="modal-close" onclick="kClose()">×</button></div><div id="kx-m-body"></div><div id="kx-m-msg"></div><div id="kx-m-btns" style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap"></div></div></div><input type="file" id="kx-wbs-resub" accept=".xlsx,.xls" style="display:none" onchange="kWResubFile(this)">');
+function kModal(title, html, btns){
+  $('kx-m-title').textContent=title; $('kx-m-body').innerHTML=html; $('kx-m-msg').innerHTML='';
+  const b=$('kx-m-btns'); b.innerHTML='';
+  (btns||[]).forEach(x=>{ const e=document.createElement('button'); e.className='btn '+(x.cls||'btn-sec'); e.textContent=x.label;
+    e.onclick=async()=>{ const r = x.fn ? await x.fn() : true; if(r!==false) kClose(); }; b.appendChild(e); });
+  $('kx-modal').classList.add('open');
+}
+function kClose(){ $('kx-modal').classList.remove('open'); }
+
+// ---------- المان‌های جدید در صفحه ----------
+$('dash-metrics').insertAdjacentHTML('beforebegin',
+ '<div class="flex-center" style="margin-bottom:1rem;gap:10px;flex-wrap:wrap"><label style="font-weight:700">🎯 پروژه:</label><select id="dash-proj" style="padding:8px 14px;border:2px solid var(--line);border-radius:10px;font-size:13px;outline:none;background:#fff;min-width:260px"><option value="">همه پروژه‌ها</option></select></div><div id="dash-single"></div><div id="dash-delays"></div>');
+document.querySelector('.content').insertAdjacentHTML('beforeend','<section class="section" id="tab-actionplan"></section><section class="section" id="tab-changereq"></section>');
+document.querySelector('.sb-nav').insertAdjacentHTML('beforeend',
+ '<div class="sb-section-label" id="kx-lbl" style="display:none">پیگیری</div>'+
+ '<button class="sb-link" data-tab="actionplan" id="tab-btn-actionplan" style="display:none"><span class="sb-ic">🎯</span><span>اکشن پلن</span><span class="sb-badge" id="kx-ap-badge" style="display:none">0</span></button>'+
+ '<button class="sb-link" data-tab="changereq" id="tab-btn-changereq" style="display:none"><span class="sb-ic">🔁</span><span>درخواست‌های تغییر</span><span class="sb-badge" id="kx-cr-badge" style="display:none">0</span></button>');
+$('header-badge').insertAdjacentHTML('beforebegin','<button class="btn btn-sm btn-sec" id="kx-bell" onclick="kBell()" style="position:relative">🔔<span id="kx-bell-n" class="sb-badge" style="display:none;top:-6px;left:-6px">0</span></button>');
+$('add-root-node-btn').insertAdjacentHTML('beforebegin',`<button class="btn btn-sm btn-green" onclick="kWbsExport()">⬇ خروجی اکسل</button><button class="btn btn-sm btn-navy" onclick="document.getElementById('kx-wbs-file').click()">⬆ بارگذاری اکسل</button><input type="file" id="kx-wbs-file" accept=".xlsx,.xls" style="display:none" onchange="kWbsImport(this)">`);
+$('um-role').closest('.fgs').insertAdjacentHTML('afterend','<div class="fgs"><label>سمت</label><input id="um-job" placeholder="مثال: کارشناس نقشه‌برداری"></div>');
+$('dash-proj').addEventListener('change',()=>{ buildDashCharts(); });
+
+// ---------- بارگذاری داده‌ها ----------
+async function kLoad(){
+  const ids=projects.map(p=>p.id);
+  if(!ids.length){ KX.nodes=[];KX.asg=[];KX.delays=[];KX.reqs=[]; kBadges(); return; }
+  KX.nodes=(await db.from('wbs_nodes').select('*').in('project_id',ids).order('id')).data||[];
+  const nid=KX.nodes.map(x=>x.id);
+  KX.asg=nid.length?((await db.from('wbs_assignments').select('*').in('node_id',nid)).data||[]):[];
+  KX.delays=(await db.from('delay_reasons').select('*').in('project_id',ids).order('id',{ascending:false})).data||[];
+  KX.reqs=(await db.from('change_requests').select('*').order('id',{ascending:false})).data||[];
+  kBadges();
+}
+function kLate(){
+  const t=kToday(), out=[];
+  KX.nodes.forEach(n=>{
+    if(!n.is_leaf||!n.planned_end) return;
+    const a=KX.asg.find(x=>x.node_id===n.id);
+    if(a&&a.confirmed_by_manager) return;
+    out.push({n,a,left:kDays(n.planned_end,t),p:allProjects.find(x=>x.id===n.project_id)});
+  });
+  return out;
+}
+function kRefresh(){
+  if($('tab-actionplan').classList.contains('active')) kRenderAP();
+  if($('tab-changereq').classList.contains('active')) kRenderCR();
+  kDashExtras($('dash-proj').value); kBadges();
+}
+
+// ---------- اعلان‌ها ----------
+async function kNotify(uids,type,title,msg,link){
+  if(!uids||!uids.length) return;
+  await db.from('notifications').insert(uids.map(u=>({user_id:u,type,title,message:msg||title,link:link||null})));
+}
+function kNotifyAdmins(type,title,msg){
+  return kNotify(allUsers.filter(u=>['admin','superadmin'].includes(u.role)&&u.is_active!==false).map(u=>u.id),type,title,msg,'cr');
+}
+async function kGenNotifs(){
+  if(!CU||CU.role!=='manager') return;
+  const since=new Date(Date.now()-3*864e5).toISOString();
+  const have=new Set(((await db.from('notifications').select('link').eq('user_id',CU.id).gte('created_at',since)).data||[]).map(x=>x.link));
+  const ins=[];
+  kLate().filter(x=>kCanEditProj(x.n.project_id)&&x.left<=3).forEach(x=>{
+    const key='node:'+x.n.id+':'+(x.left<0?'late':'soon'); if(have.has(key)) return;
+    ins.push({user_id:CU.id,type:x.left<0?'overdue':'due_soon',title:x.left<0?'⚠ فعالیت دارای تاخیر':'⏰ سررسید نزدیک',
+      message:(x.p?x.p.code+' — ':'')+x.n.title+(x.left<0?' ('+(-x.left)+' روز تاخیر)':' ('+x.left+' روز مانده)')+' — علت تاخیر یا درخواست تمدید ثبت کنید',link:key});
+  });
+  if(ins.length) await db.from('notifications').insert(ins);
+}
+async function kBadges(){
+  if(!CU) return;
+  const r=await db.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',CU.id).eq('is_read',false);
+  const n=r.count||0, b=$('kx-bell-n'); b.style.display=n?'block':'none'; b.textContent=n>99?'99+':n;
+  const late=kLate().filter(x=>x.left<0&&(isAdmin()||kCanEditProj(x.n.project_id))).length;
+  const ap=$('kx-ap-badge'); ap.style.display=late?'block':'none'; ap.textContent=late;
+  const pend=KX.reqs.filter(x=>x.status==='pending').length, cb=$('kx-cr-badge'); cb.style.display=(pend&&isAdmin())?'block':'none'; cb.textContent=pend;
+}
+async function kBell(){
+  const l=(await db.from('notifications').select('*').eq('user_id',CU.id).order('id',{ascending:false}).limit(40)).data||[];
+  kModal('🔔 اعلان‌ها', l.map(x=>'<div class="mini-list-item" style="'+(x.is_read?'opacity:.6':'font-weight:700')+'"><span>'+kesc(x.title)+'<br><small style="font-weight:400;color:var(--muted)">'+kesc(x.message)+'</small></span><small>'+new Date(x.created_at).toLocaleDateString('fa-IR')+'</small></div>').join('')||'<div class="loading">اعلانی نیست</div>',
+   [{label:'همه را خوانده‌شده کن',fn:async()=>{ await db.from('notifications').update({is_read:true,read_at:new Date().toISOString()}).eq('user_id',CU.id).eq('is_read',false); kBadges(); }},
+    {label:'بستن'},{label:'اکشن پلن ›',cls:'btn-red',fn:()=>{ showTab('actionplan'); }}]);
+}
+
+// ---------- داشبورد: انتخاب پروژه ----------
+function kFillDashSel(){
+  const s=$('dash-proj'), c=s.value;
+  s.innerHTML='<option value="">همه پروژه‌ها</option>'+projects.map(p=>'<option value="'+p.id+'">'+kesc((p.code||'')+' — '+p.name)+'</option>').join('');
+  s.value=c;
+}
+const _kBuild=buildDashCharts;
+window.buildDashCharts=async function(){
+  if(kBusy){ kAgain=true; return; }
+  kBusy=true; kFillDashSel();
+  const pid=$('dash-proj').value, saved=projects;
+  if(pid) projects=saved.filter(p=>String(p.id)===pid);
+  try{ await _kBuild(); } finally { projects=saved; kBusy=false; }
+  kDashExtras(pid);
+  if(kAgain){ kAgain=false; window.buildDashCharts(); }
+};
+window.buildCostChart=async function(){
+  if(charts.line) charts.line.destroy();
+  const ids=projects.map(p=>p.id); if(!ids.length) return;
+  const r=await db.from('monthly_reports').select('*').in('project_id',ids).order('year').order('month');
+  const map={};
+  (r.data||[]).forEach(x=>{ const k=x.year+'-'+String(x.month).padStart(2,'0'); if(!map[k]) map[k]={actual:0,budget:0}; map[k].actual+=+x.actual||0; map[k].budget+=+x.budget||0; });
+  const keys=Object.keys(map).sort(); if(!keys.length) return;
+  const labels=keys.map(k=>{ const p=k.split('-'); return MONTHS[+p[1]-1]+' '+p[0]; });
+  charts.line=new Chart($('lineChart'),{type:'line',data:{labels,datasets:[
+    {label:'هزینه واقعی',data:keys.map(k=>map[k].actual),borderColor:'#0a1628',backgroundColor:'rgba(10,22,40,.06)',tension:.4,fill:true,pointRadius:5},
+    {label:'بودجه',data:keys.map(k=>map[k].budget),borderColor:'#1a9e6a',borderDash:[6,4],tension:.4,fill:false,pointRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}},
+    onClick:(e,els)=>{ if(els.length) openMonthDetail(keys[els[0].index],labels[els[0].index]); }}});
+};
+function kDashExtras(pid){
+  const p=pid?allProjects.find(x=>String(x.id)===pid):null; let h='';
+  const rows=kLate().filter(x=>x.left<0&&(!pid||String(x.n.project_id)===pid));
+  if(p){
+    h='<div class="chart-box"><div class="chart-title">📌 وضعیت پروژه: '+kesc((p.code||'')+' '+p.name)+'</div><div class="flex-between"><div>'+statusBadge(p.status)+' '+ragBadge(p.rag_status)+'</div><div>مدیر: <b>'+kesc(p.manager||'—')+'</b></div><div>برنامه‌ای: <b>'+(+p.planned_percent||0)+'٪</b> | واقعی: <b>'+(+p.actual_percent||0)+'٪</b> | واریانس: <b>'+(+p.variance||0)+'٪</b></div><div>فعالیت دارای تاخیر: <b style="color:var(--red)">'+rows.length+'</b></div><button class="btn btn-sm btn-gold" onclick="openProjectDetail('+p.id+')">جزئیات کامل ›</button></div></div>';
+  }
+  $('dash-single').innerHTML=h;
+  $('dash-delays').innerHTML='<div class="chart-box"><div class="chart-title"><span>⏰ فعالیت‌های دارای تاخیر ('+rows.length+')</span></div>'+kDelayTable(rows,false)+'</div>';
+}
+function kDelayTable(rows,act){
+  if(!rows.length) return '<div class="loading">فعالیت دارای تاخیر یا نزدیک به سررسید وجود ندارد ✓</div>';
+  return '<div class="table-wrap"><table><thead><tr><th>پروژه</th><th>فعالیت</th><th>پایان برنامه‌ای</th><th>وضعیت</th><th>کارشناس</th><th>علت تاخیر</th>'+(act?'<th>اقدام</th>':'')+'</tr></thead><tbody>'+
+  rows.map(x=>{
+    const u=x.a?allUsers.find(y=>y.id===x.a.user_id):null, d=KX.delays.filter(y=>y.node_id===x.n.id), open=d.find(y=>y.status==='open');
+    const st=x.left<0?'<span class="badge badge-red">'+(-x.left)+' روز تاخیر</span>':'<span class="badge badge-amber">'+x.left+' روز تا سررسید</span>';
+    return '<tr><td>'+kesc(x.p?x.p.code:'')+'</td><td><b>'+kesc(x.n.wbs_code||'')+'</b> '+kesc(x.n.title)+'</td><td>'+fmtDate(x.n.planned_end)+'</td><td>'+st+'</td><td>'+kesc(u?(u.name||u.email):'—')+'</td><td>'+
+      (open?'<span class="badge badge-amber">ثبت شده</span> ':(x.left<0?'<span class="badge badge-red">ثبت نشده</span> ':'—'))+
+      (d.length?'<button class="btn btn-xs btn-sec" onclick="kDelayHistory('+x.n.id+')">سابقه ('+d.length+')</button>':'')+'</td>'+
+      (act?'<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-xs btn-warn" onclick="kAddDelay('+x.n.id+')">📝 علت</button><button class="btn btn-xs btn-gold" onclick="kExtend('+x.n.id+')">⏳ تمدید</button><button class="btn btn-xs btn-sec" onclick="kRefer('+x.n.id+')">👤 ارجاع</button></td>':'')+'</tr>';
+  }).join('')+'</tbody></table></div>';
+}
+
+// ---------- علت تاخیر + پیگیری ----------
+function kAddDelay(nid){
+  const n=KX.nodes.find(x=>x.id===nid);
+  kModal('📝 ثبت علت تاخیر — '+n.title,
+   '<div class="fg"><label>دسته علت</label><select id="kd-cat">'+K_CATS.map(c=>'<option>'+c+'</option>').join('')+'</select></div><div class="fg"><label>شرح علت *</label><textarea id="kd-desc"></textarea></div><div class="fg"><label>تاریخ پیش‌بینی رفع مشکل</label><input type="date" id="kd-date"></div>',
+   [{label:'انصراف'},{label:'✓ ثبت',cls:'btn-red',fn:async()=>{
+     const desc=$('kd-desc').value.trim(); if(!desc){ showMsg('kx-m-msg','شرح الزامی است','err'); return false; }
+     const r=await db.from('delay_reasons').insert([{project_id:n.project_id,node_id:nid,category:$('kd-cat').value,description:desc,expected_resolve_date:$('kd-date').value||null,created_by:CU.id,created_by_name:CU.name||CU.email}]);
+     if(r.error){ showMsg('kx-m-msg','خطا: '+r.error.message,'err'); return false; }
+     await kLoad(); kRefresh();
+   }}]);
+}
+async function kDelayHistory(nid){
+  const ds=KX.delays.filter(x=>x.node_id===nid), ids=ds.map(x=>x.id), n=KX.nodes.find(x=>x.id===nid);
+  const f=ids.length?((await db.from('delay_followups').select('*').in('delay_id',ids).order('id')).data||[]):[];
+  kModal('📜 سابقه تاخیر — '+(n?n.title:''), ds.map(d=>
+   '<div class="mini-list-item" style="display:block"><div class="flex-between"><b>'+kesc(d.category)+'</b><span class="badge '+(d.status==='open'?'badge-amber':'badge-green')+'">'+(d.status==='open'?'باز':'رفع شد')+'</span></div><div style="margin:6px 0">'+kesc(d.description)+'</div><div style="font-size:11px;color:var(--muted)">'+kesc(d.created_by_name||'')+' | '+new Date(d.created_at).toLocaleString('fa-IR')+(d.expected_resolve_date?' | پیش‌بینی رفع: '+fmtDate(d.expected_resolve_date):'')+(d.resolved_note?' | نتیجه: '+kesc(d.resolved_note):'')+'</div>'+
+   f.filter(x=>x.delay_id===d.id).map(x=>'<div style="margin-top:6px;padding:6px 10px;background:#fff;border-right:3px solid var(--gold);font-size:12px">'+kesc(x.note)+' <span style="color:var(--muted)">— '+kesc(x.user_name||'')+' · '+new Date(x.created_at).toLocaleString('fa-IR')+'</span></div>').join('')+
+   (d.status==='open'&&(isAdmin()||kCanEditProj(d.project_id))?'<div style="display:flex;gap:6px;margin-top:8px"><input id="kfu-'+d.id+'" placeholder="پیگیری / اقدام انجام‌شده..." style="flex:1;padding:6px 10px;border:2px solid var(--line);border-radius:8px"><button class="btn btn-xs btn-sec" onclick="kFollow('+d.id+','+nid+')">ثبت</button><button class="btn btn-xs btn-green" onclick="kResolve('+d.id+','+nid+')">✓ رفع شد</button></div>':'')+'</div>').join('')||'<div class="loading">سابقه‌ای نیست</div>',
+   [{label:'بستن'}]);
+}
+async function kFollow(did,nid){ const v=$('kfu-'+did).value.trim(); if(!v) return; await db.from('delay_followups').insert([{delay_id:did,note:v,user_id:CU.id,user_name:CU.name||CU.email}]); kDelayHistory(nid); }
+async function kResolve(did,nid){
+  const note=prompt('توضیح نحوه رفع مشکل:'); if(note===null) return;
+  await db.from('delay_reasons').update({status:'resolved',resolved_at:new Date().toISOString(),resolved_note:note}).eq('id',did);
+  await kLoad(); kRefresh(); kDelayHistory(nid);
+}
+
+// ---------- درخواست تمدید / ارجاع ----------
+function kExtend(nid){
+  const n=KX.nodes.find(x=>x.id===nid);
+  kModal('⏳ تمدید زمان برنامه‌ای — '+n.title,
+   '<div>پایان برنامه‌ای فعلی: <b>'+fmtDate(n.planned_end)+'</b></div><div class="fg"><label>پایان جدید *</label><input type="date" id="ke-date"></div><div class="fg"><label>دلیل *</label><textarea id="ke-reason"></textarea></div>'+(isAdmin()?'<div class="msg msg-warn">شما ادمین هستید؛ تغییر مستقیم اعمال می‌شود.</div>':'<div class="msg msg-warn">پس از تایید ادمین اعمال می‌شود.</div>'),
+   [{label:'انصراف'},{label:'ارسال',cls:'btn-red',fn:async()=>{
+     const nd=$('ke-date').value, rs=$('ke-reason').value.trim();
+     if(!nd||!rs||nd<=n.planned_end){ showMsg('kx-m-msg','تاریخ جدید (بعد از تاریخ فعلی) و دلیل الزامی است','err'); return false; }
+     if(isAdmin()){ await db.from('wbs_nodes').update({planned_end:nd}).eq('id',nid); }
+     else {
+       const r=await db.from('change_requests').insert([{requested_by:CU.id,requester_name:CU.name||CU.email,entity_type:'wbs_node',entity_id:nid,action_type:'extend',old_data:{planned_end:n.planned_end,title:n.title},new_data:{planned_end:nd},reason:rs,status:'pending'}]);
+       if(r.error){ showMsg('kx-m-msg','خطا: '+r.error.message,'err'); return false; }
+       await kNotifyAdmins('change_request','درخواست تمدید زمان','«'+n.title+'» — '+(CU.name||''));
+     }
+     await kLoad(); kRefresh();
+   }}]);
+}
+function kRefer(nid){
+  const n=KX.nodes.find(x=>x.id===nid), a=KX.asg.find(x=>x.node_id===nid);
+  kModal('👤 ارجاع به کارشناس — '+n.title,
+   '<div class="fg"><label>کارشناس</label><select id="kr-user">'+allUsers.filter(u=>u.approved&&u.is_active!==false&&u.role!=='executive').map(u=>'<option value="'+u.id+'"'+(a&&a.user_id===u.id?' selected':'')+'>'+kesc(u.name||u.email)+(u.job_title?' — '+kesc(u.job_title):'')+'</option>').join('')+'</select></div><div class="fg"><label>توضیح برای کارشناس</label><textarea id="kr-note"></textarea></div>',
+   [{label:'انصراف'},{label:'✓ ارجاع',cls:'btn-red',fn:async()=>{
+     const uid=+$('kr-user').value, note=$('kr-note').value.trim();
+     const reset={user_id:uid,confirmed_by_user:false,confirmed_by_manager:false,user_done_at:null,started_at:null,admin_confirmed:false};
+     const r=a?await db.from('wbs_assignments').update(reset).eq('id',a.id):await db.from('wbs_assignments').insert([{node_id:nid,share_percent:100,...reset}]);
+     if(r.error){ showMsg('kx-m-msg','خطا: '+r.error.message,'err'); return false; }
+     await kNotify([uid],'assign','فعالیت جدید به شما ارجاع شد',n.title+(note?' — '+note:''),'task:'+nid);
+     await kLoad(); kRefresh(); recalcAndSaveProgress(n.project_id);
+   }}]);
+}
+
+// ---------- صفحه اکشن پلن ----------
+function kRenderAP(){
+  const pf=$('ap-proj')?$('ap-proj').value:'';
+  const ok=n=>(isAdmin()||isExec()||kCanEditProj(n.project_id))&&(!pf||String(n.project_id)===pf);
+  const all=kLate().filter(x=>ok(x.n));
+  const late=all.filter(x=>x.left<0).sort((a,b)=>a.left-b.left), soon=all.filter(x=>x.left>=0&&x.left<=7).sort((a,b)=>a.left-b.left);
+  const noR=late.filter(x=>!KX.delays.some(d=>d.node_id===x.n.id&&d.status==='open')).length, act=!isExec();
+  const fin=isAdmin()?KX.asg.filter(a=>a.confirmed_by_manager&&!a.admin_confirmed).map(a=>({a,n:KX.nodes.find(x=>x.id===a.node_id)})).filter(x=>x.n&&ok(x.n)):[];
+  const dn=KX.nodes.filter(n=>n.actual_end&&ok(n));
+  const h3=t=>'<h3 style="font-size:14px;color:var(--navy);margin:1.4rem 0 .6rem">'+t+'</h3>';
+  const sum=projects.filter(p=>!pf||String(p.id)===pf).map(p=>{ const l=late.filter(x=>x.n.project_id===p.id).length; return '<tr><td>'+kesc((p.code||'')+' — '+p.name)+'</td><td><span class="badge '+(l?'badge-red':'badge-green')+'">'+l+'</span></td><td>'+KX.delays.filter(d=>d.project_id===p.id&&d.status==='open').length+'</td></tr>'; }).join('');
+  const dd=(a,b)=>(a&&b)?kDays(a,b):null, fmtD=v=>v===null?'—':'<b style="color:'+(v>0?'var(--red)':'var(--green)')+'">'+(v>0?'+':'')+v+' روز</b>';
+  $('tab-actionplan').innerHTML=
+   '<div class="section-title"><span class="red">🎯</span> اکشن پلن و پیگیری تاخیرها<span class="sub">ثبت علت تاخیر، درخواست تمدید زمان یا ارجاع به کارشناس</span></div>'+
+   '<div class="fgs" style="max-width:340px;margin-bottom:1rem"><label>پروژه</label><select id="ap-proj" onchange="kRenderAP()"><option value="">همه پروژه‌ها</option>'+projects.map(p=>'<option value="'+p.id+'"'+(String(p.id)===pf?' selected':'')+'>'+kesc((p.code||'')+' — '+p.name)+'</option>').join('')+'</select></div>'+
+   '<div class="metrics"><div class="metric r"><div class="metric-label">دارای تاخیر</div><div class="metric-value">'+late.length+'</div></div><div class="metric gold"><div class="metric-label">سررسید تا ۷ روز</div><div class="metric-value">'+soon.length+'</div></div><div class="metric"><div class="metric-label">تاخیر بدون علت</div><div class="metric-value">'+noR+'</div></div><div class="metric b"><div class="metric-label">علت‌های باز</div><div class="metric-value">'+KX.delays.filter(d=>d.status==='open'&&(!pf||String(d.project_id)===pf)).length+'</div></div></div>'+
+   h3('📊 خلاصه تاخیر به تفکیک پروژه')+'<div class="table-wrap"><table><thead><tr><th>پروژه</th><th>فعالیت دارای تاخیر</th><th>علت باز</th></tr></thead><tbody>'+(sum||'<tr><td colspan="3">—</td></tr>')+'</tbody></table></div>'+
+   h3('⛔ فعالیت‌های دارای تاخیر')+kDelayTable(late,act)+h3('⏰ سررسید تا ۷ روز آینده')+kDelayTable(soon,act)+
+   (isAdmin()?h3('✅ منتظر ثبت نهایی تاریخ واقعی ('+fin.length+')')+(fin.length?'<div class="table-wrap"><table><thead><tr><th>فعالیت</th><th>برنامه‌ای</th><th>شروع واقعی</th><th>تایید مدیر</th><th></th></tr></thead><tbody>'+fin.map(x=>'<tr><td>'+kesc(x.n.title)+'</td><td>'+fmtDate(x.n.planned_start)+' → '+fmtDate(x.n.planned_end)+'</td><td>'+fmtDate(x.a.started_at)+'</td><td>'+fmtDate(x.a.confirmed_at)+'</td><td><button class="btn btn-xs btn-red" onclick="kFinalize('+x.a.id+')">ثبت نهایی</button></td></tr>').join('')+'</tbody></table></div>':'<div class="loading">موردی نیست</div>'):'')+
+   h3('📐 انحراف زمانی (واقعی در برابر برنامه‌ای)')+(dn.length?'<div class="table-wrap"><table><thead><tr><th>فعالیت</th><th>شروع برنامه / واقعی</th><th>انحراف شروع</th><th>پایان برنامه / واقعی</th><th>انحراف پایان</th></tr></thead><tbody>'+dn.map(n=>'<tr><td>'+kesc((n.wbs_code||'')+' '+n.title)+'</td><td>'+fmtDate(n.planned_start)+' / '+fmtDate(n.actual_start)+'</td><td>'+fmtD(dd(n.actual_start,n.planned_start))+'</td><td>'+fmtDate(n.planned_end)+' / '+fmtDate(n.actual_end)+'</td><td>'+fmtD(dd(n.actual_end,n.planned_end))+'</td></tr>').join('')+'</tbody></table></div>':'<div class="loading">هنوز فعالیتی نهایی نشده</div>');
+}
+function kFinalize(aid){
+  const a=KX.asg.find(x=>x.id===aid), n=KX.nodes.find(x=>x.id===a.node_id), end=(a.confirmed_at||new Date().toISOString()).slice(0,10);
+  kModal('✅ ثبت نهایی تاریخ واقعی — '+n.title,
+   '<div class="form-grid"><div class="fgs"><label>شروع واقعی</label><input type="date" id="kfs" value="'+(a.started_at||'')+'"></div><div class="fgs"><label>پایان واقعی</label><input type="date" id="kfe" value="'+end+'"></div></div><div>برنامه‌ای: '+fmtDate(n.planned_start)+' تا '+fmtDate(n.planned_end)+'</div>',
+   [{label:'انصراف'},{label:'✓ ثبت نهایی',cls:'btn-red',fn:async()=>{
+     const s=$('kfs').value, e=$('kfe').value; if(!s||!e||e<s){ showMsg('kx-m-msg','تاریخ‌ها معتبر نیست','err'); return false; }
+     await db.from('wbs_nodes').update({actual_start:s,actual_end:e}).eq('id',n.id);
+     await db.from('wbs_assignments').update({admin_confirmed:true,admin_confirmed_at:new Date().toISOString(),admin_confirmed_by:CU.id,started_at:s}).eq('id',aid);
+     await kLoad(); kRenderAP();
+   }}]);
+}
+
+// ---------- درخواست‌های تغییر (change_requests) ----------
+async function kReq(ent,id,act,old,nw,reason){
+  const r=await db.from('change_requests').insert([{requested_by:CU.id,requester_name:CU.name||CU.email,entity_type:ent,entity_id:id,action_type:act,old_data:old,new_data:nw,reason,status:'pending'}]);
+  if(r.error){ alert('خطا: '+r.error.message); return; }
+  await kNotifyAdmins('change_request','درخواست تغییر جدید',(CU.name||'')+' درخواست '+(K_ACT[act]||act)+' '+(K_ENT[ent]||ent)+' داد');
+  alert('✅ درخواست ثبت شد و منتظر تایید ادمین است.'); await kLoad();
+}
+function kRenderCR(){
+  const list=KX.reqs.filter(r=>isAdmin()||r.requested_by===CU.id);
+  $('tab-changereq').innerHTML='<div class="section-title"><span class="red">🔁</span> درخواست‌های تغییر<span class="sub">ویرایش/حذف گزارش‌های ثبت‌شده و تمدید زمان فعالیت‌ها</span></div>'+
+  (list.map(r=>{
+    const st={pending:['badge-amber','در انتظار'],approved:['badge-green','تایید شد'],rejected:['badge-red','رد شد']}[r.status]||['badge-gray',r.status];
+    return '<div class="admin-card" style="align-items:flex-start"><div class="admin-card-info"><b>'+(K_ENT[r.entity_type]||kesc(r.entity_type))+' — '+(K_ACT[r.action_type]||kesc(r.action_type))+'</b> <span class="badge '+st[0]+'">'+st[1]+'</span><span>درخواست‌دهنده: '+kesc(r.requester_name||'')+' | '+new Date(r.created_at).toLocaleDateString('fa-IR')+'</span><span>دلیل: '+kesc(r.reason||'—')+'</span><span style="direction:ltr;text-align:left;word-break:break-all">قبل: '+kesc(JSON.stringify(r.old_data||{}))+'<br>بعد: '+kesc(JSON.stringify(r.new_data||{}))+'</span>'+(r.review_note?'<span>پاسخ ادمین: '+kesc(r.review_note)+'</span>':'')+'</div>'+
+    (r.status==='pending'&&isAdmin()?'<div class="admin-actions"><button class="btn btn-xs btn-green" onclick="kReviewCR('+r.id+',true)">✓ تایید</button><button class="btn btn-xs btn-danger" onclick="kReviewCR('+r.id+',false)">✗ رد</button></div>':'')+'</div>';
+  }).join('')||'<div class="loading">درخواستی نیست</div>');
+}
+async function kReviewCR(id,ok){
+  const r=KX.reqs.find(x=>x.id===id), note=prompt(ok?'توضیح (اختیاری):':'دلیل رد (الزامی):'); if(note===null) return;
+  if(!ok&&!note.trim()){ alert('دلیل رد لازم است'); return; }
+  if(ok){
+    const T={weekly:'weekly_progress',monthly:'monthly_reports',wbs_node:'wbs_nodes'}[r.entity_type];
+    const q=r.action_type==='delete'?await db.from(T).delete().eq('id',r.entity_id):await db.from(T).update(r.new_data).eq('id',r.entity_id);
+    if(q.error){ alert('خطا: '+q.error.message); return; }
+  }
+  await db.from('change_requests').update({status:ok?'approved':'rejected',reviewed_by:CU.id,reviewer_name:CU.name||CU.email,reviewed_at:new Date().toISOString(),review_note:note}).eq('id',id);
+  await kNotify([r.requested_by],'cr_result','نتیجه درخواست تغییر',(ok?'تایید شد':'رد شد')+(note?': '+note:''),'cr');
+  await kLoad(); kRenderCR();
+}
+// مدیر پروژه: ویرایش/حذف رکورد قبلی فقط با درخواست
+const _kSW=saveWeekly;
+window.saveWeekly=async function(){
+  if(CU.role==='manager'){
+    const id=$('wk-id').value, pid=+$('wk-project').value, wn=+$('wk-week').value;
+    if(id){
+      const reason=prompt('دلیل ویرایش این گزارش (الزامی):'); if(!reason) return;
+      await kReq('weekly',+id,'update',allWeekly.find(x=>x.id===+id),{week_number:wn,week_date:$('wk-date').value||null,planned_cum:+$('wk-planned').value||0,actual_cum:+$('wk-actual').value||0,financial_cum:+$('wk-financial').value||0},reason);
+      closeModal('weekly-modal'); return;
+    }
+    if(allWeekly.some(x=>x.project_id===pid&&x.week_number===wn)){ showMsg('wk-msg','این هفته قبلاً ثبت شده؛ برای تغییر از دکمه ویرایش (درخواست) استفاده کنید.','err'); return; }
+  }
+  return _kSW();
+};
+const _kDW=deleteWeekly;
+window.deleteWeekly=async function(id){ if(CU.role==='manager'){ const r=prompt('دلیل حذف (الزامی):'); if(!r) return; await kReq('weekly',id,'delete',allWeekly.find(x=>x.id===id),null,r); return; } return _kDW(id); };
+const _kSM=saveMonthlyReport;
+window.saveMonthlyReport=async function(){
+  if(CU.role==='manager'){
+    const pid=+$('mr-proj').value, m=+$('nm-month').value, y=+$('nm-year').value;
+    const ex=(await db.from('monthly_reports').select('*').eq('project_id',pid).eq('year',y).eq('month',m).maybeSingle()).data;
+    if(ex){ const reason=prompt('این ماه قبلاً ثبت شده. دلیل ویرایش (الزامی):'); if(!reason) return;
+      await kReq('monthly',ex.id,'update',ex,{budget:+$('nm-budget').value||0,actual:+$('nm-actual').value||0,planned:+$('nm-planned').value||0,notes:$('nm-notes').value},reason);
+      closeModal('add-monthly-modal'); return; }
+  }
+  return _kSM();
+};
+const _kDM=deleteMonthly;
+window.deleteMonthly=async function(id){
+  if(CU.role==='manager'){ const row=(await db.from('monthly_reports').select('*').eq('id',id).maybeSingle()).data; const r=prompt('دلیل حذف (الزامی):'); if(!r) return; await kReq('monthly',id,'delete',row,null,r); return; }
+  return _kDM(id);
+};
+
+// ---------- فرم به‌روزرسانی وضعیت مدیر پروژه ----------
+function kStatusForm(id){
+  const p=allProjects.find(x=>x.id===id); if(!p) return;
+  if(!kCanEditProj(id)){ alert('شما مدیر یا دارای دسترسی ویرایش این پروژه نیستید.'); return; }
+  const sts=['در حال اجرا','برنامه‌ریزی','تکمیل‌شده','متوقف‌شده'];
+  kModal('🔄 به‌روزرسانی وضعیت — '+p.name,
+   `<div class="form-grid"><div class="fgs"><label>پیشرفت واقعی (٪)</label><input type="number" id="ks-act" min="0" max="100" value="${+p.actual_percent||0}"></div>
+    <div class="fgs"><label>پیشرفت برنامه‌ای (٪) — فقط ادمین</label><input type="number" value="${+p.planned_percent||0}" disabled></div>
+    <div class="fgs"><label>وضعیت</label><select id="ks-st">${sts.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></div>
+    <div class="fgs"><label>RAG</label><select id="ks-rag"><option value="auto">خودکار (از روی واریانس)</option><option>وضعیت مطلوب</option><option>تاخیر جزئی</option><option>بحرانی</option></select></div>
+    <div class="fgs"><label>تاریخ گزارش</label><input type="date" id="ks-date" value="${kToday()}"></div></div>
+    <div class="fg"><label>یادداشت</label><textarea id="ks-notes">${kesc(p.notes||'')}</textarea></div>
+    <div class="msg msg-warn">مبالغ قرارداد، تاریخ‌ها و مشخصات اصلی فقط توسط ادمین تغییر می‌کند. هر به‌روزرسانی در لاگ ثبت می‌شود.</div>`,
+   [{label:'انصراف'},{label:'✓ ثبت',cls:'btn-red',fn:async()=>{
+     const a=+$('ks-act').value; if(isNaN(a)||a<0||a>100){ showMsg('kx-m-msg','درصد باید بین ۰ تا ۱۰۰ باشد','err'); return false; }
+     const pl=+p.planned_percent||0, v=a-pl; let rag=$('ks-rag').value;
+     if(rag==='auto') rag=pl>0?(v>=-5?'وضعیت مطلوب':v>=-15?'تاخیر جزئی':'بحرانی'):p.rag_status;
+     const r=await db.from('projects').update({actual_percent:a,variance:v,status:$('ks-st').value,rag_status:rag,report_date:$('ks-date').value||null,notes:$('ks-notes').value.trim()||null}).eq('id',id);
+     if(r.error){ showMsg('kx-m-msg','خطا: '+r.error.message,'err'); return false; }
+     await loadProjects();
+   }}]);
+}
+const _kEP=openEditProject;
+window.openEditProject=function(id){ if(CU.role==='manager'){ kStatusForm(id); return; } _kEP(id); };
+
+// ---------- WBS: نمایش کد/تاریخ، اکسل، درخواست‌ها ----------
+const _kRT=renderWbsTree;
+window.renderWbsTree=function(t,n,a,p,editable){ return _kRT(t,n,a,p,editable&&isAdmin()); };
+const _kRN=renderNode;
+window.renderNode=function(node,nodes,asg,pid,ed){
+  const t=node.title;
+  node.title=(node.wbs_code?'<b style="color:var(--red)">'+kesc(node.wbs_code)+'</b> ':'')+kesc(t)+((node.planned_start||node.planned_end)?' <small style="color:var(--muted);font-weight:500">📅 '+fmtDate(node.planned_start)+' → '+fmtDate(node.planned_end)+(node.actual_end?' | واقعی: '+fmtDate(node.actual_start)+' → '+fmtDate(node.actual_end):'')+'</small>':'');
+  try{ return _kRN(node,nodes,asg,pid,ed); } finally { node.title=t; }
+};
+const _kOW=openWbs;
+window.openWbs=async function(id){ await _kOW(id); $('add-root-node-btn').style.display=isAdmin()?'':'none'; };
+const kCodeCmp=(a,b)=>{ const x=a.split('.').map(Number), y=b.split('.').map(Number); for(let i=0;i<Math.max(x.length,y.length);i++){ if((x[i]||0)!==(y[i]||0)) return (x[i]||0)-(y[i]||0); } return 0; };
+function kND(v){
+  if(v===''||v==null) return null;
+  if(typeof v==='number'){ const d=XLSX.SSF.parse_date_code(v); return d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0'); }
+  const s=String(v).trim().replace(/\//g,'-');
+  return /^\d{4}-\d{1,2}-\d{1,2}$/.test(s)?s.split('-').map((x,i)=>i?x.padStart(2,'0'):x).join('-'):null;
+}
+async function kEnsureCodes(pid){
+  await loadWbsForProject(pid);
+  const nodes=wbsNodes.filter(n=>n.project_id===pid), byId={}; nodes.forEach(n=>byId[n.id]=n);
+  const assign=async(parentId)=>{
+    const kids=nodes.filter(n=>(n.parent_id||null)===parentId).sort((a,b)=>a.id-b.id), pre=parentId?byId[parentId].wbs_code:'';
+    let max=0; kids.forEach(k=>{ if(k.wbs_code) max=Math.max(max,+k.wbs_code.split('.').pop()||0); });
+    for(const k of kids){
+      if(!k.wbs_code){ k.wbs_code=(pre?pre+'.':'')+(++max); await db.from('wbs_nodes').update({wbs_code:k.wbs_code}).eq('id',k.id); }
+      await assign(k.id);
+    }
+  };
+  await assign(null); return nodes;
+}
+async function kWbsExport(){
+  const pid=currentWbsProjectId; if(!pid) return;
+  if(typeof XLSX==='undefined'){ alert('کتابخانه اکسل بارگذاری نشده است.'); return; }
+  const nodes=(await kEnsureCodes(pid)).sort((a,b)=>kCodeCmp(a.wbs_code,b.wbs_code));
+  const rows=[['کد WBS','عنوان','نوع (گروه/فعالیت)','وزن (٪)','شروع برنامه‌ای (YYYY-MM-DD)','پایان برنامه‌ای (YYYY-MM-DD)','کارشناس (کد پرسنلی یا ایمیل)']];
+  if(!nodes.length){ rows.push(['1','گروه نمونه','گروه',100,'','','']); rows.push(['1.1','فعالیت نمونه','فعالیت',100,'2026-01-01','2026-02-01','12345']); }
+  nodes.forEach(n=>{ const a=wbsAssignments.find(x=>x.node_id===n.id), u=a?allUsers.find(x=>x.id===a.user_id):null;
+    rows.push([n.wbs_code,n.title,n.is_leaf?'فعالیت':'گروه',+n.weight||0,n.planned_start||'',n.planned_end||'',u?(u.personnel_id||u.email):'']); });
+  const ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=[{wch:12},{wch:40},{wch:16},{wch:10},{wch:22},{wch:22},{wch:28}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'WBS');
+  const p=allProjects.find(x=>x.id===pid); XLSX.writeFile(wb,'WBS_'+(p?p.code:pid)+'.xlsx');
+}
+async function kParseWbsFile(f,pid){
+  if(typeof XLSX==='undefined'){ alert('کتابخانه اکسل بارگذاری نشده است.'); return null; }
+  await kEnsureCodes(pid);
+  let aoa; try{ const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}); aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}); }catch(e){ alert('فایل قابل خواندن نیست.'); return null; }
+  const rows=[], errs=[], warns=[], seen=new Set();
+  aoa.slice(1).forEach((r,i)=>{
+    const ln='ردیف '+(i+2)+': ', code=String(r[0]).trim(); if(!code) return;
+    if(!/^\d+(\.\d+)*$/.test(code)){ errs.push(ln+'کد نامعتبر ('+code+')'); return; }
+    if(seen.has(code)) errs.push(ln+'کد تکراری '+code); seen.add(code);
+    const title=String(r[1]).trim(); if(!title) errs.push(ln+'عنوان خالی است');
+    const is_leaf=/فعالیت|leaf/i.test(String(r[2])), ps=kND(r[4]), pe=kND(r[5]);
+    if(r[4]!==''&&!ps) errs.push(ln+'تاریخ شروع نامعتبر'); if(r[5]!==''&&!pe) errs.push(ln+'تاریخ پایان نامعتبر');
+    if(ps&&pe&&pe<ps) errs.push(ln+'پایان قبل از شروع است');
+    const asn=String(r[6]).trim(); let aid=null;
+    if(asn){ const u=allUsers.find(x=>String(x.personnel_id)===asn||x.email===asn); if(u) aid=u.id; else errs.push(ln+'کارشناس پیدا نشد: '+asn); }
+    if(is_leaf&&!pe) warns.push(ln+'فعالیت '+code+' تاریخ پایان برنامه‌ای ندارد (در اکشن پلن دیده نمی‌شود)');
+    rows.push({code,title,is_leaf,weight:+r[3]||0,planned_start:ps,planned_end:pe,assignee_id:aid});
+  });
+  const codes=new Set(rows.map(r=>r.code)), byCode={}; rows.forEach(r=>byCode[r.code]=r);
+  rows.forEach(r=>{ if(r.code.includes('.')){ const pc=r.code.slice(0,r.code.lastIndexOf('.')); if(!codes.has(pc)) errs.push('والد کد '+r.code+' (یعنی '+pc+') در فایل نیست'); else if(byCode[pc].is_leaf) errs.push('کد '+pc+' فعالیت است و نمی‌تواند زیرمجموعه داشته باشد'); } });
+  const sums={}; rows.forEach(r=>{ const pc=r.code.includes('.')?r.code.slice(0,r.code.lastIndexOf('.')):'ریشه'; sums[pc]=(sums[pc]||0)+r.weight; });
+  Object.entries(sums).forEach(([k,v])=>{ if(Math.abs(v-100)>0.01) warns.push('مجموع وزن زیرمجموعه‌های «'+k+'» برابر '+v+' است (باید ۱۰۰ باشد)'); });
+  if(!rows.length) errs.push('هیچ ردیفی در فایل پیدا نشد');
+  return {rows,errs,warns};
+}
+function kWbsDiff(pid,rows){
+  const ex=wbsNodes.filter(n=>n.project_id===pid), exMap={}; ex.forEach(n=>exMap[n.wbs_code]=n);
+  const asg=n=>{ const a=wbsAssignments.find(x=>x.node_id===n.id); return a?a.user_id:null; };
+  const F={title:'عنوان',is_leaf:'نوع',weight:'وزن',planned_start:'شروع',planned_end:'پایان',assignee_id:'کارشناس'};
+  const kv=(v,k)=>k==='is_leaf'?(v?'فعالیت':'گروه'):k==='assignee_id'?((allUsers.find(u=>u.id===v)||{}).name||'—'):(v===null||v===''||v===undefined?'—':v);
+  const diff=[];
+  rows.forEach(r=>{
+    const n=exMap[r.code]; if(!n){ diff.push({op:'add',code:r.code,after:r,note:'گره جدید'}); return; }
+    const b={title:n.title,is_leaf:!!n.is_leaf,weight:+n.weight||0,planned_start:n.planned_start||null,planned_end:n.planned_end||null,assignee_id:asg(n)};
+    const ch=Object.keys(F).filter(k=>(r[k]??null)!==(b[k]??null));
+    if(ch.length) diff.push({op:'edit',code:r.code,before:b,after:r,note:ch.map(k=>F[k]+': '+kv(b[k],k)+' ← '+kv(r[k],k)).join(' | ')});
+  });
+  const codes=new Set(rows.map(r=>r.code));
+  ex.forEach(n=>{ if(!codes.has(n.wbs_code)) diff.push({op:'del',code:n.wbs_code,before:{title:n.title},note:'حذف از ساختار'}); });
+  return diff;
+}
+function kDiffHtml(diff){
+  if(!diff||!diff.length) return '<div class="loading">تغییری نسبت به WBS فعلی وجود ندارد</div>';
+  const L={add:'➕ افزودن',edit:'✏️ ویرایش',del:'🗑 حذف'};
+  return '<div class="table-wrap" style="max-height:340px;overflow:auto"><table><thead><tr><th>عملیات</th><th>کد</th><th>عنوان</th><th>جزئیات</th></tr></thead><tbody>'+diff.map(d=>'<tr class="kx-diff-'+d.op+'"><td>'+L[d.op]+'</td><td><b>'+kesc(d.code)+'</b></td><td>'+kesc((d.after||d.before).title)+'</td><td style="font-size:11.5px">'+kesc(d.note||'')+'</td></tr>').join('')+'</tbody></table></div>';
+}
+async function kWbsApply(pid,rows){
+  await loadWbsForProject(pid);
+  const diff=kWbsDiff(pid,rows), idOf={}; wbsNodes.filter(n=>n.project_id===pid).forEach(n=>idOf[n.wbs_code]=n.id);
+  const depth=c=>c.split('.').length;
+  for(const d of diff.filter(x=>x.op==='del').sort((a,b)=>depth(b.code)-depth(a.code))){
+    const id=idOf[d.code]; await db.from('wbs_assignments').delete().eq('node_id',id);
+    const r=await db.from('wbs_nodes').delete().eq('id',id); if(r.error) return r.error; delete idOf[d.code];
+  }
+  for(const d of diff.filter(x=>x.op==='add').sort((a,b)=>depth(a.code)-depth(b.code))){
+    const o=d.after, pc=o.code.includes('.')?o.code.slice(0,o.code.lastIndexOf('.')):null;
+    const r=await db.from('wbs_nodes').insert([{project_id:pid,parent_id:pc?idOf[pc]:null,wbs_code:o.code,title:o.title,weight:o.weight,is_leaf:o.is_leaf,planned_start:o.planned_start,planned_end:o.planned_end}]).select().single();
+    if(r.error) return r.error; idOf[o.code]=r.data.id;
+    if(o.is_leaf&&o.assignee_id) await db.from('wbs_assignments').insert([{node_id:r.data.id,user_id:o.assignee_id,share_percent:100,confirmed_by_user:false,confirmed_by_manager:false}]);
+  }
+  for(const d of diff.filter(x=>x.op==='edit')){
+    const a=d.after, id=idOf[d.code];
+    const r=await db.from('wbs_nodes').update({title:a.title,weight:a.weight,is_leaf:a.is_leaf,planned_start:a.planned_start,planned_end:a.planned_end}).eq('id',id); if(r.error) return r.error;
+    const ex=wbsAssignments.find(x=>x.node_id===id);
+    if(a.is_leaf&&a.assignee_id){
+      if(ex){ if(ex.user_id!==a.assignee_id) await db.from('wbs_assignments').update({user_id:a.assignee_id,confirmed_by_user:false,confirmed_by_manager:false}).eq('id',ex.id); }
+      else await db.from('wbs_assignments').insert([{node_id:id,user_id:a.assignee_id,share_percent:100,confirmed_by_user:false,confirmed_by_manager:false}]);
+    }
+  }
+  await recalcAndSaveProgress(pid); return null;
+}
+async function kComment(rid,action,text){ await db.from('wbs_request_comments').insert([{request_id:rid,user_id:CU.id,user_name:CU.name||CU.email,user_role:CU.role,action,comment:text||''}]); }
+async function kWbsImport(inp){
+  const f=inp.files[0]; inp.value=''; if(!f) return;
+  const b=await kParseWbsFile(f,currentWbsProjectId); if(b) kWbsPreview(currentWbsProjectId,b,f.name,null);
+}
+async function kWResubFile(inp){
+  const f=inp.files[0]; inp.value=''; if(!f) return;
+  const r=wbsChangeRequests.find(x=>x.id===kResubId); if(!r) return;
+  const b=await kParseWbsFile(f,r.project_id); if(b) kWbsPreview(r.project_id,b,f.name,kResubId);
+}
+function kWbsPreview(pid,b,fname,reqId){
+  const diff=kWbsDiff(pid,b.rows), cnt=o=>diff.filter(d=>d.op===o).length, admin=isAdmin();
+  const btns=[{label:'انصراف'}];
+  if(!b.errs.length&&diff.length) btns.push(admin?{label:'✓ تایید و اعمال',cls:'btn-red',fn:()=>kWbsCommit(pid,b.rows,diff,fname,reqId,true)}:{label:'📤 ارسال برای تایید ادمین',cls:'btn-red',fn:()=>kWbsCommit(pid,b.rows,diff,fname,reqId,false)});
+  kModal('📋 پیش‌نمایش تغییرات WBS — '+fname,
+   (b.errs.length?'<div class="msg msg-err" style="text-align:right">'+b.errs.map(kesc).join('<br>')+'</div>':'')+(b.warns.length?'<div class="msg msg-warn" style="text-align:right">'+b.warns.map(kesc).join('<br>')+'</div>':'')+
+   '<div style="margin:10px 0;font-weight:700">➕ '+cnt('add')+' افزودن | ✏️ '+cnt('edit')+' ویرایش | 🗑 '+cnt('del')+' حذف</div>'+kDiffHtml(diff)+
+   '<div class="fg" style="margin-top:10px"><label>کامنت / توضیح تغییرات '+(admin?'':'*')+'</label><textarea id="kw-comment"></textarea></div>',btns);
+}
+async function kWbsCommit(pid,rows,diff,fname,reqId,direct){
+  const cm=$('kw-comment').value.trim();
+  if(!direct&&!cm){ showMsg('kx-m-msg','کامنت الزامی است','err'); return false; }
+  if(diff.some(d=>d.op==='del')&&!confirm('این فایل شامل حذف گره‌هاست. ادامه می‌دهید؟')) return false;
+  if(direct){
+    const e=await kWbsApply(pid,rows); if(e){ showMsg('kx-m-msg','خطا: '+e.message,'err'); return false; }
+    if(reqId){ await db.from('wbs_change_requests').update({status:'approved',reviewed_by:CU.id,reviewed_at:new Date().toISOString()}).eq('id',reqId); await kComment(reqId,'approve',cm||'تایید'); }
+    else { const r=await db.from('wbs_change_requests').insert([{project_id:pid,requested_by:CU.id,change_type:'import',new_data:{rows,diff,file:fname},status:'approved',reviewed_by:CU.id,reviewed_at:new Date().toISOString()}]).select().single(); if(r.data) await kComment(r.data.id,'direct',cm||'اعمال مستقیم توسط ادمین'); }
+    await loadWbsForProject(pid); renderWbsTree('wbs-tree',wbsNodes,wbsAssignments,pid,true); await loadWbsChangeRequests(); alert('✅ WBS به‌روز شد'); return;
+  }
+  let id=reqId; const payload={new_data:{rows,diff,file:fname},status:'pending',reviewed_by:null,reviewed_at:null};
+  if(id) await db.from('wbs_change_requests').update(payload).eq('id',id);
+  else { const r=await db.from('wbs_change_requests').insert([{project_id:pid,requested_by:CU.id,change_type:'import',...payload}]).select().single(); if(r.error){ showMsg('kx-m-msg','خطا: '+r.error.message,'err'); return false; } id=r.data.id; }
+  await kComment(id,reqId?'resubmit':'submit',cm);
+  await kNotifyAdmins('wbs_request','درخواست تغییر WBS',(CU.name||'')+' فایل تغییر WBS ارسال کرد');
+  await loadWbsChangeRequests(); alert('✅ برای ادمین ارسال شد');
+}
+window.loadWbsChangeRequests=async function(){
+  const r=await db.from('wbs_change_requests').select('*').order('created_at',{ascending:false});
+  wbsChangeRequests=r.data||[]; const ids=wbsChangeRequests.map(x=>x.id);
+  kWC=ids.length?((await db.from('wbs_request_comments').select('*').in('request_id',ids).order('id')).data||[]):[];
+  renderWbsChangeRequests();
+};
+window.renderWbsChangeRequests=function(){
+  const c=$('wbs-requests-list'); if(!c||!CU) return;
+  const list=wbsChangeRequests.filter(r=>isAdmin()||r.requested_by===CU.id);
+  if(!list.length){ c.innerHTML='<div class="loading">هیچ درخواستی ثبت نشده است</div>'; return; }
+  c.innerHTML=list.map(r=>{
+    const p=allProjects.find(x=>x.id===r.project_id), u=allUsers.find(x=>x.id===r.requested_by), d=r.new_data||{}, imp=r.change_type==='import', cm=kWC.filter(x=>x.request_id===r.id);
+    const st={pending:['badge-amber','⏳ در انتظار'],approved:['badge-green','✅ تایید شده'],rejected:['badge-red','❌ رد شده']}[r.status]||['badge-gray',r.status];
+    let btns='<button class="btn btn-xs btn-sec" onclick="kWComment('+r.id+')">💬 کامنت</button>';
+    if(isAdmin()&&r.status==='pending') btns+='<button class="btn btn-xs btn-green" onclick="kWReview('+r.id+',true)">✓ تایید</button><button class="btn btn-xs btn-danger" onclick="kWReview('+r.id+',false)">✗ رد</button>';
+    if(r.requested_by===CU.id&&imp&&r.status!=='approved') btns+='<button class="btn btn-xs btn-gold" onclick="kResubId='+r.id+';document.getElementById(\'kx-wbs-resub\').click()">📎 ارسال نسخه جدید</button>';
+    return '<div class="admin-card" style="display:block"><div class="flex-between"><div><b>'+(imp?'📊 فایل اکسل WBS':'📝 '+kesc(r.change_type))+'</b> — '+kesc(p?p.name:'')+'<div style="font-size:11px;color:var(--muted)">'+kesc(u?(u.name||u.email):'—')+' | '+fmtDate(r.created_at)+(d.file?' | '+kesc(d.file):'')+'</div></div><span class="badge '+st[0]+'">'+st[1]+'</span></div>'+
+      (imp?'<div style="margin:8px 0;font-size:12px">'+(d.diff||[]).length+' تغییر <button class="btn btn-xs btn-sec" onclick="kWbsView('+r.id+')">👁 مشاهده تغییرات</button></div>':'<div style="margin:8px 0;font-size:13px">'+kesc(d.description||'')+'</div>')+
+      '<div style="background:var(--bg);border-radius:10px;padding:8px 12px;margin-bottom:8px">'+(cm.map(x=>'<div style="font-size:12px;margin-bottom:6px"><b>'+kesc(x.user_name||'')+'</b> <span class="badge badge-gray">'+kesc(K_CA[x.action]||x.action)+'</span> '+kesc(x.comment||'')+' <small style="color:var(--muted)">'+new Date(x.created_at).toLocaleString('fa-IR')+'</small></div>').join('')||'<small style="color:var(--muted)">بدون کامنت</small>')+'</div><div class="admin-actions">'+btns+'</div></div>';
+  }).join('');
+};
+function kWbsView(id){ const r=wbsChangeRequests.find(x=>x.id===id); kModal('👁 تغییرات درخواست',kDiffHtml((r.new_data||{}).diff),[{label:'بستن'}]); }
+async function kWComment(id){
+  const t=prompt('متن کامنت:'); if(!t||!t.trim()) return;
+  const r=wbsChangeRequests.find(x=>x.id===id); await kComment(id,'comment',t.trim());
+  if(isAdmin()) await kNotify([r.requested_by],'wbs_comment','کامنت جدید روی درخواست WBS',t.trim(),'wbsreq'); else await kNotifyAdmins('wbs_comment','کامنت جدید روی درخواست WBS',t.trim());
+  await loadWbsChangeRequests();
+}
+async function kWReview(id,ok){
+  const r=wbsChangeRequests.find(x=>x.id===id), note=prompt(ok?'کامنت تایید (اختیاری):':'دلیل رد / توضیح برای مدیر پروژه (الزامی):'); if(note===null) return;
+  if(!ok&&!note.trim()){ alert('کامنت الزامی است'); return; }
+  if(ok&&r.change_type==='import'){ if(!confirm('تغییرات روی WBS اعمال می‌شود. ادامه؟')) return; const e=await kWbsApply(r.project_id,(r.new_data||{}).rows||[]); if(e){ alert('خطا: '+e.message); return; } }
+  await db.from('wbs_change_requests').update({status:ok?'approved':'rejected',reviewed_by:CU.id,reviewed_at:new Date().toISOString()}).eq('id',id);
+  await kComment(id,ok?'approve':'reject',note||'');
+  await kNotify([r.requested_by],'wbs_result','نتیجه درخواست WBS',(ok?'تایید شد':'رد شد')+(note?': '+note:''),'wbsreq');
+  await loadWbsChangeRequests();
+}
+
+// ---------- وظایف من: تاریخ شروع و تایید ----------
+const _kMT=loadMyTasks;
+window.loadMyTasks=async function(){
+  await _kMT(); if(!CU) return;
+  const todo=((await db.from('wbs_assignments').select('*').eq('user_id',CU.id).eq('confirmed_by_user',false)).data||[]).filter(a=>!a.started_at);
+  if(!todo.length) return;
+  const ns=(await db.from('wbs_nodes').select('*').in('id',todo.map(a=>a.node_id))).data||[];
+  $('tasks-list').insertAdjacentHTML('afterbegin','<div class="chart-box"><div class="chart-title">▶ فعالیت‌های شروع‌نشده (ثبت تاریخ شروع واقعی)</div>'+todo.map(a=>{ const n=ns.find(x=>x.id===a.node_id)||{}; return '<div class="mini-list-item"><span><b>'+kesc(n.wbs_code||'')+'</b> '+kesc(n.title||'')+' <small>(برنامه: '+fmtDate(n.planned_start)+' → '+fmtDate(n.planned_end)+')</small></span><button class="btn btn-xs btn-green" onclick="kStart('+a.id+')">▶ شروع کردم</button></div>'; }).join('')+'</div>');
+};
+async function kStart(id){ await db.from('wbs_assignments').update({started_at:kToday()}).eq('id',id); loadMyTasks(); }
+const _kCU=doConfirmUser;
+window.doConfirmUser=async function(){
+  const a=(await db.from('wbs_assignments').select('started_at').eq('id',pendingAssignId).maybeSingle()).data;
+  await db.from('wbs_assignments').update({user_done_at:new Date().toISOString(),started_at:(a&&a.started_at)||kToday()}).eq('id',pendingAssignId);
+  return _kCU();
+};
+const _kCM=doConfirmManager;
+window.doConfirmManager=async function(){
+  const a=(await db.from('wbs_assignments').select('node_id').eq('id',pendingAssignId).maybeSingle()).data;
+  const n=a?(await db.from('wbs_nodes').select('project_id,title').eq('id',a.node_id).maybeSingle()).data:null;
+  if(!n||!kCanEditProj(n.project_id)){ alert('این فعالیت متعلق به پروژه شما نیست.'); closeModal('approve-task-modal'); return; }
+  await _kCM(); await kNotifyAdmins('final','فعالیت برای ثبت نهایی تاریخ واقعی','«'+n.title+'» توسط مدیر پروژه تایید شد'); await kLoad(); kRefresh();
+};
+
+// ---------- مدیریت کاربران (مرحله ۲) ----------
+function kRoles(cur){
+  const all=[['user','👤 کاربر عادی'],['manager','📋 مدیر پروژه'],['admin','⚙️ ادمین'],['executive','🏢 مدیر ارشد'],['superadmin','👑 سوپر ادمین']];
+  $('um-role').innerHTML=(isSA()?all:all.filter(x=>['user','manager'].includes(x[0]))).map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
+  if(cur) $('um-role').value=cur;
+}
+const kLow=u=>isSA()||['user','manager'].includes(u.role);
+const _kAU=openAddUser; window.openAddUser=function(){ _kAU(); kRoles('user'); $('um-job').value=''; };
+const _kEU=openEditUser; window.openEditUser=function(id){ const u=allUsers.find(x=>x.id===id); if(!u) return; if(!kLow(u)){ alert('شما اجازه ویرایش این کاربر را ندارید.'); return; } _kEU(id); kRoles(u.role); $('um-job').value=u.job_title||''; };
+const _kCP=openChangeUserPassword; window.openChangeUserPassword=function(id){ const u=allUsers.find(x=>x.id===id); if(u&&!kLow(u)){ alert('مجاز نیستید.'); return; } _kCP(id); };
+const _kTA=toggleUserActive; window.toggleUserActive=function(id){ const u=allUsers.find(x=>x.id===id); if(u&&!kLow(u)){ alert('مجاز نیستید.'); return; } return _kTA(id); };
+const _kDU=deleteUser; window.deleteUser=function(id){ const u=allUsers.find(x=>x.id===id); if(!isSA()&&u&&(u.approved||u.role!=='user')){ alert('فقط سوپر ادمین می‌تواند کاربر تاییدشده را حذف کند.'); return; } return _kDU(id); };
+window.saveUser=async function(){
+  const id=$('um-id').value, name=$('um-name').value.trim(), pid=$('um-personnel-id').value.trim(), email=$('um-email').value.trim(), pass=$('um-pass').value, role=$('um-role').value, act=$('um-active').value==='true', job=$('um-job').value.trim();
+  if(!name||!email){ showMsg('um-msg','نام و ایمیل الزامی است.','err'); return; }
+  if(!isSA()&&!['user','manager'].includes(role)){ showMsg('um-msg','فقط سوپر ادمین می‌تواند این نقش را تعیین کند.','err'); return; }
+  if(id){ const t=allUsers.find(x=>x.id===+id); if(t&&!kLow(t)){ showMsg('um-msg','اجازه ویرایش این کاربر را ندارید.','err'); return; } }
+  const data={name,email,role,is_active:act,job_title:job||null,personnel_id:pid||null}; let err;
+  if(id) err=(await db.from('users').update(data).eq('id',+id)).error;
+  else { if(!pass||pass.length<8){ showMsg('um-msg','پسورد حداقل ۸ کاراکتر.','err'); return; } err=(await db.from('users').insert([{...data,password:pass,approved:true}])).error; }
+  if(err){ showMsg('um-msg','خطا: '+err.message,'err'); return; }
+  closeModal('user-modal'); await loadAdminUsers(); await loadUsers();
+};
+window.loadAdminUsers=async function(){
+  const users=(await db.from('users').select('*').order('id')).data||[], pending=users.filter(u=>!u.approved), approved=users.filter(u=>u.approved);
+  $('admin-metrics').innerHTML='<div class="metric"><div class="metric-label">کل کاربران</div><div class="metric-value">'+users.length+'</div></div><div class="metric g"><div class="metric-label">فعال</div><div class="metric-value">'+approved.filter(u=>u.is_active!==false).length+'</div></div><div class="metric gold"><div class="metric-label">مدیر پروژه</div><div class="metric-value">'+approved.filter(u=>u.role==='manager').length+'</div></div><div class="metric r"><div class="metric-label">در انتظار</div><div class="metric-value">'+pending.length+'</div></div>';
+  $('pending-list').innerHTML=pending.length?pending.map(u=>'<div class="admin-card"><div class="admin-card-info">'+kesc(u.name||'بدون نام')+(u.personnel_id?' 🆔 '+kesc(u.personnel_id):'')+'<span>'+kesc(u.email)+'</span></div><div class="admin-actions"><button class="btn btn-xs btn-green" onclick="approveUser('+u.id+')">✓ تأیید</button><button class="btn btn-xs btn-danger" onclick="deleteUser('+u.id+')">✗ رد</button></div></div>').join(''):'<div style="color:var(--muted);font-size:13px;padding:.8rem">کاربری در انتظار نیست.</div>';
+  $('approved-list').innerHTML=approved.map(u=>{ const ina=u.is_active===false;
+    return '<div class="admin-card'+(ina?' inactive':'')+'"><div class="admin-card-info">'+kesc(u.name||'بدون نام')+' '+roleBadge(u.role)+(u.job_title?' <span class="badge badge-gray">'+kesc(u.job_title)+'</span>':'')+(ina?' <span class="badge badge-gray">غیرفعال</span>':'')+(u.personnel_id?' 🆔 '+kesc(u.personnel_id):'')+'<span>📧 '+kesc(u.email)+'</span></div><div class="admin-actions">'+
+    (kLow(u)?'<button class="btn btn-xs btn-icon" onclick="openAccessManager('+u.id+')" title="دسترسی پروژه‌ها">🔑</button><button class="btn btn-xs btn-icon warn" onclick="openChangeUserPassword('+u.id+')" title="تغییر پسورد">🔐</button><button class="btn btn-xs btn-icon" onclick="openEditUser('+u.id+')" title="ویرایش">✏️</button><button class="btn btn-xs btn-icon '+(ina?'success':'danger')+'" onclick="toggleUserActive('+u.id+')">'+(ina?'✅':'🚫')+'</button>'+(isSA()?'<button class="btn btn-xs btn-icon danger" onclick="deleteUser('+u.id+')">🗑</button>':''):'<span class="badge badge-gray">🔒 فقط سوپر ادمین</span>')+'</div></div>'; }).join('');
+};
+
+// ---------- لاگ فعالیت‌ها (فقط سوپر ادمین) ----------
+const K_TBL={projects:'📁 پروژه',users:'👤 کاربر',weekly_progress:'📈 هفتگی',monthly_reports:'📅 ماهانه',project_risks:'⚠️ ریسک',team_members:'👥 تیم',wbs_nodes:'🏗 گره WBS',wbs_assignments:'👤 تخصیص WBS',wbs_change_requests:'📋 درخواست WBS',change_requests:'🔁 درخواست تغییر',work_logs:'⏱ کارکرد',delay_reasons:'⏰ علت تاخیر',delay_followups:'💬 پیگیری تاخیر',user_project_access:'🔑 دسترسی',business_units:'🏢 واحد',project_categories:'📂 دسته',system_settings:'🔧 تنظیمات',wbs_request_comments:'💬 کامنت WBS'};
+const kShort=v=>{ const s=v==null?'∅':typeof v==='object'?JSON.stringify(v):String(v); return s.length>40?s.slice(0,40)+'…':s; };
+function kChanges(l){
+  const o=l.old_data, n=l.new_data;
+  if(l.action==='update'&&o&&n) return Object.keys(n).filter(k=>JSON.stringify(n[k])!==JSON.stringify(o[k])).map(k=>k+': '+kShort(o[k])+' ← '+kShort(n[k])).join(' | ');
+  const d=n||o||{}; return String(d.name||d.title||d.member_name||d.description||d.code||d.comment||'');
+}
+window.loadActivityLogs=async function(){
+  if(!isSA()) return;
+  const uf=$('log-filter-user').value, af=$('log-filter-action').value, fd=$('log-from').value, td=$('log-to').value;
+  let q=db.from('activity_logs').select('*').order('id',{ascending:false}).limit(500);
+  if(uf) q=q.eq('user_id',+uf); if(af) q=q.eq('action',af);
+  if(fd) q=q.gte('created_at',fd+'T00:00:00'); if(td) q=q.lte('created_at',td+'T23:59:59');
+  const logs=(await q).data||[], today=kToday();
+  $('log-metrics').innerHTML='<div class="metric"><div class="metric-label">کل رکوردها</div><div class="metric-value">'+logs.length+'</div></div><div class="metric b"><div class="metric-label">امروز</div><div class="metric-value">'+logs.filter(l=>l.created_at&&l.created_at.slice(0,10)===today).length+'</div></div><div class="metric g"><div class="metric-label">کاربران فعال</div><div class="metric-value">'+new Set(logs.map(l=>l.user_id)).size+'</div></div>';
+  const AL={create:'➕ ایجاد',update:'✏️ ویرایش',delete:'🗑 حذف',approve:'✅ تایید',reject:'❌ رد',login:'🔑 ورود'}, AC={create:'badge-green',update:'badge-blue',delete:'badge-red'};
+  $('log-table').innerHTML=logs.length?logs.map(l=>'<tr><td style="font-size:12px;white-space:nowrap">'+(l.created_at?new Date(l.created_at).toLocaleString('fa-IR'):'—')+'</td><td style="font-weight:600">'+kesc(l.user_name||'—')+'</td><td style="font-size:11.5px">'+kesc(l.user_role||'—')+'</td><td><span class="badge '+(AC[l.action]||'badge-gray')+'">'+(AL[l.action]||kesc(l.action))+'</span></td><td style="font-size:12px">'+(K_TBL[l.entity_type]||kesc(l.entity_type||'—'))+(l.entity_id?' #'+l.entity_id:'')+'</td><td style="font-size:11.5px;max-width:420px;word-break:break-word">'+kesc(kChanges(l))+'</td></tr>').join(''):'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">هیچ لاگی ثبت نشده</td></tr>';
+  const sel=$('log-filter-user'), cur=sel.value; sel.innerHTML='<option value="">همه کاربران</option>'+allUsers.map(u=>'<option value="'+u.id+'">'+kesc(u.name||u.email)+'</option>').join(''); sel.value=cur;
+};
+
+// ---------- نقش‌ها، ناوبری، بارگذاری ----------
+const _kRole=applyRoleUI;
+window.applyRoleUI=function(){
+  _kRole();
+  const show=(id,v)=>{ const e=$(id); if(e) e.style.display=v?'flex':'none'; };
+  const mgr=CU.role==='manager';
+  show('tab-btn-actionplan',mgr||isAdmin()||isExec()); show('tab-btn-changereq',mgr||isAdmin());
+  if(mgr) show('tab-btn-wbs-requests',true);
+  $('kx-lbl').style.display=(mgr||isAdmin()||isExec())?'block':'none';
+  if(mgr) $('add-proj-btn').style.display='none';
+  show('tab-btn-logs',isSA());
+  document.body.classList.toggle('ro-mode',isExec());
+};
+const _kShow=showTab;
+window.showTab=async function(id){
+  await _kShow(id);
+  if(id==='actionplan'||id==='changereq'){
+    $('topbar-eyebrow').textContent='پیگیری'; $('topbar-title').textContent=id==='actionplan'?'اکشن پلن':'درخواست‌های تغییر';
+    await kLoad(); id==='actionplan'?kRenderAP():kRenderCR();
+  }
+};
+const _kLoadAll=loadAll;
+window.loadAll=async function(){ await _kLoadAll(); await kLoad(); kRefresh(); kGenNotifs().then(kBadges); };
+</script>
    </body>
 </html>
