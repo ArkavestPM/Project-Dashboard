@@ -6698,5 +6698,70 @@ window.kStatusForm = function(id){
   }
 };
 </script>
+   <script>
+// ============ افزونه KZ: اعلان‌های کلیک‌پذیر ============
+// مقصد هر اعلان بر اساس فیلد link که قبلاً ذخیره شده است:
+//   node:ID:late|soon -> اکشن پلن | task:ID -> وظایف من | approve:ID -> وظایف من (منتظر تایید)
+//   cr -> درخواست‌های تغییر | wbsreq -> درخواست‌های WBS
+async function kGo(link){
+  link = String(link || '');
+  const t = link.split(':')[0];
+  if(t === 'node') return showTab('actionplan');
+  if(t === 'task' || t === 'approve') return showTab('tasks');
+  if(t === 'cr') return showTab('changereq');
+  if(t === 'wbsreq') return showTab('wbs-requests');
+}
+window.kNotifOpen = async function(id){
+  const x = kNotifs.find(n => n.id === id); if(!x) return;
+  if(!x.is_read){
+    await db.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', id);
+    x.is_read = true;
+  }
+  kClose(); kBadges();
+  await kGo(x.link);
+};
+window.kNotifToggle = async function(id){
+  const x = kNotifs.find(n => n.id === id); if(!x) return;
+  const v = !x.is_read;
+  await db.from('notifications').update({ is_read: v, read_at: v ? new Date().toISOString() : null }).eq('id', id);
+  x.is_read = v; kNotifRender(); kBadges();
+};
+window.kNotifDel = async function(id){
+  await db.from('notifications').delete().eq('id', id);
+  kNotifs = kNotifs.filter(n => n.id !== id); kNotifRender(); kBadges();
+};
+window.kNotifClear = async function(){
+  if(!confirm('همه اعلان‌های خوانده‌شده حذف شوند؟')) return;
+  await db.from('notifications').delete().eq('user_id', CU.id).eq('is_read', true);
+  kNotifs = kNotifs.filter(n => !n.is_read); kNotifRender(); kBadges();
+};
+window.kNotifReadAll = async function(){
+  await db.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('user_id', CU.id).eq('is_read', false);
+  kNotifs.forEach(n => { n.is_read = true; }); kNotifRender(); kBadges();
+};
+
+let kNotifs = [];
+function kNotifRender(){
+  const el = $('kx-notif-list'); if(!el) return;
+  el.innerHTML = kNotifs.map(x =>
+    '<div class="mini-list-item" style="cursor:pointer;' + (x.is_read ? 'opacity:.6' : 'border-right:4px solid var(--red);background:#fff') + '" onclick="kNotifOpen(' + x.id + ')">' +
+      '<span style="flex:1;' + (x.is_read ? '' : 'font-weight:700') + '">' + (x.is_read ? '' : '● ') + kesc(x.title) +
+        '<br><small style="font-weight:400;color:var(--muted)">' + kesc(x.message) + '</small></span>' +
+      '<small style="white-space:nowrap">' + new Date(x.created_at).toLocaleDateString('fa-IR') + '</small>' +
+      '<span class="kx-acts" onclick="event.stopPropagation()">' +
+        '<button class="btn btn-xs btn-sec" title="' + (x.is_read ? 'ناخوانده کن' : 'خوانده شد') + '" onclick="kNotifToggle(' + x.id + ')">' + (x.is_read ? '↩' : '✓') + '</button>' +
+        '<button class="btn btn-xs btn-danger" title="حذف" onclick="kNotifDel(' + x.id + ')">🗑</button>' +
+      '</span></div>'
+  ).join('') || '<div class="loading">اعلانی نیست</div>';
+}
+window.kBell = async function(){
+  kNotifs = (await db.from('notifications').select('*').eq('user_id', CU.id).order('id', { ascending: false }).limit(60)).data || [];
+  kModal('🔔 اعلان‌ها', '<div id="kx-notif-list"></div><div style="font-size:11px;color:var(--muted);margin-top:8px">روی هر اعلان بزنید تا به بخش مربوط بروید.</div>',
+    [{ label: 'همه خوانده شد', fn: async () => { await kNotifReadAll(); return false; } },
+     { label: '🧹 حذف خوانده‌شده‌ها', cls: 'btn-danger', fn: async () => { await kNotifClear(); return false; } },
+     { label: 'بستن' }]);
+  kNotifRender();
+};
+</script>
    </body>
 </html>
