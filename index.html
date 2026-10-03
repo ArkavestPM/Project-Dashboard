@@ -2402,7 +2402,15 @@ const COLORS = ['#cc0000','#0a1628','#1a9e6a','#2d7dd2','#d4af37','#6a4ca6','#0e
 const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 ساعت
 
 const { createClient } = supabase;
-const db = createClient(SB_URL, SB_KEY);
+const db = createClient(SB_URL, SB_KEY, {
+  global: {
+    fetch: (url, options = {}) => {
+      const headers = new Headers(options.headers || {});
+      try { if (typeof CU !== 'undefined' && CU && CU.id) headers.set('x-km-user', CU.id + '|' + CU.role); } catch(e){}
+      return fetch(url, { ...options, headers });
+    }
+  }
+});
 
 // ============================================
 // متغیرهای سراسری
