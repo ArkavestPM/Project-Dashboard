@@ -6351,5 +6351,352 @@ window.showTab=async function(id){
 const _kLoadAll=loadAll;
 window.loadAll=async function(){ await _kLoadAll(); await kLoad(); kRefresh(); kGenNotifs().then(kBadges); };
 </script>
+   <script>
+// ============ افزونه KY: پیشرفت از WBS، ارجاع چندنفره، تایید مدیر ============
+const kR1 = x => Math.round((+x || 0) * 10) / 10;
+function kDN(s){ if(!s) return null; const p = String(s).slice(0,10).split('-'); return Date.UTC(+p[0], +p[1]-1, +p[2]) / 864e5; }
+const kRag = v => v >= -5 ? 'وضعیت مطلوب' : v >= -15 ? 'تاخیر جزئی' : 'بحرانی';
+
+// ---------- محاسبات ----------
+function kLeafActual(n, asgs){
+  if(n.manager_approved) return 100;
+  if(!asgs || !asgs.length) return 0;
+  const tot = asgs.reduce((s,a) => s + (+a.share_percent || 0), 0);
+  if(tot <= 0) return 0;
+  const done = asgs.reduce((s,a) => s + (+a.share_percent || 0) * Math.min(100, Math.max(0, +a.done_percent || 0)), 0) / tot;
+  return done * 0.8;
+}
+function kLeafPlanned(n){
+  const t = kDN(kToday()), s = kDN(n.planned_start), e = kDN(n.planned_end);
+  if(e == null) return 0;
+  if(s == null) return t >= e ? 100 : 0;
+  if(t >= e) return 100;
+  if(t < s) return 0;
+  return (t - s) / (e - s) * 100;
+}
+function kRollNode(node, nodes, leafFn){
+  const kids = nodes.filter(x => x.parent_id === node.id);
+  if(!kids.length) return leafFn(node);
+  let t = 0, w = 0;
+  kids.forEach(k => { const kw = +k.weight || 0; t += kw * kRollNode(k, nodes, leafFn); w += kw; });
+  return w > 0 ? t / w : 0;
+}
+function kProjCalc(pid, nodes, asg){
+  const pn = nodes.filter(n => n.project_id === pid);
+  if(!pn.length) return null;
+  const by = {}; asg.forEach(a => { (by[a.node_id] = by[a.node_id] || []).push(a); });
+  const roots = pn.filter(n => !n.parent_id);
+  const roll = fn => { let t = 0, w = 0; roots.forEach(r => { const rw = +r.weight || 0; t += rw * kRollNode(r, pn, fn); w += rw; }); return w > 0 ? t / w : 0; };
+  return { actual: roll(n => kLeafActual(n, by[n.id] || [])), planned: roll(kLeafPlanned) };
+}
+window.calcNodeProgress = function(nodeId, nodes, assignments){
+  const node = nodes.find(n => n.id === nodeId); if(!node) return 0;
+  return kRollNode(node, nodes, n => kLeafActual(n, assignments.filter(a => a.node_id === n.id)));
+};
+window.calcProjectProgress = function(pid, nodes, assignments){ const c = kProjCalc(pid, nodes, assignments); return c ? Math.round(c.actual) : 0; };
+
+window.kApplyComputed = function(){
+  allProjects.forEach(p => {
+    const c = kProjCalc(p.id, KX.nodes, KX.asg); if(!c) return;
+    const a = kR1(c.actual), pl = kR1(c.planned), v = kR1(a - pl);
+    p.actual_percent = a; p.planned_percent = pl; p.variance = v; p.progress = a;
+    if(pl > 0) p.rag_status = kRag(v);
+  });
+};
+window.kSyncProject = async function(pid){
+  const nodes = (await db.from('wbs_nodes').select('*').eq('project_id', pid)).data || [];
+  const ids = nodes.map(n => n.id);
+  const asg = ids.length ? ((await db.from('wbs_assignments').select('*').in('node_id', ids)).data || []) : [];
+  const old = new Set(KX.nodes.filter(n => n.project_id === pid).map(n => n.id));
+  KX.nodes = KX.nodes.filter(n => n.project_id !== pid).concat(nodes);
+  KX.asg = KX.asg.filter(a => !old.has(a.node_id)).concat(asg);
+  const c = kProjCalc(pid, nodes, asg); if(!c) return;
+  const a = kR1(c.actual), pl = kR1(c.planned), v = kR1(a - pl);
+  const upd = { actual_percent: a, planned_percent: pl, variance: v, progress: a };
+  if(pl > 0) upd.rag_status = kRag(v);
+  const r = await db.from('projects').update(upd).eq('id', pid);
+  if(r.error) console.warn('sync project:', r.error.message);
+};
+window.recalcAndSaveProgress = async function(pid){ await kSyncProject(pid); await loadProjects(); };
+
+// اعمال محاسبات روی داده‌های درون‌حافظه بعد از هر بارگذاری
+const _k2LP = window.loadProjects;
+window.loadProjects = async function(){ await _k2LP(); kApplyComputed(); updateProjTable(); };
+const _k2KL = window.kLoad;
+window.kLoad = async function(){
+  await _k2KL();
+  if(CU && CU.role === 'manager'){
+    const r = await db.from('user_project_access').select('project_id,access_level').eq('user_id', CU.id);
+    KX.acc = {}; (r.data || []).forEach(a => { KX.acc[a.project_id] = a.access_level; });
+  }
+  kApplyComputed(); updateProjTable();
+};
+
+// ---------- دسترسی مدیر پروژه (رفع باگ تایید) ----------
+window.kIsPM = function(pid){
+  if(!CU || CU.role !== 'manager') return false;
+  const p = allProjects.find(x => x.id === pid); if(!p) return false;
+  if(p.manager_id === CU.id) return true;
+  if(p.manager && CU.name && String(p.manager).trim() === String(CU.name).trim()) return true;
+  return ['edit', 'manage'].includes((KX.acc || {})[pid]);
+};
+window.kCanEditProj = pid => !!CU && (isAdmin() || window.kIsPM(pid));
+window.kCanApprove = pid => window.kCanEditProj(pid);
+
+// تاخیرها بر اساس تایید نهایی گره
+window.kLate = function(){
+  const t = kToday(), out = [];
+  KX.nodes.forEach(n => {
+    if(!n.is_leaf || !n.planned_end || n.manager_approved) return;
+    out.push({ n, a: KX.asg.find(x => x.node_id === n.id), left: kDays(n.planned_end, t), p: allProjects.find(x => x.id === n.project_id) });
+  });
+  return out;
+};
+
+// ---------- استایل و فیلدهای جدید فرم گره ----------
+document.head.insertAdjacentHTML('beforeend', '<style>#wn-assignees-wrap{display:none!important}.kx-acts{display:flex;gap:4px;flex-wrap:wrap}</style>');
+$('wn-weight-wrap').insertAdjacentHTML('afterend',
+ '<div class="form-grid"><div class="fgs"><label>شروع برنامه‌ای</label><input type="date" id="wn-start"></div><div class="fgs"><label>پایان برنامه‌ای</label><input type="date" id="wn-end"></div></div>'+
+ '<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">ارجاع به کارشناس(ها) بعد از ذخیره، با دکمه «👥 ارجاع» روی همان فعالیت انجام می‌شود.</div>');
+$('wbs-tree').insertAdjacentHTML('beforebegin', '<div id="kx-wbs-sum"></div>');
+['openAddRootNode', 'openAddChildNode'].forEach(nm => {
+  const o = window[nm];
+  window[nm] = function(){ o.apply(this, arguments); $('wn-start').value = ''; $('wn-end').value = ''; };
+});
+const _k2OEN = window.openEditNode;
+window.openEditNode = function(id){
+  _k2OEN(id); const n = wbsNodes.find(x => x.id === id);
+  if(n){ $('wn-start').value = n.planned_start || ''; $('wn-end').value = n.planned_end || ''; }
+};
+async function kRefreshTree(pid){
+  if(currentWbsProjectId !== pid) return;
+  await loadWbsForProject(pid);
+  renderWbsTree('wbs-tree', wbsNodes, wbsAssignments, pid, isAdmin());
+}
+window.saveWbsNode = async function(){
+  if(!isAdmin()){ showMsg('wn-msg', 'فقط ادمین می‌تواند ساختار WBS را تغییر دهد.', 'err'); return; }
+  const id = $('wn-id').value, parentId = $('wn-parent-id').value || null, pid = +$('wn-project-id').value;
+  const title = $('wn-title').value.trim(), weight = +$('wn-weight').value || 0, isLeaf = $('wn-type').value === 'leaf';
+  const ps = $('wn-start').value || null, pe = $('wn-end').value || null;
+  if(!title){ showMsg('wn-msg', 'عنوان الزامی است.', 'err'); return; }
+  if(weight < 0 || weight > 100){ showMsg('wn-msg', 'وزن باید بین ۰ تا ۱۰۰ باشد.', 'err'); return; }
+  if(ps && pe && pe < ps){ showMsg('wn-msg', 'پایان قبل از شروع است.', 'err'); return; }
+  const row = { title, weight, is_leaf: isLeaf, planned_start: ps, planned_end: pe };
+  const r = id ? await db.from('wbs_nodes').update(row).eq('id', +id)
+               : await db.from('wbs_nodes').insert([{ ...row, project_id: pid, parent_id: parentId }]);
+  if(r.error){ showMsg('wn-msg', 'خطا: ' + r.error.message, 'err'); return; }
+  closeModal('wbs-node-modal');
+  await kEnsureCodes(pid); await kSyncProject(pid); await loadProjects(); await kRefreshTree(pid);
+};
+
+// ---------- نمایش درخت WBS ----------
+window.kWbsSummary = function(nodes, asg, pid){
+  const el = $('kx-wbs-sum'); if(!el) return;
+  const pn = nodes.filter(n => n.project_id === pid);
+  if(!pn.length){ el.innerHTML = ''; return; }
+  const ids = new Set(pn.map(n => n.id)), pa = asg.filter(a => ids.has(a.node_id));
+  const c = kProjCalc(pid, pn, pa), leaves = pn.filter(n => n.is_leaf), v = c.actual - c.planned;
+  const noDate = leaves.filter(n => !n.planned_end).length, noAsg = leaves.filter(n => !pa.some(a => a.node_id === n.id)).length;
+  el.innerHTML = '<div class="chart-box" style="padding:.9rem 1.1rem;margin-bottom:1rem"><div class="flex-between"><div>📊 پیشرفت واقعی: <b>' + kR1(c.actual) + '٪</b></div><div>برنامه‌ای: <b>' + kR1(c.planned) + '٪</b></div><div>انحراف: <b style="color:' + (v >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (v >= 0 ? '+' : '') + kR1(v) + '٪</b></div></div>' +
+    (noDate ? '<div class="weight-warning">⚠ ' + noDate + ' فعالیت تاریخ پایان برنامه‌ای ندارند (در پیشرفت برنامه‌ای صفر حساب می‌شوند)</div>' : '') +
+    (noAsg ? '<div class="weight-warning">⚠ ' + noAsg + ' فعالیت به کسی ارجاع نشده است</div>' : '') + '</div>';
+};
+const _k2RT = window.renderWbsTree;
+window.renderWbsTree = function(t, n, a, p, ed){ if(t === 'wbs-tree') kWbsSummary(n, a, p); return _k2RT(t, n, a, p, ed); };
+
+window.renderNode = function(node, nodes, asg, pid, ed){
+  const kids = nodes.filter(n => n.parent_id === node.id), myA = asg.filter(a => a.node_id === node.id);
+  const act = kRollNode(node, nodes, n => kLeafActual(n, asg.filter(a => a.node_id === n.id)));
+  const pl = kRollNode(node, nodes, kLeafPlanned);
+  const leaf = !!node.is_leaf, locked = !!node.is_locked, ap = !!node.manager_approved;
+  const col = act >= 100 ? '#1a9e6a' : act >= 80 ? '#2d7dd2' : act > 0 ? '#c98a2e' : '#0a1628';
+  let h = '<div class="wbs-node"><div class="wbs-row ' + (leaf ? 'leaf' : '') + (locked ? ' locked' : '') + '">';
+  h += '<span style="font-size:14px">' + (leaf ? '📋' : '📁') + (locked ? ' 🔒' : '') + '</span>';
+  h += '<div class="wbs-title">' + (node.wbs_code ? '<b style="color:var(--red)">' + kesc(node.wbs_code) + '</b> ' : '') + kesc(node.title) +
+       ((node.planned_start || node.planned_end) ? ' <small style="color:var(--muted);font-weight:500">📅 ' + fmtDate(node.planned_start) + ' → ' + fmtDate(node.planned_end) + (node.actual_end ? ' | واقعی: ' + fmtDate(node.actual_start) + ' → ' + fmtDate(node.actual_end) : '') + '</small>' : '') + '</div>';
+  h += '<div class="wbs-weight">وزن: ' + (node.weight || 0) + '٪</div>';
+  h += '<div class="wbs-progress" style="color:' + col + '">' + kR1(act) + '٪</div><div class="wbs-weight">برنامه: ' + kR1(pl) + '٪</div>';
+  if(leaf){
+    myA.forEach(a => { const u = allUsers.find(x => x.id === a.user_id); h += '<span class="assignee-chip">👤 ' + kesc(u ? (u.name || u.email) : '—') + ' · سهم ' + (+a.share_percent || 0) + '٪ · انجام ' + (+a.done_percent || 0) + '٪</span>'; });
+    if(!myA.length) h += '<span class="badge badge-gray">بدون ارجاع</span>';
+    else if(ap) h += '<span class="badge badge-green">✓ تایید مدیر</span>';
+    else if(myA.every(a => (+a.done_percent || 0) >= 100)) h += '<span class="badge badge-blue">منتظر تایید مدیر</span>';
+    else h += '<span class="badge badge-amber">در حال انجام</span>';
+    const can = isAdmin() || kCanEditProj(pid);
+    h += '<div class="kx-acts">';
+    if(can && !ap) h += '<button class="btn btn-xs btn-gold" onclick="kAssign(' + node.id + ')">👥 ارجاع</button>';
+    if(!ap && myA.length && kCanApprove(pid)) h += '<button class="btn btn-xs btn-red" onclick="kApproveNode(' + node.id + ')">✓ تایید مدیر</button>';
+    if(ap && isAdmin()) h += '<button class="btn btn-xs btn-warn" onclick="kUnapprove(' + node.id + ')">↩ لغو تایید</button>';
+    h += '</div>';
+  }
+  if(ed && !locked){
+    h += '<div class="wbs-actions">';
+    if(!leaf) h += '<button class="btn btn-xs btn-sec" onclick="openAddChildNode(' + node.id + ')">+ زیرمجموعه</button>';
+    h += '<button class="btn btn-xs btn-warn" onclick="openEditNode(' + node.id + ')">✏️</button><button class="btn btn-xs btn-danger" onclick="deleteWbsNode(' + node.id + ')">🗑</button></div>';
+  }
+  h += '</div>';
+  if(kids.length){
+    const tw = kids.reduce((s, n) => s + (+n.weight || 0), 0);
+    h += '<div class="wbs-children">' + ((ed && Math.abs(tw - 100) > 0.01) ? '<div class="weight-warning" style="margin-bottom:6px">⚠ مجموع وزن فرزندان: ' + tw + '٪ (باید ۱۰۰٪ باشد)</div>' : '') + kids.map(c => renderNode(c, nodes, asg, pid, ed)).join('') + '</div>';
+  }
+  return h + '</div>';
+};
+
+// ---------- ارجاع به چند نفر ----------
+let kAsgRows = [], kAsgNode = null;
+function kAsgSum(){ const s = kAsgRows.reduce((a, r) => a + (+r.share || 0), 0); const el = $('kas-sum'); if(el) el.innerHTML = 'مجموع سهم‌ها: <b style="color:' + (Math.abs(s - 100) < 0.01 ? 'var(--green)' : 'var(--red)') + '">' + s + '٪</b> (باید ۱۰۰ باشد)'; }
+function kAsgRender(){
+  const users = allUsers.filter(u => u.approved && u.is_active !== false && u.role !== 'executive');
+  $('kas-rows').innerHTML = kAsgRows.map((r, i) =>
+    '<div class="flex-center" style="margin-bottom:6px"><select onchange="kAsgRows[' + i + '].user_id=+this.value" style="flex:1;padding:8px;border:2px solid var(--line);border-radius:10px"><option value="">انتخاب کارشناس...</option>' +
+    users.map(u => '<option value="' + u.id + '"' + (u.id === r.user_id ? ' selected' : '') + '>' + kesc(u.name || u.email) + (u.job_title ? ' — ' + kesc(u.job_title) : '') + '</option>').join('') +
+    '</select><input type="number" min="0" max="100" value="' + r.share + '" oninput="kAsgRows[' + i + '].share=+this.value;kAsgSum()" style="width:90px;padding:8px;border:2px solid var(--line);border-radius:10px"> ٪ <button class="btn btn-xs btn-danger" onclick="kAsgRows.splice(' + i + ',1);kAsgRender()">✕</button></div>').join('');
+  kAsgSum();
+}
+function kAsgEven(){
+  const n = kAsgRows.length; if(!n) return;
+  const b = Math.floor(10000 / n) / 100; kAsgRows.forEach(r => { r.share = b; });
+  kAsgRows[n - 1].share = Math.round((100 - b * (n - 1)) * 100) / 100; kAsgRender();
+}
+window.kAssign = async function(nid){
+  const n = (await db.from('wbs_nodes').select('*').eq('id', nid).maybeSingle()).data;
+  if(!n || !n.is_leaf){ alert('فقط فعالیت (سطح آخر) قابل ارجاع است.'); return; }
+  if(!(isAdmin() || kCanEditProj(n.project_id))){ alert('اجازه ارجاع در این پروژه را ندارید.'); return; }
+  if(n.manager_approved){ alert('این فعالیت تایید نهایی شده است. ابتدا ادمین باید «لغو تایید» بزند.'); return; }
+  const cur = (await db.from('wbs_assignments').select('*').eq('node_id', nid).order('id')).data || [];
+  kAsgNode = { n, cur };
+  kAsgRows = cur.length ? cur.map(a => ({ user_id: a.user_id, share: +a.share_percent || 0 })) : [{ user_id: null, share: 100 }];
+  kModal('👥 ارجاع فعالیت — ' + n.title,
+   '<div class="msg msg-warn" style="text-align:right">سهم هر نفر از فعالیت را مشخص کنید (مجموع ۱۰۰٪). هر کارشناس درصد انجام سهم خودش را وارد می‌کند؛ کل کارشناسان حداکثر ۸۰٪ فعالیت را پر می‌کنند و ۲۰٪ پایانی با تایید مدیر پروژه کامل می‌شود.</div><div id="kas-rows" style="margin-top:10px"></div>'+
+   '<div class="flex-between" style="margin-top:6px"><button class="btn btn-xs btn-sec" onclick="kAsgRows.push({user_id:null,share:0});kAsgRender()">➕ کارشناس دیگر</button><button class="btn btn-xs btn-sec" onclick="kAsgEven()">⚖ تقسیم مساوی</button></div><div id="kas-sum" style="margin-top:8px"></div>',
+   [{ label: 'انصراف' }, { label: '✓ ذخیره ارجاع', cls: 'btn-red', fn: async () => {
+     const rows = kAsgRows, cur = kAsgNode.cur, node = kAsgNode.n;
+     if(!rows.length || rows.some(r => !r.user_id)){ showMsg('kx-m-msg', 'برای همه ردیف‌ها کارشناس انتخاب کنید.', 'err'); return false; }
+     if(new Set(rows.map(r => r.user_id)).size !== rows.length){ showMsg('kx-m-msg', 'یک کارشناس تکراری انتخاب شده است.', 'err'); return false; }
+     if(rows.some(r => !(r.share > 0))){ showMsg('kx-m-msg', 'سهم هر نفر باید بیشتر از صفر باشد.', 'err'); return false; }
+     if(Math.abs(rows.reduce((s, r) => s + r.share, 0) - 100) > 0.01){ showMsg('kx-m-msg', 'مجموع سهم‌ها باید دقیقاً ۱۰۰ باشد.', 'err'); return false; }
+     const removed = cur.filter(a => !rows.some(r => r.user_id === a.user_id));
+     if(removed.some(a => (+a.done_percent || 0) > 0) && !confirm('کارشناسی که حذف می‌شود قبلاً درصد انجام ثبت کرده و آن پیشرفت از بین می‌رود. ادامه؟')) return false;
+     const fresh = [];
+     for(const a of removed){ const q = await db.from('wbs_assignments').delete().eq('id', a.id); if(q.error){ showMsg('kx-m-msg', 'خطا: ' + q.error.message, 'err'); return false; } }
+     for(const r of rows){
+       const ex = cur.find(a => a.user_id === r.user_id); let q;
+       if(ex){ if((+ex.share_percent || 0) !== r.share) q = await db.from('wbs_assignments').update({ share_percent: r.share }).eq('id', ex.id); }
+       else { q = await db.from('wbs_assignments').insert([{ node_id: node.id, user_id: r.user_id, share_percent: r.share, done_percent: 0, confirmed_by_user: false, confirmed_by_manager: false }]); fresh.push(r.user_id); }
+       if(q && q.error){ showMsg('kx-m-msg', 'خطا: ' + q.error.message, 'err'); return false; }
+     }
+     await kNotify(fresh, 'assign', 'فعالیت جدید به شما ارجاع شد', node.title, 'task:' + node.id);
+     await kSyncProject(node.project_id); await loadProjects(); await kRefreshTree(node.project_id); kRefresh();
+   } }]);
+  kAsgRender();
+};
+
+// ---------- تایید مدیر (و لغو تایید) ----------
+window.kApproveNode = async function(nid){
+  const n = (await db.from('wbs_nodes').select('*').eq('id', nid).maybeSingle()).data; if(!n) return;
+  if(!kCanApprove(n.project_id)){
+    alert('فقط مدیر همین پروژه یا ادمین می‌تواند تایید کند.\nاگر شما مدیر این پروژه هستید، ادمین باید در ویرایش پروژه، «مدیر پروژه (سیستمی)» را روی نام شما بگذارد، یا در مدیریت کاربران ← 🔑 برای این پروژه سطح «ویرایش» یا «مدیریت» بدهد.'); return;
+  }
+  if(n.manager_approved){ alert('این فعالیت قبلاً تایید شده است.'); return; }
+  const as = (await db.from('wbs_assignments').select('*').eq('node_id', nid).order('id')).data || [];
+  if(!as.length){ alert('این فعالیت به کسی ارجاع نشده است.'); return; }
+  if(as.some(a => (+a.done_percent || 0) < 100) && !confirm('همه کارشناسان ۱۰۰٪ سهم خود را اعلام نکرده‌اند. با این حال تایید نهایی (۱۰۰٪) انجام شود؟')) return;
+  const now = new Date().toISOString();
+  const r = await db.from('wbs_nodes').update({ manager_approved: true, manager_approved_at: now, manager_approved_by: CU.id }).eq('id', nid);
+  if(r.error){ alert('خطا: ' + r.error.message); return; }
+  const starts = as.map(a => a.started_at).filter(Boolean).sort();
+  await db.from('wbs_assignments').update({ confirmed_by_manager: true, confirmed_at: now, started_at: starts[0] || kToday() }).eq('id', as[0].id);
+  await kNotify(as.map(a => a.user_id), 'approved', 'فعالیت شما تایید نهایی شد', n.title, 'task:' + nid);
+  await kNotifyAdmins('final', 'فعالیت برای ثبت نهایی تاریخ واقعی', '«' + n.title + '» تایید مدیر شد');
+  await kSyncProject(n.project_id); await loadProjects(); await kRefreshTree(n.project_id); kRefresh();
+  if($('tab-tasks').classList.contains('active')) loadMyTasks();
+};
+window.kUnapprove = async function(nid){
+  if(!isAdmin()) return;
+  if(!confirm('تایید نهایی این فعالیت لغو و تاریخ‌های واقعی پاک شود؟')) return;
+  const n = (await db.from('wbs_nodes').select('*').eq('id', nid).maybeSingle()).data; if(!n) return;
+  await db.from('wbs_nodes').update({ manager_approved: false, manager_approved_at: null, manager_approved_by: null, actual_start: null, actual_end: null }).eq('id', nid);
+  await db.from('wbs_assignments').update({ confirmed_by_manager: false, admin_confirmed: false, confirmed_at: null }).eq('node_id', nid);
+  await kSyncProject(n.project_id); await loadProjects(); await kRefreshTree(n.project_id); kRefresh();
+};
+
+// ---------- صفحه وظایف من ----------
+window.kSaveMyPct = async function(aid){
+  const v = +$('kpct-' + aid).value;
+  if(isNaN(v) || v < 0 || v > 100){ alert('عددی بین ۰ تا ۱۰۰ وارد کنید.'); return; }
+  const a = (await db.from('wbs_assignments').select('*').eq('id', aid).maybeSingle()).data;
+  if(!a || a.user_id !== CU.id) return;
+  const n = (await db.from('wbs_nodes').select('*').eq('id', a.node_id).maybeSingle()).data; if(!n) return;
+  if(n.manager_approved){ alert('این فعالیت تایید نهایی شده است.'); return; }
+  const upd = { done_percent: v, confirmed_by_user: v >= 100, user_done_at: v >= 100 ? new Date().toISOString() : null };
+  if(!a.started_at && v > 0) upd.started_at = kToday();
+  const r = await db.from('wbs_assignments').update(upd).eq('id', aid);
+  if(r.error){ alert('خطا: ' + r.error.message); return; }
+  if(v >= 100){
+    const all = (await db.from('wbs_assignments').select('*').eq('node_id', n.id)).data || [];
+    if(all.every(x => (+x.done_percent || 0) >= 100)){
+      const p = allProjects.find(x => x.id === n.project_id);
+      const to = new Set(allUsers.filter(u => ['admin', 'superadmin'].includes(u.role) && u.is_active !== false).map(u => u.id));
+      if(p && p.manager_id) to.add(p.manager_id);
+      await kNotify([...to], 'ready', 'فعالیت آماده تایید مدیر', '«' + n.title + '» — همه کارشناسان سهم خود را کامل کردند', 'approve:' + n.id);
+    }
+  }
+  await kSyncProject(n.project_id); await loadProjects(); loadMyTasks();
+};
+window.loadMyTasks = async function(){
+  if(!CU) return;
+  const box = $('tasks-list'); box.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+  await kLoad();
+  const H3 = t => '<h3 style="font-size:14px;color:var(--navy);margin:1.2rem 0 .6rem">' + t + '</h3>';
+  let h = H3('📋 فعالیت‌های ارجاع‌شده به من'), badge = 0;
+  const mine = (await db.from('wbs_assignments').select('*').eq('user_id', CU.id)).data || [];
+  if(mine.length){
+    const nids = mine.map(a => a.node_id);
+    const nodes = (await db.from('wbs_nodes').select('*').in('id', nids)).data || [];
+    const all = (await db.from('wbs_assignments').select('*').in('node_id', nids)).data || [];
+    h += mine.map(a => {
+      const n = nodes.find(x => x.id === a.node_id); if(!n) return '';
+      const p = allProjects.find(x => x.id === n.project_id), co = all.filter(x => x.node_id === n.id);
+      const eff = kR1(kLeafActual(n, co)), ap = !!n.manager_approved, dn = Math.min(100, +a.done_percent || 0);
+      if(!ap && dn < 100) badge++;
+      const cls = ap ? 'done' : dn >= 100 ? 'partial' : 'pending';
+      const bd = ap ? '<span class="badge badge-green">✓ تایید مدیر ۱۰۰٪</span>' : dn >= 100 ? '<span class="badge badge-blue">سهم شما کامل — منتظر تایید مدیر</span>' : '<span class="badge badge-amber">در حال انجام</span>';
+      const others = co.filter(x => x.user_id !== CU.id).map(x => { const u = allUsers.find(y => y.id === x.user_id); return kesc(u ? (u.name || u.email) : '—') + ' (سهم ' + (+x.share_percent || 0) + '٪، انجام ' + (+x.done_percent || 0) + '٪)'; });
+      return '<div class="act-card ' + cls + '"><div class="flex-between"><b style="color:var(--navy)">' + kesc((n.wbs_code || '') + ' ' + n.title) + '</b>' + bd + '</div>' +
+        '<div style="font-size:12px;color:var(--muted);margin:6px 0">📁 ' + kesc(p ? p.name : '—') + ' | 📅 ' + fmtDate(n.planned_start) + ' → ' + fmtDate(n.planned_end) + ' | سهم من: <b>' + (+a.share_percent || 0) + '٪</b>' + (others.length ? '<br>👥 همکاران: ' + others.join('، ') : '') + '</div>' +
+        '<div class="flex-center" style="margin-bottom:8px"><div class="pb-wrap"><div class="pb-fill" style="width:' + eff + '%;background:' + (ap ? '#1a9e6a' : '#2d7dd2') + '"></div></div><b style="font-size:12px">' + eff + '٪</b></div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">پیشرفت کل فعالیت (کارشناسان تا ۸۰٪، ۲۰٪ پایانی با تایید مدیر)</div>' +
+        (ap ? '' : '<div class="flex-center" style="flex-wrap:wrap"><label style="font-size:12px;font-weight:700">درصد انجام سهم من:</label><input type="number" id="kpct-' + a.id + '" min="0" max="100" value="' + dn + '" style="width:90px;padding:7px;border:2px solid var(--line);border-radius:10px"> ٪ <button class="btn btn-sm btn-green" onclick="kSaveMyPct(' + a.id + ')">✓ ثبت</button>' + (!a.started_at ? '<button class="btn btn-sm btn-sec" onclick="kStart(' + a.id + ')">▶ شروع کردم</button>' : '<small>شروع: ' + fmtDate(a.started_at) + '</small>') + '</div>') + '</div>';
+    }).join('');
+  } else h += '<div class="loading">فعالیتی به شما ارجاع نشده است</div>';
+
+  if(CU.role === 'manager' || isAdmin()){
+    const rows = KX.nodes.filter(n => n.is_leaf && !n.manager_approved && kCanApprove(n.project_id))
+      .map(n => { const as = KX.asg.filter(a => a.node_id === n.id); return { n, as, ready: as.length > 0 && as.every(a => (+a.done_percent || 0) >= 100) }; })
+      .filter(x => x.as.some(a => (+a.done_percent || 0) > 0)).sort((a, b) => (b.ready ? 1 : 0) - (a.ready ? 1 : 0));
+    badge += rows.length;
+    h += H3('⏳ منتظر تایید مدیر (' + rows.length + ')');
+    h += rows.length ? rows.map(x => {
+      const p = allProjects.find(y => y.id === x.n.project_id), eff = kR1(kLeafActual(x.n, x.as));
+      const sub = isAdmin() && !kIsPM(x.n.project_id) ? ' <span class="badge badge-gold">تایید به‌جای مدیر پروژه' + (p && p.manager ? ' (' + kesc(p.manager) + ')' : '') + '</span>' : '';
+      return '<div class="act-card ' + (x.ready ? 'partial' : 'pending') + '"><div class="flex-between"><b style="color:var(--navy)">' + kesc((x.n.wbs_code || '') + ' ' + x.n.title) + '</b>' + (x.ready ? '<span class="badge badge-blue">آماده تایید</span>' : '<span class="badge badge-amber">در حال انجام</span>') + '</div>' +
+        '<div style="font-size:12px;color:var(--muted);margin:6px 0">📁 ' + kesc(p ? p.name : '—') + sub + '<br>' + x.as.map(a => { const u = allUsers.find(y => y.id === a.user_id); return '👤 ' + kesc(u ? (u.name || u.email) : '—') + ' (سهم ' + (+a.share_percent || 0) + '٪، انجام ' + (+a.done_percent || 0) + '٪)'; }).join(' | ') + '</div>' +
+        '<div class="flex-center" style="margin-bottom:8px"><div class="pb-wrap"><div class="pb-fill" style="width:' + eff + '%;background:#2d7dd2"></div></div><b style="font-size:12px">' + eff + '٪</b></div>' +
+        '<button class="btn btn-red btn-sm" onclick="kApproveNode(' + x.n.id + ')">✓ تایید نهایی (۱۰۰٪)</button></div>';
+    }).join('') : '<div class="loading">موردی برای تایید نیست</div>';
+  }
+  box.innerHTML = h;
+  const tb = $('tasks-menu-badge'); if(tb){ tb.style.display = badge ? 'block' : 'none'; tb.textContent = badge > 99 ? '99+' : badge; }
+};
+
+// فرم وضعیت مدیر پروژه: درصد واقعی در پروژه‌های دارای WBS خودکار است
+const _k2SF = window.kStatusForm;
+window.kStatusForm = function(id){
+  _k2SF(id);
+  if(KX.nodes.some(n => n.project_id === id)){
+    const i = $('ks-act'); if(i){ i.disabled = true; const l = i.closest('.fgs').querySelector('label'); if(l) l.textContent = 'پیشرفت واقعی (٪) — خودکار از WBS'; }
+  }
+};
+</script>
    </body>
 </html>
