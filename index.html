@@ -7295,5 +7295,172 @@ window.kwForceSave = async function(){
 const _kwIA = window.initApp;
 window.initApp = async function(){ await _kwIA(); if(CU && CU.must_change_password) $('kx-force').classList.add('open'); };
 </script>
+   <script>
+// ============ افزونه KV: انتقال تاخیرها به انتهای داشبورد + ورود درصد و تاریخ واقعی از اکسل ============
+
+// ---------- ۱) فعالیت‌های دارای تاخیر برود انتهای داشبورد ----------
+$('tab-dashboard').appendChild($('dash-delays'));
+
+// ---------- ابزارها ----------
+const kvFa = s => String(s).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace('٫', '.').replace('٪', '%');
+function kvPct(v){
+  if(v === '' || v == null) return null;
+  if(typeof v === 'number') return v;
+  const s = kvFa(v).trim().replace('%', '').replace(',', '.');
+  return s === '' ? null : (isNaN(+s) ? NaN : +s);
+}
+function kvDate(v){ if(v === '' || v == null) return null; return typeof v === 'string' ? kND(kvFa(v).trim()) : kND(v); }
+// درصد فعلی فعالیت: تاییدشده = ۱۰۰ ؛ بقیه حداکثر ۹۹ (برای رفت‌وبرگشت اکسل)
+function kvCur(n){
+  if(n.manager_approved) return 100;
+  const as = wbsAssignments.filter(a => a.node_id === n.id);
+  const tot = as.reduce((s, a) => s + (+a.share_percent || 0), 0);
+  if(!as.length || tot <= 0) return 0;
+  const v = as.reduce((s, a) => s + (+a.share_percent || 0) * Math.min(100, +a.done_percent || 0), 0) / tot;
+  return Math.min(99, Math.round(v * 10) / 10);
+}
+function kvCurStart(n){
+  if(n.actual_start) return String(n.actual_start).slice(0, 10);
+  const st = wbsAssignments.filter(a => a.node_id === n.id && a.started_at).map(a => String(a.started_at).slice(0, 10)).sort();
+  return st[0] || '';
+}
+
+// ---------- ۲) خروجی اکسل با ستون‌های جدید ----------
+window.kWbsExport = async function(){
+  const pid = currentWbsProjectId; if(!pid) return;
+  if(typeof XLSX === 'undefined'){ alert('کتابخانه اکسل بارگذاری نشده است.'); return; }
+  const nodes = (await kEnsureCodes(pid)).sort((a, b) => kCodeCmp(a.wbs_code, b.wbs_code));
+  const rows = [['کد WBS', 'عنوان', 'نوع (گروه/فعالیت)', 'وزن (٪ از کل پروژه)', 'شروع برنامه‌ای (YYYY-MM-DD)', 'پایان برنامه‌ای (YYYY-MM-DD)', 'کارشناس (کد پرسنلی یا ایمیل)',
+    'درصد انجام (۰ تا ۱۰۰؛ ۱۰۰ = تکمیل و تاییدشده)', 'شروع واقعی (YYYY-MM-DD)', 'پایان واقعی (YYYY-MM-DD)']];
+  if(!nodes.length){
+    rows.push(['1', 'گروه نمونه', 'گروه', 100, '', '', '', '', '', '']);
+    rows.push(['1.1', 'فعالیت تمام‌شده', 'فعالیت', 60, '2026-01-01', '2026-02-01', '12345', 100, '2026-01-03', '2026-02-10']);
+    rows.push(['1.2', 'فعالیت در حال انجام', 'فعالیت', 40, '2026-02-01', '2026-04-01', '12345', 35, '2026-02-05', '']);
+  }
+  nodes.forEach(n => {
+    const a = wbsAssignments.find(x => x.node_id === n.id), u = a ? allUsers.find(x => x.id === a.user_id) : null;
+    const leaf = !!n.is_leaf, p = leaf ? kvCur(n) : '';
+    rows.push([n.wbs_code, n.title, leaf ? 'فعالیت' : 'گروه', +n.weight || 0, n.planned_start || '', n.planned_end || '', u ? (u.personnel_id || u.email) : '',
+      leaf ? p : '', (leaf && p > 0) ? kvCurStart(n) : '', (leaf && p >= 100) ? (n.actual_end || '') : '']);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 12 }, { wch: 40 }, { wch: 16 }, { wch: 12 }, { wch: 22 }, { wch: 22 }, { wch: 26 }, { wch: 22 }, { wch: 22 }, { wch: 22 }];
+  const guide = [['راهنمای ستون‌های درصد و تاریخ واقعی'],
+    ['درصد را به‌صورت عدد ساده ۰ تا ۱۰۰ بنویسید (سلول را با فرمت درصد اکسل پر نکنید).'],
+    ['درصد ۱۰۰ = فعالیت تکمیل و تاییدشده. شروع واقعی و پایان واقعی هر دو اجباری است، وگرنه ورود با خطا متوقف می‌شود.'],
+    ['درصد بین ۱ تا ۹۹ = در حال انجام. شروع واقعی اجباری، پایان واقعی باید خالی باشد، و فعالیت باید کارشناس داشته باشد.'],
+    ['درصد صفر یا خالی = شروع‌نشده. تاریخ واقعی نباید پر باشد. خالی‌گذاشتن درصد یعنی «وضعیت فعلی را تغییر نده».'],
+    ['تاریخ‌ها میلادی و به شکل YYYY-MM-DD باشند. تاریخ شمسی (مثل 1404/05/01) خطا می‌دهد. تاریخ آینده مجاز نیست.'],
+    ['ردیف‌های «گروه» درصد و تاریخ واقعی ندارند و خودکار از زیرمجموعه محاسبه می‌شوند.']];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'WBS'); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(guide), 'راهنما');
+  const p = allProjects.find(x => x.id === pid); XLSX.writeFile(wb, 'WBS_' + (p ? p.code : pid) + '.xlsx');
+};
+
+// ---------- ۳) اعتبارسنجی ورود (ستون‌های ۸ تا ۱۰) ----------
+const _kvPW = window.kParseWbsFile;
+window.kParseWbsFile = async function(f, pid){
+  const b = await _kvPW(f, pid); if(!b) return b;
+  let aoa;
+  try{ const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' }); }catch(e){ return b; }
+  const today = kToday(); let nDone = 0, nPart = 0;
+  aoa.slice(1).forEach((r, i) => {
+    const code = String(r[0]).trim(); if(!code) return;
+    const row = b.rows.find(x => x.code === code); if(!row) return;
+    row.pct = null; row.as = null; row.ae = null;
+    const rawP = r[7], rawS = r[8], rawE = r[9];
+    if(![rawP, rawS, rawE].some(v => v !== '' && v != null)) return;
+    const ln = 'ردیف ' + (i + 2) + ' (کد ' + code + '): ';
+    if(!row.is_leaf){ b.warns.push(ln + 'ردیف گروه است؛ درصد و تاریخ واقعی نادیده گرفته شد'); return; }
+    const E = m => b.errs.push(ln + m);
+    const s = kvDate(rawS), e = kvDate(rawE); let p = kvPct(rawP), bad = false;
+    if(rawS !== '' && rawS != null && !s){ E('شروع واقعی نامعتبر است (فرمت YYYY-MM-DD میلادی)'); bad = true; }
+    if(rawE !== '' && rawE != null && !e){ E('پایان واقعی نامعتبر است (فرمت YYYY-MM-DD میلادی)'); bad = true; }
+    if(s && +s.slice(0, 4) < 1900){ E('شروع واقعی شمسی است؛ تاریخ را میلادی وارد کنید'); bad = true; }
+    if(e && +e.slice(0, 4) < 1900){ E('پایان واقعی شمسی است؛ تاریخ را میلادی وارد کنید'); bad = true; }
+    if(bad) return;
+    if(p == null){ E('تاریخ واقعی وارد شده ولی ستون درصد خالی است'); return; }
+    if(isNaN(p) || p < 0 || p > 100){ E('درصد باید عددی بین ۰ تا ۱۰۰ باشد'); return; }
+    p = Math.round(p * 10) / 10;
+    if(p > 0 && p < 1) b.warns.push(ln + 'درصد ' + p + ' کمتر از ۱ است؛ اگر سلول با فرمت درصد اکسل است، عدد را ۰ تا ۱۰۰ بنویسید');
+    if(s && s > today) E('شروع واقعی در آینده است');
+    if(e && e > today) E('پایان واقعی در آینده است');
+    if(p >= 100){
+      if(!s || !e) E('درصد ۱۰۰ است ولی تاریخ شروع واقعی و پایان واقعی هر دو لازم است');
+      else if(e < s) E('پایان واقعی قبل از شروع واقعی است');
+    } else if(p > 0){
+      if(!s) E('برای فعالیت دارای درصد، تاریخ شروع واقعی لازم است');
+      if(e) E('پایان واقعی فقط برای درصد ۱۰۰ مجاز است');
+    } else if(s || e) E('درصد صفر است ولی تاریخ واقعی وارد شده');
+    const ex = wbsNodes.find(n => n.project_id === pid && n.wbs_code === code);
+    if(p > 0 && p < 100 && !row.assignee_id && !(ex && wbsAssignments.some(a => a.node_id === ex.id)))
+      E('برای درصد بین ۱ تا ۹۹ باید کارشناس مشخص باشد (ستون کارشناس)');
+    if(ex && ex.manager_approved && p < 100) E('این فعالیت قبلاً تایید نهایی شده است؛ برای کاهش درصد ابتدا ادمین «لغو تایید» بزند');
+    row.pct = p; row.as = s; row.ae = e;
+    if(p >= 100) nDone++; else if(p > 0) nPart++;
+  });
+  if(nDone || nPart) b.warns.push('ℹ پیشرفت واقعی در فایل: ' + nDone + ' فعالیت تکمیل‌شده (۱۰۰٪) و ' + nPart + ' فعالیت در حال انجام');
+  return b;
+};
+
+// ---------- ۴) نمایش تفاوت‌ها در پیش‌نمایش ----------
+const _kvD = window.kWbsDiff;
+window.kWbsDiff = function(pid, rows){
+  const diff = _kvD(pid, rows);
+  const exMap = {}; wbsNodes.filter(n => n.project_id === pid).forEach(n => { exMap[n.wbs_code] = n; });
+  rows.forEach(r => {
+    if(!r.is_leaf || r.pct == null) return;
+    const n = exMap[r.code];
+    if(!n){
+      if(r.pct > 0){ const d = diff.find(x => x.code === r.code && x.op === 'add'); if(d) d.note += ' | درصد: ' + r.pct + (r.as ? ' | شروع واقعی: ' + r.as : '') + (r.ae ? ' | پایان واقعی: ' + r.ae : ''); }
+      return;
+    }
+    const ch = [], cp = kvCur(n);
+    if(Math.abs(r.pct - cp) >= 0.05) ch.push('درصد: ' + cp + ' ← ' + r.pct);
+    if(r.pct > 0 && (r.as || '') !== kvCurStart(n)) ch.push('شروع واقعی: ' + (kvCurStart(n) || '—') + ' ← ' + r.as);
+    if(r.pct >= 100 && (r.ae || '') !== String(n.actual_end || '').slice(0, 10)) ch.push('پایان واقعی: ' + (n.actual_end || '—') + ' ← ' + r.ae);
+    if(!ch.length) return;
+    const d = diff.find(x => x.code === r.code && x.op === 'edit');
+    if(d) d.note += ' | ' + ch.join(' | ');
+    else diff.push({ op: 'edit', code: r.code, before: { title: n.title }, after: r, note: ch.join(' | ') });
+  });
+  return diff;
+};
+
+// ---------- ۵) اعمال درصد و تاریخ واقعی بعد از ساخت/ویرایش ساختار ----------
+const _kvA = window.kWbsApply;
+window.kWbsApply = async function(pid, rows){
+  const err = await _kvA(pid, rows); if(err) return err;
+  await loadWbsForProject(pid);
+  const now = new Date().toISOString();
+  for(const r of rows){
+    if(!r.is_leaf || r.pct == null) continue;
+    const n = wbsNodes.find(x => x.project_id === pid && x.wbs_code === r.code); if(!n) continue;
+    const as = wbsAssignments.filter(a => a.node_id === n.id);
+    if(r.pct >= 100){
+      if(n.manager_approved && kvCurStart(n) === r.as && String(n.actual_end || '').slice(0, 10) === r.ae) continue;
+      let q = await db.from('wbs_nodes').update({ manager_approved: true, manager_approved_at: n.manager_approved_at || now, manager_approved_by: n.manager_approved_by || CU.id, actual_start: r.as, actual_end: r.ae }).eq('id', n.id);
+      if(q.error) return q.error;
+      for(let i = 0; i < as.length; i++){
+        const u = { done_percent: 100, confirmed_by_user: true, user_done_at: now, started_at: r.as };
+        if(i === 0){ u.confirmed_by_manager = true; u.confirmed_at = new Date(r.ae + 'T12:00:00').toISOString(); u.admin_confirmed = true; u.admin_confirmed_at = now; u.admin_confirmed_by = CU.id; }
+        q = await db.from('wbs_assignments').update(u).eq('id', as[i].id); if(q.error) return q.error;
+      }
+    } else if(!n.manager_approved){
+      if(Math.abs(r.pct - kvCur(n)) >= 0.05){
+        for(const a of as){
+          const u = { done_percent: r.pct, confirmed_by_user: false, user_done_at: null };
+          if(r.pct > 0 && !a.started_at) u.started_at = r.as;
+          const q = await db.from('wbs_assignments').update(u).eq('id', a.id); if(q.error) return q.error;
+        }
+      }
+      if(r.pct > 0 && r.as && String(n.actual_start || '').slice(0, 10) !== r.as){
+        const q = await db.from('wbs_nodes').update({ actual_start: r.as }).eq('id', n.id); if(q.error) return q.error;
+      }
+    }
+  }
+  await kSyncProject(pid); await loadProjects();
+  return null;
+};
+</script>
    </body>
 </html>
