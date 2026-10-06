@@ -7462,5 +7462,345 @@ window.kWbsApply = async function(pid, rows){
   return null;
 };
 </script>
+   <script>
+// ============ افزونه KU: حجم کار، مبلغ، مدت، وزن مالی/زمانی/ترکیبی ============
+const kuNum = v => { if(v === '' || v == null) return null; if(typeof v === 'number') return v; const s = kvFa(v).trim().replace(/[,\s٬]/g, ''); return s === '' ? null : (isNaN(+s) ? NaN : +s); };
+const kuQ = v => (+v || 0).toLocaleString('fa-IR', { maximumFractionDigits: 3 });
+const kuAmt = n => (+n.qty || 0) * (+n.unit_price || 0);
+const kuDur = (s, e) => (s && e) ? Math.max(1, Math.round(kDN(e) - kDN(s)) + 1) : 0;
+const kuMin = a => a.filter(Boolean).sort()[0] || null;
+const kuMax = a => a.filter(Boolean).sort().slice(-1)[0] || null;
+const kuMoney = v => v > 0 ? fmtNum(Math.round(v)) : '—';
+const KU_NAMES = { combined: 'ترکیبی', financial: 'مالی (ریالی)', time: 'زمانی', manual: 'دستی' };
+
+// ---------- ۱) وزن‌ها: دستی، مالی، زمانی، ترکیبی ----------
+function kuWeights(pn){
+  const L = pn.filter(n => n.is_leaf), pid = pn.length ? pn[0].project_id : null;
+  const P = allProjects.find(x => x.id === pid) || {};
+  const mode = ['combined', 'financial', 'time', 'manual'].includes(P.weight_mode) ? P.weight_mode : 'combined';
+  const fp = (P.fin_pct == null || isNaN(+P.fin_pct)) ? 50 : Math.min(100, Math.max(0, +P.fin_pct)), f = fp / 100;
+  const A = {}, D = {}; let sA = 0, sD = 0, sM = 0;
+  L.forEach(n => { A[n.id] = kuAmt(n); D[n.id] = kuDur(n.planned_start, n.planned_end); sA += A[n.id]; sD += D[n.id]; sM += (+n.weight || 0); });
+  const wm = {}, wf = {}, wt = {}, wc = {};
+  L.forEach(n => {
+    wm[n.id] = sM > 0 ? (+n.weight || 0) / sM * 100 : (L.length ? 100 / L.length : 0);
+    wf[n.id] = sA > 0 ? A[n.id] / sA * 100 : 0;
+    wt[n.id] = sD > 0 ? D[n.id] / sD * 100 : 0;
+    wc[n.id] = (sA > 0 && sD > 0) ? f * wf[n.id] + (1 - f) * wt[n.id] : sA > 0 ? wf[n.id] : sD > 0 ? wt[n.id] : wm[n.id];
+  });
+  const use = mode === 'financial' ? (sA > 0 ? wf : wm) : mode === 'time' ? (sD > 0 ? wt : wm) : mode === 'manual' ? wm : wc;
+  const fb = (mode === 'financial' && sA <= 0) || (mode === 'time' && sD <= 0);
+  return { wm, wf, wt, wc, use, mode, fp, sA, sD, sM, fb, L };
+}
+
+// پیشرفت فعالیت: اگر حجم تعریف شده باشد از حجم انجام‌شده، وگرنه روش قبلی (سهم کارشناسان)
+const _kuLA = window.kLeafActual;
+window.kLeafActual = function(n, asgs){
+  if(n.manager_approved) return 100;
+  if(+n.qty > 0) return Math.min(100, (+n.done_qty || 0) / (+n.qty) * 100) * 0.8;
+  return _kuLA(n, asgs);
+};
+window.kProjCalc = function(pid, nodes, asg){
+  const pn = nodes.filter(n => n.project_id === pid); if(!pn.length) return null;
+  const W = kuWeights(pn), by = {}; asg.forEach(a => { (by[a.node_id] = by[a.node_id] || []).push(a); });
+  const act = {}, pl = {}; W.L.forEach(n => { act[n.id] = kLeafActual(n, by[n.id] || []); pl[n.id] = kLeafPlanned(n); });
+  const roll = m => { let t = 0, a = 0, p = 0; W.L.forEach(n => { const x = m[n.id] || 0; t += x; a += x * act[n.id]; p += x * pl[n.id]; }); return t > 0 ? { actual: a / t, planned: p / t } : { actual: 0, planned: 0 }; };
+  const modes = { combined: roll(W.wc), financial: W.sA > 0 ? roll(W.wf) : roll(W.wm), time: W.sD > 0 ? roll(W.wt) : roll(W.wm), manual: roll(W.wm) };
+  const sel = roll(W.use);
+  return { actual: sel.actual, planned: sel.planned, modes, W };
+};
+window.kRollNode = function(node, nodes, leafFn){
+  if(node.is_leaf) return leafFn(node);
+  const pn = nodes.filter(n => n.project_id === node.project_id), W = kuWeights(pn), ch = {};
+  pn.forEach(n => { if(n.parent_id) (ch[n.parent_id] = ch[n.parent_id] || []).push(n); });
+  let t = 0, s = 0; (function g(n){ if(n.is_leaf){ const x = W.use[n.id] || 0; t += x; s += x * leafFn(n); return; } (ch[n.id] || []).forEach(g); })(node);
+  return t > 0 ? s / t : 0;
+};
+
+// ---------- ۲) فرم گره: حجم، واحد، مبلغ واحد ----------
+$('wn-end').closest('.form-grid').insertAdjacentHTML('afterend',
+ '<div id="ku-qty-wrap"><div class="form-grid"><div class="fgs"><label>حجم کل کار</label><input type="number" id="wn-qty" min="0" step="any" oninput="kuAmtShow()"></div><div class="fgs"><label>واحد حجم</label><input id="wn-unit" placeholder="متر، تن، عدد..."></div><div class="fgs"><label>مبلغ واحد (ریال)</label><input type="number" id="wn-uprice" min="0" step="any" oninput="kuAmtShow()"></div><div class="fgs"><label>مبلغ کل فعالیت</label><div id="ku-amt" style="padding:10px;font-weight:800;color:var(--navy)">—</div></div></div></div>');
+window.kuAmtShow = function(){ $('ku-amt').textContent = kuMoney((+$('wn-qty').value || 0) * (+$('wn-uprice').value || 0)) + ' ریال'; };
+function kuTog(){
+  $('ku-qty-wrap').style.display = $('wn-type').value === 'leaf' ? '' : 'none';
+  const l = $('wn-weight-wrap').querySelector('label');
+  if(l) l.textContent = 'وزن دستی (فقط برای روش «دستی» یا وقتی مبلغ/تاریخ وارد نشده)';
+}
+['openAddRootNode', 'openAddChildNode', 'openEditNode'].forEach(nm => {
+  const o = window[nm];
+  window[nm] = function(id){
+    const r = o.apply(this, arguments);
+    ['wn-qty', 'wn-unit', 'wn-uprice'].forEach(i => { $(i).value = ''; });
+    if(nm === 'openEditNode'){ const n = wbsNodes.find(x => x.id === id); if(n){ $('wn-qty').value = n.qty || ''; $('wn-unit').value = n.unit || ''; $('wn-uprice').value = n.unit_price || ''; } }
+    kuTog(); kuAmtShow(); return r;
+  };
+});
+$('wn-type').addEventListener('change', kuTog);
+window.saveWbsNode = async function(){
+  if(!isAdmin()){ showMsg('wn-msg', 'فقط ادمین می‌تواند ساختار WBS را تغییر دهد.', 'err'); return; }
+  const id = $('wn-id').value, parentId = $('wn-parent-id').value || null, pid = +$('wn-project-id').value;
+  const title = $('wn-title').value.trim(), weight = +$('wn-weight').value || 0, isLeaf = $('wn-type').value === 'leaf';
+  const ps = $('wn-start').value || null, pe = $('wn-end').value || null;
+  const qty = isLeaf ? (+$('wn-qty').value || null) : null, unit = isLeaf ? ($('wn-unit').value.trim() || null) : null, up = isLeaf ? (+$('wn-uprice').value || null) : null;
+  if(!title){ showMsg('wn-msg', 'عنوان الزامی است.', 'err'); return; }
+  if(weight < 0 || weight > 100){ showMsg('wn-msg', 'وزن دستی باید بین ۰ تا ۱۰۰ باشد.', 'err'); return; }
+  if(ps && pe && pe < ps){ showMsg('wn-msg', 'پایان قبل از شروع است.', 'err'); return; }
+  if(qty && !unit){ showMsg('wn-msg', 'برای حجم، واحد حجم را وارد کنید.', 'err'); return; }
+  if(up && !qty){ showMsg('wn-msg', 'مبلغ واحد بدون حجم معنی ندارد.', 'err'); return; }
+  const row = { title, weight, is_leaf: isLeaf, planned_start: ps, planned_end: pe, qty, unit, unit_price: up };
+  if(id){ const ex = wbsNodes.find(x => x.id === +id); if(ex && qty && (+ex.done_qty || 0) > qty){ showMsg('wn-msg', 'حجم کل نمی‌تواند کمتر از حجم انجام‌شده (' + kuQ(ex.done_qty) + ') باشد.', 'err'); return; } }
+  const r = id ? await db.from('wbs_nodes').update(row).eq('id', +id) : await db.from('wbs_nodes').insert([{ ...row, project_id: pid, parent_id: parentId }]);
+  if(r.error){ showMsg('wn-msg', 'خطا: ' + r.error.message, 'err'); return; }
+  closeModal('wbs-node-modal');
+  await kEnsureCodes(pid); await kSyncProject(pid); await loadProjects(); await kRefreshTree(pid);
+};
+
+// ---------- ۳) ساخت درخت با مبلغ، مدت و وزن‌ها ----------
+window.kwBuild = function(pn, asg){
+  const ch = {}, by = {}, st = {};
+  pn.forEach(n => { const k = n.parent_id || 0; (ch[k] = ch[k] || []).push(n); });
+  Object.values(ch).forEach(a => a.sort((x, y) => (x.wbs_code && y.wbs_code) ? kCodeCmp(x.wbs_code, y.wbs_code) : x.id - y.id));
+  asg.forEach(a => { (by[a.node_id] = by[a.node_id] || []).push(a); });
+  const W = kuWeights(pn), today = kToday(), K = ['w', 'rw', 'wf', 'wt', 'wc', 'wa', 'wp', 'lv', 'dn', 'lt', 'amt'];
+  const calc = (n, d) => {
+    let s;
+    if(n.is_leaf){
+      const as = by[n.id] || [], w = W.use[n.id] || 0, ok = !!n.manager_approved;
+      s = { w, rw: W.wm[n.id] || 0, wf: W.wf[n.id] || 0, wt: W.wt[n.id] || 0, wc: W.wc[n.id] || 0, wa: w * kLeafActual(n, as), wp: w * kLeafPlanned(n),
+        lv: 1, dn: ok ? 1 : 0, lt: (!ok && n.planned_end && n.planned_end < today) ? 1 : 0, amt: kuAmt(n),
+        ps: n.planned_start || null, pe: n.planned_end || null, as: n.actual_start ? String(n.actual_start).slice(0, 10) : null, ae: n.actual_end ? String(n.actual_end).slice(0, 10) : null };
+    } else {
+      s = { w: 0, rw: 0, wf: 0, wt: 0, wc: 0, wa: 0, wp: 0, lv: 0, dn: 0, lt: 0, amt: 0 };
+      const xs = (ch[n.id] || []).map(c => calc(c, d + 1));
+      xs.forEach(x => K.forEach(k => { s[k] += x[k]; }));
+      s.ps = kuMin(xs.map(x => x.ps)); s.pe = kuMax(xs.map(x => x.pe)); s.as = kuMin(xs.map(x => x.as)); s.ae = kuMax(xs.map(x => x.ae));
+    }
+    s.act = s.w > 0 ? s.wa / s.w : 0; s.pl = s.w > 0 ? s.wp / s.w : 0; s.dp = d; st[n.id] = s; return s;
+  };
+  (ch[0] || []).forEach(r => calc(r, 0));
+  return { ch, by, st, W };
+};
+window.kwRow = function(n, C, T, t){
+  if(T.vis && !T.vis.has(n.id)) return '';
+  const s = C.st[n.id]; if(!s) return '';
+  const leaf = !!n.is_leaf, kids = C.ch[n.id] || [], pid = T.pid, v = s.act - s.pl, open = T.q ? true : kwOpen.has(n.id), M = C.W.mode;
+  const col = s.act >= 100 ? '#1a9e6a' : v < -15 ? '#cc0000' : v < -5 ? '#d4af37' : '#2d7dd2';
+  const bar = '<div class="pb-wrap" style="width:90px;flex:none"><div class="pb-fill" style="width:' + Math.min(100, s.act) + '%;background:' + col + '"></div></div>';
+  const code = n.wbs_code ? '<b style="color:var(--red)">' + kesc(n.wbs_code) + '</b> ' : '';
+  const dates = (n.planned_start || n.planned_end) ? ' <small style="color:var(--muted);font-weight:500">📅 ' + fmtDate(n.planned_start) + ' → ' + fmtDate(n.planned_end) + (n.actual_end ? ' | واقعی: ' + fmtDate(n.actual_start) + ' → ' + fmtDate(n.actual_end) : '') + '</small>' : '';
+  const fw = (k, l, x) => (M === k ? '<b style="color:var(--navy)">' : '') + l + ' ' + kR1(x) + '٪' + (M === k ? '</b>' : '');
+  const parts = [];
+  if(leaf && +n.qty > 0) parts.push('📏 ' + kuQ(n.done_qty) + ' از ' + kuQ(n.qty) + ' ' + kesc(n.unit || '') + ' (' + kR1((+n.done_qty || 0) / +n.qty * 100) + '٪)');
+  if(s.amt > 0) parts.push('💰 ' + kuMoney(s.amt) + ' ریال' + ((leaf && +n.unit_price > 0) ? ' (' + kuMoney(n.unit_price) + ' / ' + kesc(n.unit || '') + ')' : ''));
+  const pd = leaf ? kuDur(n.planned_start, n.planned_end) : kuDur(s.ps, s.pe);
+  if(pd > 0) parts.push('⏱ مدت برنامه‌ای: ' + pd + ' روز');
+  const done = leaf ? !!n.manager_approved : (s.lv > 0 && s.dn === s.lv), ad = done ? kuDur(s.as, s.ae) : 0;
+  if(ad > 0) parts.push('مدت واقعی: ' + ad + ' روز' + (pd > 0 ? ' (<span style="color:' + (ad > pd ? 'var(--red)' : 'var(--green)') + '">' + (ad - pd > 0 ? '+' : '') + (ad - pd) + '</span>)' : ''));
+  parts.push('وزن ' + fw('financial', 'مالی', s.wf) + ' · ' + fw('time', 'زمانی', s.wt) + ' · ' + fw('combined', 'ترکیبی', s.wc) + ' · ' + fw('manual', 'دستی', s.rw));
+  const info = '<div style="width:100%;font-size:11px;color:var(--muted);padding-right:26px">' + parts.join(' &nbsp;|&nbsp; ') + '</div>';
+  const adm = T.ed && !n.is_locked;
+  let h = '<div class="wbs-node"><div class="wbs-row' + (leaf ? ' leaf' : '') + '"' + (leaf ? '' : ' style="background:#f3f5fb;cursor:pointer" onclick="kwTog(\'' + t + '\',' + n.id + ')"') + '>';
+  if(!leaf){
+    h += '<span style="font-size:15px;width:16px">' + (open ? '▾' : '▸') + '</span><span>📁</span>';
+    h += '<div class="wbs-title">' + code + kesc(n.title) + ' <small style="color:var(--muted);font-weight:500">' + s.lv + ' فعالیت · ' + s.dn + ' تایید' + (s.lt ? ' · <span style="color:var(--red)">' + s.lt + ' تاخیر</span>' : '') + '</small></div>';
+    h += '<div class="wbs-weight">وزن فعال: ' + kR1(s.w) + '٪</div>' + bar + '<div class="wbs-progress" style="color:' + col + '">' + kR1(s.act) + '٪</div><div class="wbs-weight">برنامه: ' + kR1(s.pl) + '٪</div>';
+    h += (s.lv && s.dn === s.lv) ? '<span class="badge badge-green">✓ تکمیل</span>' : s.pl > 0 ? ragBadge(kRag(v)) : '<span class="badge badge-gray">شروع‌نشده</span>';
+    if(adm) h += '<div class="wbs-actions" onclick="event.stopPropagation()"><button class="btn btn-xs btn-sec" onclick="openAddChildNode(' + n.id + ')">+ زیرمجموعه</button><button class="btn btn-xs btn-warn" onclick="openEditNode(' + n.id + ')">✏️</button><button class="btn btn-xs btn-danger" onclick="deleteWbsNode(' + n.id + ')">🗑</button></div>';
+  } else {
+    const myA = C.by[n.id] || [], ap = !!n.manager_approved;
+    h += '<span style="font-size:14px">📋</span><div class="wbs-title">' + code + kesc(n.title) + dates + '</div>';
+    h += '<div class="wbs-weight">وزن فعال: ' + kR1(s.w) + '٪</div>' + bar + '<div class="wbs-progress" style="color:' + col + '">' + kR1(s.act) + '٪</div><div class="wbs-weight">برنامه: ' + kR1(s.pl) + '٪</div>';
+    myA.forEach(a => { const u = allUsers.find(x => x.id === a.user_id); h += '<span class="assignee-chip">👤 ' + kesc(u ? (u.name || u.email) : '—') + ' · سهم ' + (+a.share_percent || 0) + '٪' + (+n.qty > 0 ? '' : ' · انجام ' + (+a.done_percent || 0) + '٪') + '</span>'; });
+    if(!myA.length) h += '<span class="badge badge-gray">بدون ارجاع</span>';
+    else if(ap) h += '<span class="badge badge-green">✓ تایید مدیر</span>';
+    else if(myA.every(a => (+a.done_percent || 0) >= 100)) h += '<span class="badge badge-blue">منتظر تایید مدیر</span>';
+    else h += '<span class="badge badge-amber">در حال انجام</span>';
+    h += '<div class="kx-acts" onclick="event.stopPropagation()">';
+    if(+n.qty > 0 && !ap && (isAdmin() || kCanEditProj(pid) || myA.some(a => a.user_id === CU.id))) h += '<button class="btn btn-xs btn-green" onclick="kuQty(' + n.id + ')">📏 ثبت حجم</button>';
+    if((isAdmin() || kCanEditProj(pid)) && !ap) h += '<button class="btn btn-xs btn-gold" onclick="kAssign(' + n.id + ')">👥 ارجاع</button>';
+    if(!ap && myA.length && kCanApprove(pid)) h += '<button class="btn btn-xs btn-red" onclick="kApproveNode(' + n.id + ')">✓ تایید مدیر</button>';
+    if(ap && isAdmin()) h += '<button class="btn btn-xs btn-warn" onclick="kUnapprove(' + n.id + ')">↩ لغو تایید</button>';
+    h += '</div>';
+    if(adm) h += '<div class="wbs-actions"><button class="btn btn-xs btn-warn" onclick="openEditNode(' + n.id + ')">✏️</button><button class="btn btn-xs btn-danger" onclick="deleteWbsNode(' + n.id + ')">🗑</button></div>';
+  }
+  h += info + '</div>';
+  if(!leaf && kids.length && open) h += '<div class="wbs-children">' + kids.map(c => kwRow(c, C, T, t)).join('') + '</div>';
+  return h + '</div>';
+};
+
+// ---------- ۴) خلاصه پروژه و انتخاب روش وزن‌دهی (ادمین) ----------
+window.kWbsSummary = function(nodes, asg, pid){
+  const el = $('kx-wbs-sum'); if(!el) return;
+  const pn = nodes.filter(n => n.project_id === pid); if(!pn.length){ el.innerHTML = ''; return; }
+  const ids = new Set(pn.map(n => n.id)), pa = asg.filter(a => ids.has(a.node_id)), c = kProjCalc(pid, pn, pa), W = c.W, M = c.modes, L = W.L;
+  const ps = kuMin(L.map(n => n.planned_start)), pe = kuMax(L.map(n => n.planned_end));
+  const noAsg = L.filter(n => !pa.some(a => a.node_id === n.id)).length;
+  let h = '<div class="chart-box" style="padding:.9rem 1.1rem;margin-bottom:1rem"><div class="chart-title">📊 پیشرفت پروژه — روش فعال: ' + KU_NAMES[W.mode] + '</div><div class="metrics" style="margin-bottom:.6rem">' +
+    ['combined', 'financial', 'time', 'manual'].map(k => '<div class="metric' + (k === W.mode ? ' g' : '') + '"><div class="metric-label">' + KU_NAMES[k] + '</div><div class="metric-value" style="font-size:20px">' + kR1(M[k].actual) + '٪</div><div class="metric-sub">برنامه‌ای: ' + kR1(M[k].planned) + '٪</div></div>').join('') + '</div>' +
+    '<div style="font-size:12px;margin-bottom:8px">💰 مبلغ کل: <b>' + kuMoney(W.sA) + '</b> ریال &nbsp;|&nbsp; ⏱ مدت پروژه: <b>' + (ps && pe ? kuDur(ps, pe) + ' روز' : '—') + '</b> (' + fmtDate(ps) + ' → ' + fmtDate(pe) + ') &nbsp;|&nbsp; مجموع مدت فعالیت‌ها: <b>' + kuMoney(W.sD) + '</b> روز</div>';
+  if(isAdmin()) h += '<div class="flex-center" style="gap:10px;flex-wrap:wrap"><label style="font-weight:700">روش پیشرفت:</label><select id="ku-mode" onchange="kuSetMode(' + pid + ')" style="padding:6px 10px;border:2px solid var(--line);border-radius:10px">' +
+    Object.keys(KU_NAMES).map(k => '<option value="' + k + '"' + (k === W.mode ? ' selected' : '') + '>' + KU_NAMES[k] + '</option>').join('') + '</select>' +
+    '<label style="font-weight:700">وزن مالی ٪:</label><input type="number" id="ku-fp" min="0" max="100" value="' + W.fp + '" onchange="kuSetMode(' + pid + ')" style="width:80px;padding:6px;border:2px solid var(--line);border-radius:10px"><span>وزن زمانی: <b>' + (100 - W.fp) + '</b>٪ &nbsp; (وزن ترکیبی = وزن مالی × ' + W.fp + '٪ + وزن زمانی × ' + (100 - W.fp) + '٪)</span></div>';
+  if(W.fb) h += '<div class="weight-warning">⚠ برای روش «' + KU_NAMES[W.mode] + '» داده کافی نیست (مبلغ یا تاریخ وارد نشده)؛ موقتاً وزن دستی استفاده شد.</div>';
+  if(W.sA > 0){ const x = L.filter(n => kuAmt(n) <= 0).length; if(x) h += '<div class="weight-warning">⚠ ' + x + ' فعالیت مبلغ ندارند (در وزن مالی صفر حساب می‌شوند)</div>'; }
+  if(W.sD > 0){ const x = L.filter(n => !kuDur(n.planned_start, n.planned_end)).length; if(x) h += '<div class="weight-warning">⚠ ' + x + ' فعالیت تاریخ شروع و پایان برنامه‌ای کامل ندارند (در وزن زمانی صفر حساب می‌شوند)</div>'; }
+  if(!L.some(n => n.planned_end)) h += '<div class="weight-warning">⚠ هیچ فعالیتی تاریخ پایان برنامه‌ای ندارد؛ پیشرفت برنامه‌ای صفر است.</div>';
+  if(noAsg) h += '<div class="weight-warning">⚠ ' + noAsg + ' فعالیت به کسی ارجاع نشده است</div>';
+  el.innerHTML = h + '</div>';
+};
+window.kuSetMode = async function(pid){
+  if(!isAdmin()) return;
+  const m = $('ku-mode').value, fp = +$('ku-fp').value;
+  if(isNaN(fp) || fp < 0 || fp > 100){ alert('وزن مالی باید بین ۰ تا ۱۰۰ باشد.'); return; }
+  const r = await db.from('projects').update({ weight_mode: m, fin_pct: fp }).eq('id', pid);
+  if(r.error){ alert('خطا: ' + r.error.message + '\nآیا SQL این مرحله اجرا شده است؟'); return; }
+  const p = allProjects.find(x => x.id === pid); if(p){ p.weight_mode = m; p.fin_pct = fp; }
+  await kSyncProject(pid); await loadProjects(); await kRefreshTree(pid); kRefresh();
+};
+
+// ---------- ۵) ثبت حجم انجام‌شده ----------
+window.kuQty = async function(nid){
+  const n = (await db.from('wbs_nodes').select('*').eq('id', nid).maybeSingle()).data;
+  if(!n || !(+n.qty > 0)){ alert('برای این فعالیت حجم تعریف نشده است.'); return; }
+  const as = (await db.from('wbs_assignments').select('*').eq('node_id', nid)).data || [], mine = as.some(a => a.user_id === CU.id);
+  if(!(isAdmin() || kCanEditProj(n.project_id) || mine)){ alert('اجازه ثبت حجم برای این فعالیت را ندارید.'); return; }
+  if(n.manager_approved){ alert('این فعالیت تایید نهایی شده است. ابتدا ادمین باید «لغو تایید» بزند.'); return; }
+  kModal('📏 ثبت حجم انجام‌شده — ' + n.title,
+    '<div style="margin-bottom:10px">حجم کل: <b>' + kuQ(n.qty) + ' ' + kesc(n.unit || '') + '</b> | انجام‌شده تا الان: <b>' + kuQ(n.done_qty) + '</b> (' + kR1((+n.done_qty || 0) / +n.qty * 100) + '٪) | باقی‌مانده: <b>' + kuQ(+n.qty - (+n.done_qty || 0)) + '</b></div>' +
+    '<div class="form-grid"><div class="fgs"><label>تاریخ</label><input type="date" id="kuq-d" value="' + kToday() + '"></div><div class="fgs"><label>حجم انجام‌شده در این نوبت (' + kesc(n.unit || '') + ')' + (isAdmin() ? ' — ادمین برای اصلاح می‌تواند عدد منفی بزند' : '') + '</label><input type="number" id="kuq-v" step="any"></div></div><div class="fg"><label>توضیح</label><textarea id="kuq-n"></textarea></div>' +
+    '<div class="msg msg-warn" style="text-align:right">درصد پیشرفت فعالیت = حجم انجام‌شده ÷ حجم کل، حداکثر ۸۰٪ تا زمان تایید مدیر پروژه (۲۰٪ پایانی).</div>',
+    [{ label: 'انصراف' }, { label: '✓ ثبت', cls: 'btn-red', fn: async () => {
+      const d = $('kuq-d').value, v = +$('kuq-v').value, note = $('kuq-n').value.trim();
+      if(!d || d > kToday() || !v || isNaN(v)){ showMsg('kx-m-msg', 'تاریخ (نه آینده) و مقدار لازم است.', 'err'); return false; }
+      if(v < 0 && !isAdmin()){ showMsg('kx-m-msg', 'مقدار منفی فقط برای ادمین مجاز است.', 'err'); return false; }
+      const tot = Math.round(((+n.done_qty || 0) + v) * 1e6) / 1e6;
+      if(tot < 0 || tot > +n.qty + 1e-9){ showMsg('kx-m-msg', 'مجموع حجم انجام‌شده باید بین صفر و حجم کل (' + kuQ(n.qty) + ') باشد.', 'err'); return false; }
+      let q = await db.from('qty_logs').insert([{ node_id: nid, project_id: n.project_id, user_id: CU.id, log_date: d, qty: v, note: note || null }]);
+      if(q.error){ showMsg('kx-m-msg', 'خطا: ' + q.error.message, 'err'); return false; }
+      const upd = { done_qty: tot }; if(!n.actual_start && v > 0) upd.actual_start = d;
+      q = await db.from('wbs_nodes').update(upd).eq('id', nid); if(q.error){ showMsg('kx-m-msg', 'خطا: ' + q.error.message, 'err'); return false; }
+      const pct = Math.min(100, Math.round(tot / +n.qty * 1000) / 10), full = tot >= +n.qty - 1e-9;
+      if(as.length) await db.from('wbs_assignments').update({ done_percent: pct, confirmed_by_user: full, user_done_at: full ? new Date().toISOString() : null }).eq('node_id', nid);
+      if(mine && v > 0) await db.from('daily_progress').insert([{ user_id: CU.id, node_id: nid, project_id: n.project_id, log_date: d, delta_percent: v / +n.qty * 100, note: note || null }]);
+      if(full && !n.manager_approved){
+        const p = allProjects.find(x => x.id === n.project_id), to = new Set(allUsers.filter(u => ['admin', 'superadmin'].includes(u.role) && u.is_active !== false).map(u => u.id));
+        if(p && p.manager_id) to.add(p.manager_id);
+        await kNotify([...to], 'ready', 'فعالیت آماده تایید مدیر', '«' + n.title + '» — حجم کار کامل شد', 'approve:' + nid);
+      }
+      await kSyncProject(n.project_id); await loadProjects(); await kRefreshTree(n.project_id); kRefresh();
+      if($('tab-tasks').classList.contains('active')) loadMyTasks();
+    } }]);
+};
+// «وظایف من»: برای فعالیت‌های حجمی به‌جای درصد دستی، دکمه ثبت حجم
+const _kuLMT = window.loadMyTasks;
+window.loadMyTasks = async function(){
+  await _kuLMT(); if(!CU) return;
+  const mine = (await db.from('wbs_assignments').select('id,node_id').eq('user_id', CU.id)).data || [];
+  if(!mine.length) return;
+  const nodes = (await db.from('wbs_nodes').select('id,qty,unit,done_qty').in('id', mine.map(a => a.node_id))).data || [];
+  mine.forEach(a => {
+    const n = nodes.find(x => x.id === a.node_id), i = $('kpct-' + a.id); if(!i || !n || !(+n.qty > 0)) return;
+    i.parentElement.innerHTML = '<b style="font-size:12px">📏 ' + kuQ(n.done_qty) + ' از ' + kuQ(n.qty) + ' ' + kesc(n.unit || '') + '</b> <button class="btn btn-sm btn-green" onclick="kuQty(' + n.id + ')">📏 ثبت حجم انجام‌شده</button>';
+  });
+};
+
+// ---------- ۶) اکسل WBS: ستون‌های حجم، واحد، مبلغ واحد، حجم انجام‌شده ----------
+window.kWbsExport = async function(){
+  const pid = currentWbsProjectId; if(!pid) return;
+  if(typeof XLSX === 'undefined'){ alert('کتابخانه اکسل بارگذاری نشده است.'); return; }
+  const nodes = (await kEnsureCodes(pid)).sort((a, b) => kCodeCmp(a.wbs_code, b.wbs_code));
+  const rows = [['کد WBS', 'عنوان', 'نوع (گروه/فعالیت)', 'وزن دستی (٪)', 'شروع برنامه‌ای (YYYY-MM-DD)', 'پایان برنامه‌ای (YYYY-MM-DD)', 'کارشناس (کد پرسنلی یا ایمیل)',
+    'درصد انجام (۰ تا ۱۰۰؛ ۱۰۰ = تکمیل و تاییدشده)', 'شروع واقعی (YYYY-MM-DD)', 'پایان واقعی (YYYY-MM-DD)', 'حجم کل کار', 'واحد حجم', 'مبلغ واحد (ریال)', 'حجم انجام‌شده']];
+  if(!nodes.length){
+    rows.push(['1', 'گروه نمونه', 'گروه', 100, '', '', '', '', '', '', '', '', '', '']);
+    rows.push(['1.1', 'خاک‌برداری', 'فعالیت', 60, '2026-01-01', '2026-02-01', '12345', '', '', '', 1000, 'متر مکعب', 250000, 400]);
+    rows.push(['1.2', 'فعالیت تمام‌شده', 'فعالیت', 40, '2026-02-01', '2026-03-01', '12345', 100, '2026-02-03', '2026-03-10', 50, 'عدد', 1000000, '']);
+  }
+  nodes.forEach(n => {
+    const a = wbsAssignments.find(x => x.node_id === n.id), u = a ? allUsers.find(x => x.id === a.user_id) : null, leaf = !!n.is_leaf, hasQ = leaf && +n.qty > 0;
+    const p = leaf ? (hasQ ? (n.manager_approved ? 100 : '') : kvCur(n)) : '';
+    const hasP = leaf && p !== '' && p > 0;
+    rows.push([n.wbs_code, n.title, leaf ? 'فعالیت' : 'گروه', +n.weight || 0, n.planned_start || '', n.planned_end || '', u ? (u.personnel_id || u.email) : '',
+      leaf ? p : '', hasP ? kvCurStart(n) : '', (leaf && p !== '' && p >= 100) ? (n.actual_end || '') : '',
+      hasQ ? n.qty : '', leaf ? (n.unit || '') : '', (leaf && +n.unit_price > 0) ? n.unit_price : '', hasQ ? (+n.done_qty || 0) : '']);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 12 }, { wch: 40 }, { wch: 16 }, { wch: 12 }, { wch: 22 }, { wch: 22 }, { wch: 26 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 14 }];
+  const guide = [['راهنمای ستون‌های WBS'],
+    ['ستون‌های ۱ تا ۷: ساختار، تاریخ برنامه‌ای و کارشناس. وزن گروه‌ها خودکار از زیرمجموعه جمع می‌شود.'],
+    ['حجم کل کار + واحد + مبلغ واحد: مبلغ فعالیت = حجم × مبلغ واحد. مبلغ گروه‌ها از زیرمجموعه جمع می‌شود. خالی‌گذاشتن = تغییری نمی‌دهد.'],
+    ['حجم انجام‌شده: مجموع حجم انجام‌شده تا امروز (نه فقط یک روز). برای فعالیت دارای حجم، درصد پیشرفت از همین عدد محاسبه می‌شود (حداکثر ۸۰٪ تا تایید مدیر).'],
+    ['فعالیت دارای حجم: ستون درصد و تاریخ واقعی را فقط برای تکمیل‌شده‌ها (۱۰۰ با هر دو تاریخ) پر کنید. بقیه خالی بماند.'],
+    ['فعالیت بدون حجم: مثل قبل با ستون «درصد انجام» (۱ تا ۹۹ = در حال انجام، ۱۰۰ = تایید نهایی با دو تاریخ واقعی).'],
+    ['اعداد را ساده بنویسید (بدون واحد). تاریخ‌ها میلادی YYYY-MM-DD و آینده مجاز نیست.']];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'WBS'); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(guide), 'راهنما');
+  const p = allProjects.find(x => x.id === pid); XLSX.writeFile(wb, 'WBS_' + (p ? p.code : pid) + '.xlsx');
+};
+const _kuPW = window.kParseWbsFile;
+window.kParseWbsFile = async function(f, pid){
+  const b = await _kuPW(f, pid); if(!b) return b;
+  let aoa; try{ const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' }); }catch(e){ return b; }
+  if(!aoa.length || aoa[0].length < 11) return b;
+  let cnt = 0;
+  aoa.slice(1).forEach((r, i) => {
+    const code = String(r[0]).trim(); if(!code) return;
+    const row = b.rows.find(x => x.code === code); if(!row) return;
+    if([r[10], r[11], r[12], r[13]].every(v => v === '' || v == null)) return;
+    const ln = 'ردیف ' + (i + 2) + ' (کد ' + code + '): ', E = m => b.errs.push(ln + m);
+    if(!row.is_leaf){ b.warns.push(ln + 'ردیف گروه است؛ حجم و مبلغ نادیده گرفته شد (مبلغ گروه از زیرمجموعه جمع می‌شود)'); return; }
+    const q = kuNum(r[10]), up = kuNum(r[12]), dq = kuNum(r[13]), u = String(r[11] == null ? '' : r[11]).trim();
+    if(Number.isNaN(q) || (q != null && q < 0)){ E('حجم کل نامعتبر است'); return; }
+    if(Number.isNaN(up) || (up != null && up < 0)){ E('مبلغ واحد نامعتبر است'); return; }
+    if(Number.isNaN(dq) || (dq != null && dq < 0)){ E('حجم انجام‌شده نامعتبر است'); return; }
+    const ex = wbsNodes.find(n => n.project_id === pid && n.wbs_code === code), eq = q != null ? q : (ex ? +ex.qty || 0 : 0);
+    if(up > 0 && !(eq > 0)) E('مبلغ واحد وارد شده ولی حجم کل ندارد');
+    if(dq != null && !(eq > 0)) E('حجم انجام‌شده وارد شده ولی حجم کل ندارد');
+    if(dq != null && dq > eq) E('حجم انجام‌شده (' + dq + ') بیشتر از حجم کل (' + eq + ') است');
+    if(q > 0 && !u && !(ex && ex.unit)) E('برای حجم، واحد حجم لازم است');
+    if(q != null && ex && (+ex.done_qty || 0) > q && dq == null) E('حجم کل کمتر از حجم انجام‌شده فعلی است');
+    if(ex && ex.manager_approved && dq != null && dq < eq) E('این فعالیت تایید نهایی شده است؛ برای تغییر حجم انجام‌شده ابتدا «لغو تایید» بزنید');
+    if(eq > 0 && row.pct != null && row.pct > 0 && row.pct < 100) b.warns.push(ln + 'فعالیت دارای حجم است؛ درصد ۱ تا ۹۹ بی‌اثر است و پیشرفت از حجم انجام‌شده محاسبه می‌شود');
+    row.q = q; row.u = u || null; row.up = up; row.dq = dq; cnt++;
+  });
+  if(cnt) b.warns.push('ℹ حجم/مبلغ برای ' + cnt + ' فعالیت در فایل وجود دارد');
+  return b;
+};
+const _kuD = window.kWbsDiff;
+window.kWbsDiff = function(pid, rows){
+  const diff = _kuD(pid, rows), exMap = {}; wbsNodes.filter(n => n.project_id === pid).forEach(n => { exMap[n.wbs_code] = n; });
+  rows.forEach(r => {
+    if(!r.is_leaf || ![r.q, r.u, r.up, r.dq].some(v => v != null)) return;
+    const n = exMap[r.code], ch = [];
+    if(!n){ const d = diff.find(x => x.code === r.code && x.op === 'add'); if(d) d.note += ' | حجم: ' + (r.q == null ? '—' : r.q) + ' ' + (r.u || '') + ' | مبلغ واحد: ' + (r.up == null ? '—' : r.up) + (r.dq != null ? ' | انجام‌شده: ' + r.dq : ''); return; }
+    if(r.q != null && r.q !== (+n.qty || 0)) ch.push('حجم: ' + (+n.qty || 0) + ' ← ' + r.q);
+    if(r.u && r.u !== (n.unit || '')) ch.push('واحد: ' + (n.unit || '—') + ' ← ' + r.u);
+    if(r.up != null && r.up !== (+n.unit_price || 0)) ch.push('مبلغ واحد: ' + (+n.unit_price || 0) + ' ← ' + r.up);
+    if(r.dq != null && r.dq !== (+n.done_qty || 0)) ch.push('حجم انجام‌شده: ' + (+n.done_qty || 0) + ' ← ' + r.dq);
+    if(!ch.length) return;
+    const d = diff.find(x => x.code === r.code && x.op === 'edit');
+    if(d) d.note += ' | ' + ch.join(' | '); else diff.push({ op: 'edit', code: r.code, before: { title: n.title }, after: r, note: ch.join(' | ') });
+  });
+  return diff;
+};
+const _kuA = window.kWbsApply;
+window.kWbsApply = async function(pid, rows){
+  const err = await _kuA(pid, rows); if(err) return err;
+  const todo = rows.filter(r => r.is_leaf && [r.q, r.u, r.up, r.dq].some(v => v != null)); if(!todo.length) return null;
+  await loadWbsForProject(pid);
+  for(const r of todo){
+    const n = wbsNodes.find(x => x.project_id === pid && x.wbs_code === r.code); if(!n) continue;
+    const u = {}; if(r.q != null) u.qty = r.q || null; if(r.u) u.unit = r.u; if(r.up != null) u.unit_price = r.up || null;
+    if(r.dq != null && r.dq !== (+n.done_qty || 0)){ u.done_qty = r.dq; if(r.dq > 0 && !n.actual_start && !n.manager_approved) u.actual_start = r.as || kToday(); }
+    if(Object.keys(u).length){ const q = await db.from('wbs_nodes').update(u).eq('id', n.id); if(q.error) return q.error; }
+    const tq = u.qty !== undefined ? (u.qty || 0) : (+n.qty || 0), td = u.done_qty !== undefined ? u.done_qty : (+n.done_qty || 0);
+    if(r.dq != null && tq > 0 && !n.manager_approved){
+      const full = td >= tq - 1e-9;
+      await db.from('wbs_assignments').update({ done_percent: Math.min(100, Math.round(td / tq * 1000) / 10), confirmed_by_user: full }).eq('node_id', n.id);
+    }
+  }
+  await kSyncProject(pid); await loadProjects();
+  return null;
+};
+</script>
    </body>
 </html>
