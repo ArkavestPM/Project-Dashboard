@@ -8079,5 +8079,107 @@ window.kdManage = async function(pid){
     [{ label: 'بستن' }]);
 };
 </script>
+   <script>
+// ============ افزونه KB: شماره خط مبنا، حذف، جدید/قدیمی ============
+const kbName = b => 'BL-' + b.seq + ' · ' + b.name;
+
+// ---------- بارگذاری با شماره ----------
+window.kdLoadList = async function(pid){
+  const r = await db.from('wbs_baselines').select('id,name,note,is_active,item_count,source,created_at,created_by_name,seq').eq('project_id', pid).order('seq', { ascending: false });
+  kdList[pid] = r.error ? [] : (r.data || []).map(b => ({ ...b, raw: b.name, name: kbName(b) }));
+};
+window.kdLoadActive = async function(){
+  KX.bl = {}; const ids = projects.map(p => p.id); if(!ids.length) return;
+  const r = await db.from('wbs_baselines').select('id,project_id,name,seq,created_at,snapshot').eq('is_active', true).in('project_id', ids);
+  if(r.error) return;
+  (r.data || []).forEach(b => { KX.bl[b.project_id] = { id: b.id, name: kbName(b), created_at: b.created_at, items: (b.snapshot && b.snapshot.items) || [] }; });
+};
+const _kbSV = window.kdSetView;
+window.kdSetView = async function(pid, val){
+  await _kbSV(pid, val);
+  if(kdView){ const b = (kdList[pid] || []).find(x => x.id === kdView.id); if(b){ kdView.name = b.name; kwDraw('wbs-tree'); } }
+};
+
+// ---------- شماره پیشنهادی ----------
+function kbSuggest(pid, kind){
+  const used = new Set((kdList[pid] || []).map(b => b.seq)), mx = Math.max(0, ...used);
+  if(kind === 'old'){ for(let i = 1; i <= mx; i++) if(!used.has(i)) return i; }
+  return mx + 1;
+}
+window.kbKind = function(pid){
+  const k = $('kd-kind').value; $('kd-act').checked = (k === 'new');
+  const s = $('kd-seq'); if(!s.dataset.t) s.value = kbSuggest(pid, k);
+};
+function kbAutoName(){ const n = $('kd-name'); if(n && !n.value.trim()) n.value = 'خط مبنا ' + $('kd-seq').value; }
+
+// ---------- ثبت با شماره ----------
+window.kdInsert = async function(pid, name, note, act, items, src){
+  const el = $('kd-seq'); let seq = (el && el.value !== '') ? +el.value : kbSuggest(pid, act ? 'new' : 'old');
+  if(!Number.isInteger(seq) || seq < 0){ showMsg('kx-m-msg', 'شماره باید عدد صحیح (۰ یا بیشتر) باشد.', 'err'); return false; }
+  if((kdList[pid] || []).some(b => b.seq === seq)){ showMsg('kx-m-msg', 'شماره ' + seq + ' قبلاً استفاده شده است؛ شماره دیگری بدهید.', 'err'); return false; }
+  const r = await db.from('wbs_baselines').insert([{ project_id: pid, name, note: note || null, seq, is_active: false, item_count: items.length, snapshot: { items }, source: src, created_by: CU.id, created_by_name: CU.name || CU.email }]).select('id').single();
+  if(r.error){ showMsg('kx-m-msg', 'خطا: ' + kesc(r.error.message) + ' (آیا SQL اجرا شده است؟)', 'err'); return false; }
+  logActivity('create', 'wbs_baselines', r.data.id, 'خط مبنا', null, { name: 'BL-' + seq + ' ' + name + ' — ' + items.length + ' ردیف' + (act ? ' (فعال)' : ' (سابقه)') });
+  if(act){ const e = await kdActivateCore(pid, r.data.id); if(e){ showMsg('kx-m-msg', 'ساخته شد ولی فعال‌سازی خطا داد: ' + kesc(e.message), 'err'); return false; } }
+  await kdAfter(pid); return true;
+};
+const _kbSC = window.kdSaveCurrent; window.kdSaveCurrent = function(pid){ kbAutoName(); return _kbSC(pid); };
+const _kbUP = window.kdUpload;      window.kdUpload = function(pid, inp){ kbAutoName(); return _kbUP(pid, inp); };
+
+// ---------- فعال/قدیمی، ویرایش شماره، حذف ----------
+window.kbEdit = function(pid, id){
+  const b = (kdList[pid] || []).find(x => x.id === id); if(!b) return;
+  kModal('✎ ویرایش خط مبنا — BL-' + b.seq,
+    '<div class="form-grid"><div class="fgs"><label>شماره</label><input type="number" id="kbe-seq" min="0" step="1" value="' + b.seq + '"></div><div class="fgs"><label>نام</label><input id="kbe-name" value="' + kesc(b.raw) + '"></div></div><div class="fg"><label>توضیح</label><input id="kbe-note" value="' + kesc(b.note || '') + '"></div>' +
+    '<div class="msg msg-warn" style="text-align:right">اگر شماره‌ای را بدهید که برای خط مبنای دیگری است، جای شماره‌ها با تایید شما عوض می‌شود.</div>',
+    [{ label: '← بازگشت', fn: () => { kdManage(pid); return false; } },
+     { label: '✓ ذخیره', cls: 'btn-red', fn: async () => {
+        const seq = +$('kbe-seq').value, nm = $('kbe-name').value.trim(), nt = $('kbe-note').value.trim();
+        if(!Number.isInteger(seq) || seq < 0 || !nm){ showMsg('kx-m-msg', 'شماره (عدد صحیح ۰ یا بیشتر) و نام لازم است.', 'err'); return false; }
+        const other = (kdList[pid] || []).find(x => x.seq === seq && x.id !== id);
+        if(other && !confirm('شماره ' + seq + ' برای «' + other.raw + '» است. جای شماره‌ها عوض شود؟')) return false;
+        let q;
+        if(other){
+          q = await db.from('wbs_baselines').update({ seq: -other.id }).eq('id', other.id); if(q.error){ showMsg('kx-m-msg', 'خطا: ' + kesc(q.error.message), 'err'); return false; }
+          q = await db.from('wbs_baselines').update({ seq, name: nm, note: nt || null }).eq('id', id); if(q.error){ showMsg('kx-m-msg', 'خطا: ' + kesc(q.error.message), 'err'); await db.from('wbs_baselines').update({ seq: other.seq }).eq('id', other.id); return false; }
+          await db.from('wbs_baselines').update({ seq: b.seq }).eq('id', other.id);
+        } else {
+          q = await db.from('wbs_baselines').update({ seq, name: nm, note: nt || null }).eq('id', id); if(q.error){ showMsg('kx-m-msg', 'خطا: ' + kesc(q.error.message), 'err'); return false; }
+        }
+        logActivity('update', 'wbs_baselines', id, 'ویرایش خط مبنا', { name: 'BL-' + b.seq + ' ' + b.raw }, { name: 'BL-' + seq + ' ' + nm });
+        await kdAfter(pid); kdManage(pid); return false;
+     } }]);
+};
+window.kbDelete = async function(pid, id){
+  const b = (kdList[pid] || []).find(x => x.id === id); if(!b) return;
+  if(!confirm('خط مبنای «' + b.name + '» برای همیشه حذف شود؟' + (b.is_active ? '\n⚠ این خط مبنا فعال است؛ بعد از حذف پروژه بدون خط مبنای فعال می‌ماند.' : '') + '\n(پیشنهاد: قبل از حذف، با دکمه ⬇ از آن اکسل بگیرید.)')) return;
+  const q = await db.from('wbs_baselines').delete().eq('id', id); if(q.error){ alert('خطا: ' + q.error.message); return; }
+  logActivity('delete', 'wbs_baselines', id, 'حذف خط مبنا', { name: b.name + ' — ' + (b.item_count || 0) + ' ردیف' }, null);
+  if(kdView && kdView.id === id) kdView = null;
+  await kdAfter(pid); kdManage(pid);
+};
+
+// ---------- پنجره مدیریت ----------
+window.kdManage = async function(pid){
+  if(!isAdmin()) return;
+  await kdLoadList(pid); const list = kdList[pid] || [], P = allProjects.find(p => p.id === pid) || {}, hasAct = list.some(b => b.is_active);
+  kModal('📐 مدیریت خط مبنا — ' + (P.name || ''),
+    '<div class="msg msg-warn" style="text-align:right">خط مبنای فعال مرجع «پیشرفت برنامه‌ای» است و فقط یکی فعال می‌ماند. «جدید» یعنی بعد از ثبت فعال شود (قبلی خودکار سابقه می‌ماند). «قدیمی» یعنی فقط در سوابق ثبت شود؛ مناسب برای بارگذاری برنامه‌های قبلی پروژه‌ای که وسط کار است.</div>' +
+    '<div class="form-grid form-grid-3" style="margin-top:10px">' +
+      '<div class="fgs"><label>این خط مبنا</label><select id="kd-kind" onchange="kbKind(' + pid + ')"><option value="new">🆕 جدید (فعال شود)</option><option value="old">📁 قدیمی (فقط سابقه)</option></select></div>' +
+      '<div class="fgs"><label>شماره (قابل تغییر)</label><input type="number" id="kd-seq" min="0" step="1" value="' + kbSuggest(pid, 'new') + '" oninput="this.dataset.t=1"></div>' +
+      '<div class="fgs"><label>نام (خالی = «خط مبنا N»)</label><input id="kd-name" placeholder="مثال: برنامه اولیه قرارداد"></div></div>' +
+    '<div class="fg"><label>توضیح</label><input id="kd-note"></div><input type="checkbox" id="kd-act" checked hidden>' +
+    '<div class="flex-center" style="gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="btn btn-sm btn-red" onclick="kdSaveCurrent(' + pid + ')">💾 ذخیره وضعیت فعلی WBS</button>' +
+    '<button class="btn btn-sm btn-navy" onclick="document.getElementById(\'kd-file\').click()">⬆ بارگذاری از اکسل</button><input type="file" id="kd-file" accept=".xlsx,.xls" style="display:none" onchange="kdUpload(' + pid + ',this)">' +
+    (hasAct ? '<button class="btn btn-sm btn-warn" onclick="kdNone(' + pid + ')">بدون خط مبنای فعال</button>' : '') + '</div>' +
+    (list.length ? '<div class="table-wrap"><table><thead><tr><th>شماره</th><th>نام</th><th>تاریخ ثبت</th><th>ردیف</th><th>منبع</th><th>وضعیت</th><th></th></tr></thead><tbody>' +
+      list.map(b => '<tr><td><b>BL-' + b.seq + '</b></td><td>' + kesc(b.raw) + (b.note ? '<br><small>' + kesc(b.note) + '</small>' : '') + '</td><td>' + new Date(b.created_at).toLocaleDateString('fa-IR') + '</td><td>' + (b.item_count || 0) + '</td><td>' + (b.source === 'excel' ? 'اکسل' : 'WBS فعلی') + '</td><td>' + (b.is_active ? '<span class="badge badge-green">جدید / فعال</span>' : '<span class="badge badge-gray">قدیمی / سابقه</span>') + '</td><td style="white-space:nowrap">' +
+        (b.is_active ? '<button class="btn btn-xs btn-warn" onclick="kdNone(' + pid + ')">📁 قدیمی کن</button> ' : '<button class="btn btn-xs btn-green" onclick="kdActivate(' + pid + ',' + b.id + ')">🆕 جدید کن (فعال)</button> ') +
+        '<button class="btn btn-xs btn-sec" onclick="kbEdit(' + pid + ',' + b.id + ')">✎</button> <button class="btn btn-xs btn-sec" onclick="kdSetView(' + pid + ',' + b.id + ');kClose()">👁</button> <button class="btn btn-xs btn-sec" onclick="kdExport(' + b.id + ')">⬇</button> <button class="btn btn-xs btn-danger" onclick="kbDelete(' + pid + ',' + b.id + ')">🗑</button></td></tr>').join('') + '</tbody></table></div>'
+      : '<div class="loading">هنوز خط مبنایی ثبت نشده است</div>'),
+    [{ label: 'بستن' }]);
+};
+</script>
    </body>
 </html>
