@@ -7802,5 +7802,282 @@ window.kWbsApply = async function(pid, rows){
   return null;
 };
 </script>
+   <script>
+// ============ افزونه KD: فعال/غیرفعال کردن فعالیت، خط مبنا (Baseline)، پیشرفت بر پایه حجم ============
+const kdList = {}; let kdView = null;
+K_TBL.wbs_baselines = '📐 خط مبنا';
+
+// ---------- ۱) غیرفعال بودن: خود گره یا هر والدش ----------
+function kdOffSet(nodes){
+  const by = {}; nodes.forEach(n => { by[n.id] = n; }); const memo = {};
+  const f = n => { if(n.id in memo) return memo[n.id]; memo[n.id] = false; memo[n.id] = (n.is_active === false) || (n.parent_id && by[n.parent_id] ? f(by[n.parent_id]) : false); return memo[n.id]; };
+  const s = new Set(); nodes.forEach(n => { if(f(n)) s.add(n.id); }); return s;
+}
+async function kdIsOff(id){
+  const n = (await db.from('wbs_nodes').select('project_id').eq('id', id).maybeSingle()).data; if(!n) return false;
+  const all = (await db.from('wbs_nodes').select('id,parent_id,is_active').eq('project_id', n.project_id)).data || [];
+  return kdOffSet(all).has(id);
+}
+
+// حذف فعالیت‌های غیرفعال از همه محاسبات وزن و پیشرفت (پروژه، گروه‌ها، داشبورد)
+const _kdW = kuWeights;
+window.kuWeights = function(pn){ const off = kdOffSet(pn); return _kdW(off.size ? pn.filter(n => !off.has(n.id)) : pn); };
+// حذف از اکشن پلن و تاخیرها
+const _kdLate = window.kLate;
+window.kLate = function(){ const off = kdOffSet(KX.nodes); return _kdLate().filter(x => !off.has(x.n.id)); };
+// جلوگیری از ثبت حجم، ارجاع و تایید روی فعالیت غیرفعال
+['kuQty', 'kAssign', 'kApproveNode'].forEach(nm => {
+  const o = window[nm];
+  window[nm] = async function(id){
+    if(await kdIsOff(id)){ alert('این فعالیت (یا گروه والد آن) غیرفعال است. ابتدا آن را فعال کنید.'); return; }
+    return o.apply(this, arguments);
+  };
+});
+
+// درخت: گره‌های غیرفعال با آمار صفر و نمایش کم‌رنگ
+const _kdKB = window.kwBuild;
+window.kwBuild = function(pn, asg){
+  const off = kdOffSet(pn), C = _kdKB(off.size ? pn.filter(n => !off.has(n.id)) : pn, asg);
+  if(!off.size) return C;
+  const by = {}; pn.forEach(n => { by[n.id] = n; });
+  const dp = n => { let d = 0, x = by[n.parent_id]; while(x){ d++; x = by[x.parent_id]; } return d; };
+  pn.filter(n => off.has(n.id)).forEach(n => {
+    const k = n.parent_id || 0; (C.ch[k] = C.ch[k] || []).push(n);
+    C.st[n.id] = { w: 0, rw: 0, wf: 0, wt: 0, wc: 0, wa: 0, wp: 0, lv: 0, dn: 0, lt: 0, amt: 0, ps: null, pe: null, as: null, ae: null, act: 0, pl: 0, dp: dp(n), off: true };
+  });
+  Object.values(C.ch).forEach(a => a.sort((x, y) => (x.wbs_code && y.wbs_code) ? kCodeCmp(x.wbs_code, y.wbs_code) : x.id - y.id));
+  return C;
+};
+function kdOffRow(n){
+  if(!isAdmin()) return '';
+  return '<div class="wbs-node" style="opacity:.6"><div class="wbs-row" style="background:#eee"><span>⛔</span><div class="wbs-title"><s>' + (n.wbs_code ? '<b>' + kesc(n.wbs_code) + '</b> ' : '') + kesc(n.title) + '</s> <span class="badge badge-gray">غیرفعال' + (n.is_leaf ? '' : ' (با همه زیرمجموعه‌ها)') + '</span></div>' +
+    (n.is_active === false ? '<button class="btn btn-xs btn-green" onclick="kdToggle(' + n.id + ')">♻ فعال‌سازی</button>' : '') + '</div></div>';
+}
+const _kdRow = window.kwRow;
+window.kwRow = function(n, C, T, t){
+  const s = C.st[n.id]; if(s && s.off) return kdOffRow(n);
+  let h = _kdRow(n, C, T, t); if(!h || !s) return h;
+  if(T.ed && !n.is_locked)
+    h = h.replace('<button class="btn btn-xs btn-danger" onclick="deleteWbsNode(' + n.id + ')">', '<button class="btn btn-xs btn-sec" title="غیرفعال‌سازی" onclick="kdToggle(' + n.id + ')">🚫</button><button class="btn btn-xs btn-danger" onclick="deleteWbsNode(' + n.id + ')">');
+  // مقایسه با خط مبنای انتخاب‌شده
+  if(kdView && kdView.pid === T.pid && n.wbs_code){
+    const it = kdView.map[n.wbs_code], leaf = !!n.is_leaf; let line;
+    if(!it) line = '🆕 در خط مبنای «' + kesc(kdView.name) + '» وجود ندارد';
+    else {
+      let bs = null, be = null, cs, ce;
+      if(leaf){ bs = it.ps; be = it.pe; cs = n.planned_start; ce = n.planned_end; }
+      else { const a = kdView.agg[n.wbs_code]; if(a){ bs = a.ps; be = a.pe; } cs = s.ps; ce = s.pe; }
+      const dl = (x, y) => (x && y) ? kDays(x, y) : null, fd = v => v === null ? '' : ' <b style="color:' + (v > 0 ? 'var(--red)' : v < 0 ? 'var(--green)' : 'var(--muted)') + '">' + (v > 0 ? '+' : '') + v + ' روز</b>';
+      line = '📐 خط مبنای «' + kesc(kdView.name) + '»: ' + ((bs || be) ? fmtDate(bs) + ' → ' + fmtDate(be) : 'بدون تاریخ') +
+        (dl(cs, bs) !== null ? ' | تغییر شروع:' + fd(dl(cs, bs)) : '') + (dl(ce, be) !== null ? ' | تغییر پایان:' + fd(dl(ce, be)) : '') +
+        ((leaf && it.q && +it.q !== (+n.qty || 0)) ? ' | حجم: ' + it.q + ' ← ' + (+n.qty || 0) : '');
+    }
+    const P = '<div style="width:100%;font-size:11px;color:var(--muted);padding-right:26px">';
+    h = h.replace(P, '<div style="width:100%;font-size:11px;color:#8a611b;padding-right:26px">' + line + '</div>' + P);
+  }
+  return h;
+};
+window.kdToggle = async function(id){
+  if(!isAdmin()) return;
+  const n = (await db.from('wbs_nodes').select('*').eq('id', id).maybeSingle()).data; if(!n) return;
+  const to = n.is_active === false;
+  if(!confirm(to ? 'دوباره فعال شود و وارد محاسبات شود؟' : 'غیرفعال شود؟\nاز همه محاسبات (پیشرفت، وزن، مبلغ، مدت، تاخیر) خارج می‌شود. هیچ اطلاعاتی حذف نمی‌شود و هر زمان قابل بازگشت است.')) return;
+  const r = await db.from('wbs_nodes').update({ is_active: to }).eq('id', id);
+  if(r.error){ alert('خطا: ' + r.error.message + '\nآیا SQL این مرحله اجرا شده است؟'); return; }
+  await kSyncProject(n.project_id); await loadProjects(); await kRefreshTree(n.project_id); kRefresh();
+};
+
+// ---------- ۲) پیشرفت بر پایه حجم: فعالیت بدون حجم = واحد «درصد» و حجم ۱۰۰ ----------
+$('ku-qty-wrap').insertAdjacentHTML('beforeend', '<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">پیشرفت از «حجم انجام‌شده ÷ حجم کل» محاسبه می‌شود. اگر فعالیت حجم مشخصی ندارد، واحد را «درصد» و حجم کل را ۱۰۰ بگذارید (برای فعالیت جدید اگر خالی بماند خودکار همین تنظیم می‌شود).</div>');
+const _kdSN = window.saveWbsNode;
+window.saveWbsNode = async function(){
+  if($('wn-type').value === 'leaf' && !$('wn-id').value && !(+$('wn-qty').value > 0)){
+    $('wn-qty').value = 100; if(!$('wn-unit').value.trim()) $('wn-unit').value = 'درصد';
+  }
+  return _kdSN();
+};
+// ثبت حجم: امکان وارد کردن «مقدار تجمعی جدید» (مثلاً پیشرفت فعلی ۶۵ از ۱۰۰)
+const _kdQ = window.kuQty;
+window.kuQty = async function(nid){
+  const n = (await db.from('wbs_nodes').select('qty,unit,done_qty').eq('id', nid).maybeSingle()).data;
+  await _kdQ(nid);
+  if(!n || !$('kuq-v')) return;
+  $('kuq-v').closest('.form-grid').insertAdjacentHTML('beforeend',
+    '<div class="fgs full-width"><label>یا مقدار تجمعی جدید (' + kesc(n.unit || '') + ') — مثلاً کل پیشرفت تا امروز</label><input type="number" step="any" min="0" max="' + (+n.qty || 0) + '" oninput="document.getElementById(\'kuq-v\').value=this.value===\'\'?\'\':Math.round((+this.value-' + (+n.done_qty || 0) + ')*1e6)/1e6"></div>');
+};
+// تبدیل فعالیت‌های قدیمی (درصدی) به حجمی
+window.kdMigrate = async function(pid){
+  if(!isAdmin()) return;
+  const nodes = (await db.from('wbs_nodes').select('*').eq('project_id', pid)).data || [], ids = nodes.map(n => n.id);
+  const as = ids.length ? ((await db.from('wbs_assignments').select('*').in('node_id', ids)).data || []) : [], rows = [];
+  nodes.filter(n => n.is_leaf && !(+n.qty > 0)).forEach(n => {
+    let v = 0;
+    if(n.manager_approved) v = 100;
+    else { const a = as.filter(x => x.node_id === n.id), tot = a.reduce((s, x) => s + (+x.share_percent || 0), 0); if(tot > 0) v = a.reduce((s, x) => s + (+x.share_percent || 0) * Math.min(100, +x.done_percent || 0), 0) / tot; }
+    rows.push({ id: n.id, project_id: pid, title: n.title, qty: 100, unit: 'درصد', done_qty: Math.round(v * 10) / 10 });
+  });
+  if(!rows.length){ alert('همه فعالیت‌ها حجم دارند.'); return; }
+  if(!confirm(rows.length + ' فعالیت بدون حجم به «حجم ۱۰۰ با واحد درصد» تبدیل می‌شود و درصد فعلی‌شان به‌عنوان حجم انجام‌شده ثبت می‌شود. (درصد جداگانه هر کارشناس دیگر در محاسبه اثر ندارد.) ادامه؟')) return;
+  for(let i = 0; i < rows.length; i += 200){ const r = await db.from('wbs_nodes').upsert(rows.slice(i, i + 200), { onConflict: 'id' }); if(r.error){ alert('خطا: ' + r.error.message); return; } }
+  await kSyncProject(pid); await loadProjects(); await kRefreshTree(pid); kRefresh(); alert('✅ ' + rows.length + ' فعالیت تبدیل شد');
+};
+// ورود اکسل: درصد ۱ تا ۹۹ برای فعالیت بدون حجم → حجم ۱۰۰ با واحد درصد
+const _kdPW = window.kParseWbsFile;
+window.kParseWbsFile = async function(f, pid){
+  const b = await _kdPW(f, pid); if(!b) return b;
+  b.rows.forEach(r => {
+    if(!r.is_leaf || r.pct == null || r.pct <= 0 || r.pct >= 100 || r.q != null || r.dq != null) return;
+    const ex = wbsNodes.find(n => n.project_id === pid && n.wbs_code === r.code);
+    if(ex && +ex.qty > 0) return;
+    r.q = 100; r.u = 'درصد'; r.dq = r.pct;
+  });
+  return b;
+};
+
+// ---------- ۳) خط مبنا ----------
+async function kdLoadList(pid){
+  const r = await db.from('wbs_baselines').select('id,name,note,is_active,item_count,source,created_at,created_by_name').eq('project_id', pid).order('id', { ascending: false });
+  kdList[pid] = r.error ? [] : (r.data || []);
+}
+async function kdLoadActive(){
+  KX.bl = {}; const ids = projects.map(p => p.id); if(!ids.length) return;
+  const r = await db.from('wbs_baselines').select('id,project_id,name,created_at,snapshot').eq('is_active', true).in('project_id', ids);
+  if(r.error) return;
+  (r.data || []).forEach(b => { KX.bl[b.project_id] = { id: b.id, name: b.name, created_at: b.created_at, items: (b.snapshot && b.snapshot.items) || [] }; });
+}
+const _kdKL = window.kLoad;
+window.kLoad = async function(){ await _kdKL(); await kdLoadActive(); kApplyComputed(); updateProjTable(); };
+
+// برنامه‌ای پروژه از روی خط مبنای فعال (با همان روش وزن‌دهی پروژه)
+function kdBasePlanned(pid){
+  const B = KX.bl && KX.bl[pid]; if(!B) return null;
+  const L = B.items.filter(i => i.l).map((i, k) => ({ id: -(k + 1), project_id: pid, is_leaf: true, weight: +i.w || 0, planned_start: i.ps || null, planned_end: i.pe || null, qty: i.q || null, unit_price: i.p || null }));
+  if(!L.length) return null;
+  const W = kuWeights(L), roll = m => { let t = 0, p = 0; L.forEach(n => { const x = m[n.id] || 0; t += x; p += x * kLeafPlanned(n); }); return t > 0 ? p / t : 0; };
+  const r = { combined: roll(W.wc), financial: W.sA > 0 ? roll(W.wf) : roll(W.wm), time: W.sD > 0 ? roll(W.wt) : roll(W.wm), manual: roll(W.wm) };
+  r.sel = roll(W.use); r.name = B.name; return r;
+}
+const _kdPC = window.kProjCalc;
+window.kProjCalc = function(pid, nodes, asg){
+  const c = _kdPC(pid, nodes, asg); if(!c) return c;
+  const b = kdBasePlanned(pid);
+  if(b){ c.planned = b.sel; ['combined', 'financial', 'time', 'manual'].forEach(k => { if(c.modes[k]) c.modes[k].planned = b[k]; }); c.bl = b.name; }
+  return c;
+};
+
+// خلاصه بالای درخت: خط مبنا، غیرفعال‌ها، هشدار فعالیت‌های بدون حجم
+const _kdWS = window.kWbsSummary;
+window.kWbsSummary = function(nodes, asg, pid){
+  _kdWS(nodes, asg, pid); const el = $('kx-wbs-sum'); if(!el) return;
+  const pn = nodes.filter(n => n.project_id === pid); if(!pn.length) return;
+  const off = kdOffSet(pn), leaves = pn.filter(n => n.is_leaf), offN = leaves.filter(n => off.has(n.id)).length;
+  const noQ = leaves.filter(n => !off.has(n.id) && !(+n.qty > 0)).length, B = (KX.bl || {})[pid], list = kdList[pid] || [];
+  let h = '<div class="chart-box" style="padding:.7rem 1.1rem;margin-bottom:1rem"><div class="flex-center" style="gap:10px;flex-wrap:wrap"><b>📐 خط مبنا:</b>' +
+    (B ? '<span class="badge badge-green">فعال: ' + kesc(B.name) + '</span><small>(پیشرفت برنامه‌ای پروژه طبق همین خط مبنا محاسبه می‌شود)</small>' : '<span class="badge badge-gray">بدون خط مبنا (برنامه‌ای از تاریخ‌های فعلی)</span>') +
+    '<select onchange="kdSetView(' + pid + ',this.value)" style="padding:6px 10px;border:2px solid var(--line);border-radius:10px"><option value="">نمایش برنامه فعلی</option>' +
+    list.map(b => '<option value="' + b.id + '"' + (kdView && kdView.id === b.id ? ' selected' : '') + '>مقایسه با: ' + kesc(b.name) + (b.is_active ? ' (فعال)' : '') + '</option>').join('') + '</select>' +
+    (isAdmin() ? '<button class="btn btn-xs btn-gold" onclick="kdManage(' + pid + ')">📐 مدیریت خط مبنا</button>' : '') + '</div>';
+  if(offN) h += '<div class="weight-warning">⛔ ' + offN + ' فعالیت غیرفعال هستند و در هیچ محاسبه‌ای نیستند (ادمین می‌تواند دوباره فعال کند)</div>';
+  if(noQ) h += '<div class="weight-warning">⚠ ' + noQ + ' فعالیت حجم ندارند و با روش قدیمی (درصد کارشناس) حساب می‌شوند.' + (isAdmin() ? ' <button class="btn btn-xs btn-warn" onclick="kdMigrate(' + pid + ')">🔄 تبدیل به حجم (واحد درصد، حجم ۱۰۰)</button>' : '') + '</div>';
+  el.insertAdjacentHTML('beforeend', h + '</div>');
+};
+const _kdOW = window.openWbs;
+window.openWbs = async function(id){ await _kdOW(id); kdView = null; await kdLoadList(id); await kRefreshTree(id); };
+
+window.kdSetView = async function(pid, val){
+  if(!val) kdView = null;
+  else {
+    const r = await db.from('wbs_baselines').select('id,name,snapshot').eq('id', +val).maybeSingle(); if(!r.data){ alert('خط مبنا پیدا نشد'); return; }
+    const items = (r.data.snapshot && r.data.snapshot.items) || [], map = {}, agg = {};
+    items.forEach(i => {
+      map[i.c] = i;
+      if(i.l){ const p = i.c.split('.'); for(let k = 1; k < p.length; k++){ const pc = p.slice(0, k).join('.'), a = agg[pc] = agg[pc] || { ps: null, pe: null }; if(i.ps && (!a.ps || i.ps < a.ps)) a.ps = i.ps; if(i.pe && (!a.pe || i.pe > a.pe)) a.pe = i.pe; } }
+    });
+    kdView = { pid, id: r.data.id, name: r.data.name, map, agg };
+  }
+  kwDraw('wbs-tree');
+};
+async function kdAfter(pid){ await kdLoadList(pid); await kdLoadActive(); await kSyncProject(pid); await loadProjects(); await kRefreshTree(pid); kRefresh(); }
+async function kdActivateCore(pid, id){
+  let q = await db.from('wbs_baselines').update({ is_active: false }).eq('project_id', pid).eq('is_active', true); if(q.error) return q.error;
+  q = await db.from('wbs_baselines').update({ is_active: true }).eq('id', id); return q.error || null;
+}
+async function kdInsert(pid, name, note, act, items, src){
+  const r = await db.from('wbs_baselines').insert([{ project_id: pid, name, note: note || null, is_active: false, item_count: items.length, snapshot: { items }, source: src, created_by: CU.id, created_by_name: CU.name || CU.email }]).select('id').single();
+  if(r.error){ showMsg('kx-m-msg', 'خطا: ' + kesc(r.error.message) + ' (آیا SQL اجرا شده است؟)', 'err'); return false; }
+  logActivity('create', 'wbs_baselines', r.data.id, 'خط مبنا', null, { name: name + ' — ' + items.length + ' ردیف' });
+  if(act){ const e = await kdActivateCore(pid, r.data.id); if(e){ showMsg('kx-m-msg', 'ساخته شد ولی فعال‌سازی خطا داد: ' + kesc(e.message), 'err'); return false; } }
+  await kdAfter(pid); return true;
+}
+window.kdSaveCurrent = async function(pid){
+  const name = $('kd-name').value.trim(), note = $('kd-note').value.trim(), act = $('kd-act').checked;
+  if(!name){ showMsg('kx-m-msg', 'نام خط مبنا الزامی است.', 'err'); return; }
+  const nodes = await kEnsureCodes(pid), off = kdOffSet(nodes);
+  const items = nodes.filter(n => !off.has(n.id)).sort((a, b) => kCodeCmp(a.wbs_code, b.wbs_code))
+    .map(n => ({ c: n.wbs_code, t: n.title, l: n.is_leaf ? 1 : 0, w: +n.weight || 0, ps: n.planned_start || null, pe: n.planned_end || null, q: +n.qty || null, u: n.unit || null, p: +n.unit_price || null }));
+  if(!items.some(i => i.l)){ showMsg('kx-m-msg', 'WBS فعالیتی ندارد.', 'err'); return; }
+  if(await kdInsert(pid, name, note, act, items, 'current')) kdManage(pid);
+};
+window.kdUpload = async function(pid, inp){
+  const f = inp.files[0]; inp.value = ''; if(!f) return;
+  const name = $('kd-name').value.trim(), note = $('kd-note').value.trim(), act = $('kd-act').checked;
+  if(!name){ showMsg('kx-m-msg', 'ابتدا نام خط مبنا را بنویسید و دوباره فایل را انتخاب کنید.', 'err'); return; }
+  let aoa; try{ const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' }); }catch(e){ showMsg('kx-m-msg', 'فایل قابل خواندن نیست.', 'err'); return; }
+  const items = [], errs = [], seen = new Set();
+  aoa.slice(1).forEach((r, i) => {
+    const g = k => r[k] == null ? '' : r[k], ln = 'ردیف ' + (i + 2) + ': ', code = String(g(0)).trim(); if(!code) return;
+    if(!/^\d+(\.\d+)*$/.test(code)){ errs.push(ln + 'کد نامعتبر (' + code + ')'); return; }
+    if(seen.has(code)) errs.push(ln + 'کد تکراری ' + code); seen.add(code);
+    const t = String(g(1)).trim(); if(!t) errs.push(ln + 'عنوان خالی است');
+    const l = /فعالیت|leaf/i.test(String(g(2))), ps = kvDate(g(4)), pe = kvDate(g(5));
+    if(g(4) !== '' && !ps) errs.push(ln + 'تاریخ شروع نامعتبر'); if(g(5) !== '' && !pe) errs.push(ln + 'تاریخ پایان نامعتبر');
+    if((ps && +ps.slice(0, 4) < 1900) || (pe && +pe.slice(0, 4) < 1900)) errs.push(ln + 'تاریخ شمسی است؛ میلادی (YYYY-MM-DD) وارد کنید');
+    if(ps && pe && pe < ps) errs.push(ln + 'پایان قبل از شروع است');
+    const w = kuNum(g(3)), q = kuNum(g(10)), p = kuNum(g(12));
+    if([w, q, p].some(x => Number.isNaN(x) || (x != null && x < 0))) errs.push(ln + 'وزن/حجم/مبلغ نامعتبر');
+    items.push({ c: code, t, l: l ? 1 : 0, w: w || 0, ps, pe, q: q || null, u: String(g(11)).trim() || null, p: p || null });
+  });
+  const byC = {}; items.forEach(x => { byC[x.c] = x; });
+  items.forEach(x => { if(x.c.includes('.')){ const pc = x.c.slice(0, x.c.lastIndexOf('.')); if(!byC[pc]) errs.push('والد کد ' + x.c + ' (' + pc + ') در فایل نیست'); else if(byC[pc].l) errs.push('کد ' + pc + ' فعالیت است و زیرمجموعه ندارد'); } });
+  if(!items.some(x => x.l)) errs.push('هیچ ردیف «فعالیت» در فایل نیست');
+  if(errs.length){ showMsg('kx-m-msg', errs.slice(0, 12).map(kesc).join('<br>') + (errs.length > 12 ? '<br>… و ' + (errs.length - 12) + ' خطای دیگر' : ''), 'err'); return; }
+  if(!confirm(items.length + ' ردیف به‌عنوان خط مبنای «' + name + '» ذخیره شود؟')) return;
+  if(await kdInsert(pid, name, note, act, items, 'excel')) kdManage(pid);
+};
+window.kdActivate = async function(pid, id){
+  if(!confirm('این خط مبنا فعال شود؟ خط مبنای فعال فعلی در سوابق می‌ماند و برنامه‌ای پروژه از روی این یکی حساب می‌شود.')) return;
+  const e = await kdActivateCore(pid, id); if(e){ alert('خطا: ' + e.message); return; }
+  logActivity('update', 'wbs_baselines', id, 'فعال‌سازی خط مبنا', null, { name: 'فعال شد' });
+  await kdAfter(pid); kdManage(pid);
+};
+window.kdNone = async function(pid){
+  if(!confirm('خط مبنای فعال برداشته شود؟ برنامه‌ای پروژه از روی تاریخ‌های فعلی حساب می‌شود. خط مبناها در سوابق می‌مانند.')) return;
+  const q = await db.from('wbs_baselines').update({ is_active: false }).eq('project_id', pid).eq('is_active', true); if(q.error){ alert('خطا: ' + q.error.message); return; }
+  await kdAfter(pid); kdManage(pid);
+};
+window.kdExport = async function(id){
+  const r = await db.from('wbs_baselines').select('name,snapshot').eq('id', id).maybeSingle(); if(!r.data) return;
+  const rows = [['کد WBS', 'عنوان', 'نوع (گروه/فعالیت)', 'وزن دستی (٪)', 'شروع برنامه‌ای (YYYY-MM-DD)', 'پایان برنامه‌ای (YYYY-MM-DD)', '', '', '', '', 'حجم کل کار', 'واحد حجم', 'مبلغ واحد (ریال)', '']];
+  ((r.data.snapshot && r.data.snapshot.items) || []).forEach(i => rows.push([i.c, i.t, i.l ? 'فعالیت' : 'گروه', i.w || 0, i.ps || '', i.pe || '', '', '', '', '', i.q || '', i.u || '', i.p || '', '']));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Baseline'); XLSX.writeFile(wb, 'baseline_' + r.data.name + '.xlsx');
+};
+window.kdManage = async function(pid){
+  if(!isAdmin()) return;
+  await kdLoadList(pid); const list = kdList[pid] || [], P = allProjects.find(p => p.id === pid) || {};
+  kModal('📐 مدیریت خط مبنا — ' + (P.name || ''),
+    '<div class="msg msg-warn" style="text-align:right">خط مبنای فعال، مرجع «پیشرفت برنامه‌ای» پروژه است. در هر زمان فقط یکی فعال است؛ بقیه در سوابق می‌مانند و هر وقت خواستید فعال می‌شوند یا فقط برای مقایسه در درخت نمایش داده می‌شوند.</div>' +
+    '<div class="form-grid" style="margin-top:10px"><div class="fgs"><label>نام خط مبنا *</label><input id="kd-name" placeholder="مثال: برنامه اولیه قرارداد"></div><div class="fgs"><label>توضیح</label><input id="kd-note"></div></div>' +
+    '<label class="flex-center" style="margin-bottom:8px"><input type="checkbox" id="kd-act" checked style="width:18px;height:18px"> بعد از ساخت، فعال شود</label>' +
+    '<div class="flex-center" style="gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="btn btn-sm btn-red" onclick="kdSaveCurrent(' + pid + ')">💾 ذخیره وضعیت فعلی WBS به‌عنوان خط مبنا</button>' +
+    '<button class="btn btn-sm btn-navy" onclick="document.getElementById(\'kd-file\').click()">⬆ بارگذاری خط مبنا از اکسل</button><input type="file" id="kd-file" accept=".xlsx,.xls" style="display:none" onchange="kdUpload(' + pid + ',this)">' +
+    (list.some(b => b.is_active) ? '<button class="btn btn-sm btn-warn" onclick="kdNone(' + pid + ')">بدون خط مبنا</button>' : '') + '</div>' +
+    (list.length ? '<div class="table-wrap"><table><thead><tr><th>نام</th><th>تاریخ ثبت</th><th>ثبت‌کننده</th><th>ردیف</th><th>منبع</th><th>وضعیت</th><th></th></tr></thead><tbody>' +
+      list.map(b => '<tr><td><b>' + kesc(b.name) + '</b>' + (b.note ? '<br><small>' + kesc(b.note) + '</small>' : '') + '</td><td>' + new Date(b.created_at).toLocaleDateString('fa-IR') + '</td><td>' + kesc(b.created_by_name || '—') + '</td><td>' + (b.item_count || 0) + '</td><td>' + (b.source === 'excel' ? 'اکسل' : 'WBS فعلی') + '</td><td>' + (b.is_active ? '<span class="badge badge-green">فعال</span>' : '<span class="badge badge-gray">سابقه</span>') + '</td><td style="white-space:nowrap">' +
+        (b.is_active ? '' : '<button class="btn btn-xs btn-green" onclick="kdActivate(' + pid + ',' + b.id + ')">✓ فعال‌سازی</button> ') +
+        '<button class="btn btn-xs btn-sec" onclick="kdSetView(' + pid + ',' + b.id + ');kClose()">👁 مقایسه</button> <button class="btn btn-xs btn-sec" onclick="kdExport(' + b.id + ')">⬇</button></td></tr>').join('') + '</tbody></table></div>'
+      : '<div class="loading">هنوز خط مبنایی ثبت نشده است</div>'),
+    [{ label: 'بستن' }]);
+};
+</script>
    </body>
 </html>
