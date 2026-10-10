@@ -8517,5 +8517,149 @@ window.loadMyTasks = async function(){
   const tb = $('tasks-menu-badge'); if(tb){ const cur = tb.style.display === 'none' ? 0 : (parseInt(tb.textContent) || 0); tb.style.display = 'block'; tb.textContent = cur + rows.length; }
 };
 </script>
+   <script>
+// ============ افزونه KP: مدیر پروژه یکپارچه + ریست رمز ============
+
+// ---------- ۱) مدیر پروژه فقط از manager_id ----------
+window.kIsPM = function(pid){
+  if(!CU || CU.role !== 'manager') return false;
+  const p = allProjects.find(x => x.id === pid); if(!p) return false;
+  if(p.manager_id === CU.id) return true;
+  return ['edit', 'manage'].includes((KX.acc || {})[pid]);
+};
+window.kCanEditProj = pid => !!CU && (isAdmin() || window.kIsPM(pid));
+window.kCanApprove = pid => window.kCanEditProj(pid);
+
+// ---------- ۲) فرم پروژه: لیست مدیران و نام خودکار ----------
+function kpFillManagers(){
+  const sel = $('f-manager'); if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— بدون مدیر —</option>' +
+    allUsers.filter(u => u.approved && u.is_active !== false && ['manager', 'admin', 'superadmin'].includes(u.role))
+      .map(u => '<option value="' + u.id + '">' + kesc(u.name || u.email) + (u.job_title ? ' — ' + kesc(u.job_title) : '') + '</option>').join('');
+  sel.value = cur;
+}
+window.populateManagerSelect = kpFillManagers;
+const nmInp = $('f-manager-name');
+if(nmInp){
+  nmInp.readOnly = true; nmInp.placeholder = 'خودکار از مدیر انتخاب‌شده';
+  const lb = nmInp.closest('.fgs').querySelector('label'); if(lb) lb.textContent = 'نام مدیر پروژه (خودکار)';
+}
+$('f-manager').addEventListener('change', () => {
+  const u = allUsers.find(x => String(x.id) === $('f-manager').value);
+  $('f-manager-name').value = u ? (u.name || u.email) : '';
+});
+const _kpOEP = window.openEditProject;
+window.openEditProject = function(id){
+  _kpOEP(id);
+  if(CU && CU.role === 'manager') return;
+  kpFillManagers();
+  const p = allProjects.find(x => x.id === id);
+  if(p){
+    $('f-manager').value = p.manager_id || '';
+    const u = allUsers.find(x => x.id === p.manager_id);
+    $('f-manager-name').value = u ? (u.name || u.email) : (p.manager || '');
+  }
+};
+const _kpOAP = window.openAddProject;
+window.openAddProject = function(){ _kpOAP(); kpFillManagers(); $('f-manager').value = ''; $('f-manager-name').value = ''; };
+
+// ---------- ۳) ذخیره پروژه: همگام‌سازی مدیر، دسترسی و اعلان ----------
+const _kpSP = window.saveProject;
+window.saveProject = async function(){
+  if(!isAdmin()){ showMsg('add-msg', 'فقط ادمین می‌تواند پروژه را ذخیره کند.', 'err'); return; }
+  const editId = editingProjectId, old = editId ? allProjects.find(x => x.id === editId) : null;
+  const oldMgr = old ? (old.manager_id || null) : null, newMgr = $('f-manager').value ? +$('f-manager').value : null;
+  const u = allUsers.find(x => x.id === newMgr);
+  if(u && !['manager', 'admin', 'superadmin'].includes(u.role)){ showMsg('add-msg', 'فقط کاربر با نقش «مدیر پروژه» یا بالاتر می‌تواند مدیر شود.', 'err'); return; }
+  $('f-manager-name').value = u ? (u.name || u.email) : '';
+  await _kpSP();
+  if(!$('add-msg').textContent.includes('ذخیره شد')) return;   // خطا بود
+  let pid = editId;
+  if(!pid){
+    const code = $('f-code').value.trim();
+    const r = await db.from('projects').select('id').eq('code', code).order('id', { ascending: false }).limit(1).maybeSingle();
+    pid = r.data ? r.data.id : null;
+  }
+  if(!pid) return;
+  if(!u){ await db.from('projects').update({ manager: null, manager_id: null }).eq('id', pid); }
+  if(newMgr && newMgr !== oldMgr){
+    const ex = (await db.from('user_project_access').select('id').eq('user_id', newMgr).eq('project_id', pid)).data || [];
+    const q = ex.length ? await db.from('user_project_access').update({ access_level: 'manage' }).eq('id', ex[0].id)
+                        : await db.from('user_project_access').insert([{ user_id: newMgr, project_id: pid, access_level: 'manage' }]);
+    if(q.error) console.warn('manager access:', q.error.message);
+    const p = allProjects.find(x => x.id === pid);
+    await kNotify([newMgr], 'assign', 'شما مدیر پروژه شدید', (p ? (p.code ? p.code + ' — ' : '') + p.name : 'پروژه'), 'task:0');
+    if(oldMgr && oldMgr !== newMgr){
+      await kNotify([oldMgr], 'assign', 'مدیریت پروژه از شما برداشته شد', p ? p.name : 'پروژه', 'task:0');
+      const lv = (await db.from('user_project_access').select('access_level').eq('user_id', oldMgr).eq('project_id', pid)).data || [];
+      if(lv.length && ['edit', 'manage'].includes(lv[0].access_level))
+        alert('یادآوری: مدیر قبلی هنوز از طریق «🔑 دسترسی پروژه‌ها» سطح «' + lv[0].access_level + '» روی این پروژه دارد. اگر نباید دسترسی داشته باشد، از مدیریت کاربران ← 🔑 آن را به «مشاهده» یا حذف تغییر دهید.');
+    }
+  }
+  await loadProjects(); await kLoad(); kRefresh();
+};
+
+// ---------- ۴) همگام‌سازی مدیرانی که قبلاً دستی نوشته شده بودند ----------
+window.kpSync = async function(){
+  if(!isAdmin()) return;
+  const cand = allProjects.filter(p => !p.manager_id && p.manager && String(p.manager).trim());
+  if(!cand.length){ alert('پروژه‌ای با نام مدیر دستی و بدون مدیر سیستمی وجود ندارد.'); return; }
+  const norm = s => String(s || '').trim().replace(/\s+/g, ' '), pairs = [], miss = [];
+  cand.forEach(p => {
+    const m = allUsers.filter(u => u.approved && u.is_active !== false && ['manager', 'admin', 'superadmin'].includes(u.role) && norm(u.name) === norm(p.manager));
+    if(m.length === 1) pairs.push({ p, u: m[0] }); else miss.push(p.name + ' (' + p.manager + (m.length > 1 ? ' — چند کاربر هم‌نام' : ' — کاربر پیدا نشد') + ')');
+  });
+  if(!pairs.length){ alert('هیچ نامی با کاربر مدیر پروژه دقیقاً یکی نبود:\n' + miss.join('\n')); return; }
+  if(!confirm(pairs.length + ' پروژه همگام شود؟\n' + pairs.map(x => x.p.name + ' ← ' + x.u.name).join('\n') + (miss.length ? '\n\nقابل تطبیق نبود:\n' + miss.join('\n') : ''))) return;
+  for(const x of pairs){
+    await db.from('projects').update({ manager_id: x.u.id, manager: x.u.name }).eq('id', x.p.id);
+    const ex = (await db.from('user_project_access').select('id').eq('user_id', x.u.id).eq('project_id', x.p.id)).data || [];
+    if(ex.length) await db.from('user_project_access').update({ access_level: 'manage' }).eq('id', ex[0].id);
+    else await db.from('user_project_access').insert([{ user_id: x.u.id, project_id: x.p.id, access_level: 'manage' }]);
+  }
+  await loadProjects(); await kLoad(); kRefresh(); alert('✅ ' + pairs.length + ' پروژه همگام شد');
+};
+document.getElementById('export-csv-btn').insertAdjacentHTML('afterend', '<button class="btn btn-sec btn-sm" id="kp-sync-btn" style="display:none" onclick="kpSync()">🔧 همگام‌سازی مدیران</button>');
+const _kpRole = window.applyRoleUI;
+window.applyRoleUI = function(){ _kpRole(); const b = $('kp-sync-btn'); if(b) b.style.display = isAdmin() ? '' : 'none'; };
+
+// ---------- ۵) تغییر نقش کاربر: هشدار اگر مدیر پروژه‌ای است ----------
+const _kpSU = window.saveUser;
+window.saveUser = async function(){
+  const id = +$('um-id').value, role = $('um-role').value;
+  if(id && role !== 'manager' && role !== 'admin' && role !== 'superadmin'){
+    const owned = allProjects.filter(p => p.manager_id === id);
+    if(owned.length){
+      if(!confirm('این کاربر مدیر ' + owned.length + ' پروژه است (' + owned.map(p => p.name).join('، ') + ').\nبا تغییر نقش، مدیر آن پروژه‌ها برداشته می‌شود. ادامه؟')) return;
+      for(const p of owned) await db.from('projects').update({ manager_id: null, manager: null }).eq('id', p.id);
+    }
+  }
+  const r = await _kpSU(); await loadProjects(); return r;
+};
+
+// ---------- ۶) ریست رمز ----------
+window.kpReset = async function(id){
+  const u = allUsers.find(x => x.id === id); if(!u) return;
+  if(!(isSA() || (isAdmin() && ['user', 'manager'].includes(u.role)))){ alert('اجازه ریست رمز این کاربر را ندارید. فقط سوپر ادمین می‌تواند رمز ادمین‌ها و مدیران ارشد را ریست کند.'); return; }
+  if(u.id === CU.id){ alert('رمز خودتان را از دکمه «🔑 تغییر رمز» بالای صفحه عوض کنید.'); return; }
+  if(!confirm('رمز «' + (u.name || u.email) + '» به رمز پیش‌فرض (۱۲۳۴۵۶۷۸) برگردد؟\nنام کاربری (ایمیل / کد پرسنلی) همان می‌ماند و در اولین ورود باید رمز جدید بگذارد.')) return;
+  const r = await db.from('users').update({ password: '12345678', must_change_password: true }).eq('id', id);
+  if(r.error){ alert('خطا: ' + r.error.message); return; }
+  logActivity('update', 'users', id, 'ریست رمز به پیش‌فرض', null, { name: u.name || u.email });
+  await kNotify([id], 'assign', 'رمز شما ریست شد', 'در ورود بعدی رمز جدید انتخاب کنید', 'task:0');
+  alert('✅ رمز ریست شد.\nنام کاربری: ' + (u.personnel_id || u.email) + '\nرمز موقت: 12345678');
+};
+const _kpLAU = window.loadAdminUsers;
+window.loadAdminUsers = async function(){
+  await _kpLAU();
+  document.querySelectorAll('#approved-list .admin-card').forEach(card => {
+    const m = (card.innerHTML.match(/openEditUser\((\d+)\)/) || [])[1]; if(!m) return;
+    const act = card.querySelector('.admin-actions'); if(!act || act.querySelector('.kp-reset')) return;
+    const u = allUsers.find(x => x.id === +m); if(!u || !(isSA() || ['user', 'manager'].includes(u.role))) return;
+    act.insertAdjacentHTML('afterbegin', '<button class="btn btn-xs btn-icon warn kp-reset" title="ریست رمز به پیش‌فرض (۱۲۳۴۵۶۷۸)" onclick="kpReset(' + m + ')">♻🔐</button>');
+  });
+};
+</script>
    </body>
 </html>
