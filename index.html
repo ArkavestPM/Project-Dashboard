@@ -8385,5 +8385,137 @@ window.kParseWbsFile = async function(f, pid){
   return b;
 };
 </script>
+   <script>
+// ============ افزونه KQ: تایید فعالیت حجمی بدون ارجاع، صد درصد خودکار با ورود اکسل ادمین/مدیر ============
+const kqReady = n => n.is_leaf && !n.manager_approved && n.is_active !== false && +n.qty > 0 && (+n.done_qty || 0) >= +n.qty - 1e-9;
+const kqCap = d => (d && d > kToday()) ? kToday() : d;
+
+// ثبت تایید نهایی (با یا بدون کارشناس ارجاع‌شده)
+async function kqDoApprove(n, s, e, quiet){
+  const now = new Date().toISOString(); s = kqCap(s) || kToday(); e = kqCap(e) || kToday(); if(e < s) e = s;
+  const r = await db.from('wbs_nodes').update({ manager_approved: true, manager_approved_at: now, manager_approved_by: CU.id, actual_start: s, actual_end: e }).eq('id', n.id);
+  if(r.error) return r.error;
+  const as = (await db.from('wbs_assignments').select('*').eq('node_id', n.id).order('id')).data || [];
+  for(let i = 0; i < as.length; i++){
+    const u = { done_percent: 100, confirmed_by_user: true, user_done_at: now, started_at: s };
+    if(i === 0){ u.confirmed_by_manager = true; u.confirmed_at = new Date(e + 'T12:00:00').toISOString(); if(isAdmin()){ u.admin_confirmed = true; u.admin_confirmed_at = now; u.admin_confirmed_by = CU.id; } }
+    const q = await db.from('wbs_assignments').update(u).eq('id', as[i].id); if(q.error) return q.error;
+  }
+  if(!quiet){
+    if(as.length) await kNotify(as.map(a => a.user_id), 'approved', 'فعالیت شما تایید نهایی شد', n.title, 'task:' + n.id);
+    if(!isAdmin()) await kNotifyAdmins('final', 'فعالیت برای ثبت نهایی تاریخ واقعی', '«' + n.title + '» تایید مدیر شد');
+  }
+  return null;
+}
+async function kqAfter(pid){ await kSyncProject(pid); await loadProjects(); await kRefreshTree(pid); kRefresh(); if($('tab-tasks').classList.contains('active')) loadMyTasks(); }
+
+// ---------- ۱) تایید مدیر: دیگر ارجاع لازم نیست (فعالیت حجمی یا ارجاع‌شده) ----------
+window.kApproveNode = async function(nid){
+  if(await kdIsOff(nid)){ alert('این فعالیت (یا گروه والد آن) غیرفعال است. ابتدا آن را فعال کنید.'); return; }
+  const n = (await db.from('wbs_nodes').select('*').eq('id', nid).maybeSingle()).data; if(!n) return;
+  if(!kCanApprove(n.project_id)){ alert('فقط مدیر همین پروژه یا ادمین می‌تواند تایید کند.\nادمین باید در ویرایش پروژه، «مدیر پروژه (سیستمی)» را روی نام شما بگذارد یا در مدیریت کاربران ← 🔑 سطح «ویرایش» بدهد.'); return; }
+  if(n.manager_approved){ alert('این فعالیت قبلاً تایید شده است.'); return; }
+  const as = (await db.from('wbs_assignments').select('*').eq('node_id', nid).order('id')).data || [];
+  if(!as.length && !(+n.qty > 0 && +n.done_qty > 0)){ alert('این فعالیت نه به کسی ارجاع شده و نه حجم انجام‌شده دارد.'); return; }
+  const incomplete = (+n.qty > 0) ? (+n.done_qty || 0) < +n.qty - 1e-9 : as.some(a => (+a.done_percent || 0) < 100);
+  if(incomplete && !confirm('کار هنوز ۱۰۰٪ اعلام نشده است. با این حال تایید نهایی (۱۰۰٪) انجام شود؟')) return;
+  const starts = as.map(a => a.started_at).filter(Boolean).sort();
+  const commit = async (s, e) => {
+    const err = await kqDoApprove(n, s, e, false);
+    if(err){ showMsg('kx-m-msg', 'خطا: ' + err.message, 'err'); return false; }
+    await kqAfter(n.project_id);
+  };
+  kModal('✅ تایید نهایی و ثبت تاریخ واقعی — ' + n.title,
+    '<div style="margin-bottom:10px">تاریخ برنامه‌ای: <b>' + fmtDate(n.planned_start) + '</b> تا <b>' + fmtDate(n.planned_end) + '</b></div>' +
+    '<div class="form-grid"><div class="fgs"><label>شروع واقعی</label><input type="date" id="kap-s" value="' + (n.actual_start || starts[0] || n.planned_start || '') + '"></div><div class="fgs"><label>پایان واقعی</label><input type="date" id="kap-e" value="' + (n.actual_end || kToday()) + '"></div></div>',
+    [{ label: 'انصراف' },
+     { label: '📅 تاریخ برنامه‌ای را به‌عنوان واقعی ثبت کن', cls: 'btn-gold', fn: () => {
+        if(!n.planned_start || !n.planned_end){ showMsg('kx-m-msg', 'این فعالیت تاریخ برنامه‌ای کامل ندارد.', 'err'); return false; }
+        return commit(n.planned_start, n.planned_end); } },
+     { label: '✓ تایید با تاریخ واقعی', cls: 'btn-red', fn: () => {
+        const s = $('kap-s').value, e = $('kap-e').value;
+        if(!s || !e || e < s){ showMsg('kx-m-msg', 'تاریخ‌ها معتبر نیست.', 'err'); return false; }
+        return commit(s, e); } }]);
+};
+
+// ---------- ۲) دکمه تایید در درخت WBS حتی بدون ارجاع ----------
+const _kqRow = window.kwRow;
+window.kwRow = function(n, C, T, t){
+  let h = _kqRow(n, C, T, t); if(!h || !n.is_leaf) return h;
+  const myA = C.by[n.id] || [];
+  if(!myA.length && kqReady(n) && kCanApprove(T.pid)){
+    const m = '<div class="kx-acts" onclick="event.stopPropagation()">';
+    h = h.replace(m, m + '<span class="badge badge-blue">حجم کامل — منتظر تایید مدیر</span><button class="btn btn-xs btn-red" onclick="kApproveNode(' + n.id + ')">✓ تایید مدیر</button>');
+  }
+  return h;
+};
+
+// ---------- ۳) تایید گروهی فعالیت‌های کامل‌شده (برای فعالیت‌هایی که الان روی ۸۰٪ مانده‌اند) ----------
+const _kqWS = window.kWbsSummary;
+window.kWbsSummary = function(nodes, asg, pid){
+  _kqWS(nodes, asg, pid); const el = $('kx-wbs-sum'); if(!el || !kCanApprove(pid)) return;
+  const pn = nodes.filter(n => n.project_id === pid), off = kdOffSet(pn), ready = pn.filter(n => kqReady(n) && !off.has(n.id));
+  if(!ready.length) return;
+  el.insertAdjacentHTML('beforeend', '<div class="weight-warning" style="background:var(--blue-bg);border-color:#b9d3f3;color:#1f4f8f">✓ ' + ready.length + ' فعالیت حجمشان کامل شده و روی ۸۰٪ منتظر تایید مدیر هستند. <button class="btn btn-xs btn-red" onclick="kqBulk(' + pid + ')">تایید همه (۱۰۰٪)</button></div>');
+};
+window.kqBulk = async function(pid){
+  if(!kCanApprove(pid)){ alert('اجازه تایید ندارید.'); return; }
+  await loadWbsForProject(pid);
+  const pn = wbsNodes.filter(n => n.project_id === pid), off = kdOffSet(pn), list = pn.filter(n => kqReady(n) && !off.has(n.id));
+  if(!list.length){ alert('فعالیتی برای تایید نیست.'); return; }
+  const run = mode => async () => {
+    for(const n of list){
+      const s = n.actual_start || n.planned_start || kToday();
+      const e = mode === 'planned' ? (n.planned_end || kToday()) : kToday();
+      const err = await kqDoApprove(n, String(s).slice(0, 10), String(e).slice(0, 10), true);
+      if(err){ showMsg('kx-m-msg', 'خطا: ' + err.message, 'err'); return false; }
+    }
+    await kqAfter(pid); alert('✅ ' + list.length + ' فعالیت تایید نهایی شد');
+  };
+  kModal('✓ تایید گروهی — ' + list.length + ' فعالیت',
+    '<div class="msg msg-warn" style="text-align:right">تاریخ واقعی هر فعالیت را چطور ثبت کنم؟ (تاریخ آینده به امروز محدود می‌شود)</div>' +
+    '<div style="max-height:200px;overflow:auto;margin-top:8px;font-size:12px">' + list.slice(0, 40).map(n => '• ' + kesc((n.wbs_code || '') + ' ' + n.title)).join('<br>') + (list.length > 40 ? '<br>… و ' + (list.length - 40) + ' مورد دیگر' : '') + '</div>',
+    [{ label: 'انصراف' },
+     { label: 'شروع/پایان = تاریخ برنامه‌ای', cls: 'btn-gold', fn: run('planned') },
+     { label: 'شروع = ثبت‌شده یا برنامه‌ای، پایان = امروز', cls: 'btn-red', fn: run('today') }]);
+};
+
+// ---------- ۴) ورود اکسل توسط ادمین / مدیر پروژه: حجم کامل = ۱۰۰٪ ----------
+const _kqA = window.kWbsApply;
+window.kWbsApply = async function(pid, rows){
+  const err = await _kqA(pid, rows); if(err) return err;
+  const todo = rows.filter(r => r.is_leaf && r.dq != null);
+  if(!todo.length) return null;
+  await loadWbsForProject(pid);
+  const off = kdOffSet(wbsNodes.filter(n => n.project_id === pid)); let c = 0;
+  for(const r of todo){
+    const n = wbsNodes.find(x => x.project_id === pid && x.wbs_code === r.code);
+    if(!n || off.has(n.id) || !kqReady(n)) continue;
+    const s = r.as || n.actual_start || n.planned_start || kToday(), e = r.ae || n.actual_end || kToday();
+    const er = await kqDoApprove(n, String(s).slice(0, 10), String(e).slice(0, 10), true); if(er) return er; c++;
+  }
+  if(c){ await kSyncProject(pid); await loadProjects(); }
+  return null;
+};
+
+// ---------- ۵) «وظایف من» مدیر/ادمین: فعالیت‌های حجمی کامل‌شده بدون ارجاع ----------
+const _kqLMT = window.loadMyTasks;
+window.loadMyTasks = async function(){
+  await _kqLMT(); if(!CU || !(CU.role === 'manager' || isAdmin())) return;
+  const off = kdOffSet(KX.nodes);
+  const rows = KX.nodes.filter(n => kqReady(n) && !off.has(n.id) && kCanApprove(n.project_id) && !KX.asg.some(a => a.node_id === n.id && (+a.done_percent || 0) > 0));
+  if(!rows.length) return;
+  const byP = {}; rows.forEach(n => { (byP[n.project_id] = byP[n.project_id] || []).push(n); });
+  let h = '<h3 style="font-size:14px;color:var(--navy);margin:1.2rem 0 .6rem">📏 حجم کامل‌شده — منتظر تایید مدیر (' + rows.length + ')</h3>';
+  Object.keys(byP).forEach(pid => {
+    const p = allProjects.find(x => x.id === +pid);
+    h += '<div class="flex-between" style="margin-bottom:6px"><b>📁 ' + kesc(p ? p.name : '') + '</b><button class="btn btn-xs btn-red" onclick="kqBulk(' + pid + ')">✓ تایید همه این پروژه</button></div>' +
+      byP[pid].map(n => '<div class="act-card partial"><div class="flex-between"><b style="color:var(--navy)">' + kesc((n.wbs_code || '') + ' ' + n.title) + '</b><span class="badge badge-blue">' + kuQ(n.done_qty) + ' از ' + kuQ(n.qty) + ' ' + kesc(n.unit || '') + '</span></div>' +
+        '<div style="font-size:12px;color:var(--muted);margin:6px 0">📅 ' + fmtDate(n.planned_start) + ' → ' + fmtDate(n.planned_end) + '</div><button class="btn btn-red btn-sm" onclick="kApproveNode(' + n.id + ')">✓ تایید نهایی (۱۰۰٪)</button></div>').join('');
+  });
+  $('tasks-list').insertAdjacentHTML('beforeend', h);
+  const tb = $('tasks-menu-badge'); if(tb){ const cur = tb.style.display === 'none' ? 0 : (parseInt(tb.textContent) || 0); tb.style.display = 'block'; tb.textContent = cur + rows.length; }
+};
+</script>
    </body>
 </html>
