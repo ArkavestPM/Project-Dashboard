@@ -8181,5 +8181,101 @@ window.kdManage = async function(pid){
     [{ label: 'بستن' }]);
 };
 </script>
+   <script>
+// ============ افزونه KT: راهنمای شناور (tooltip) برای همه دکمه‌های آیکونی ============
+(function(){
+  // ۱) بر اساس تابعی که دکمه صدا می‌زند (دقیق‌ترین روش)
+  const BY_FN = [
+    ['openEditNode', 'ویرایش فعالیت / گروه (عنوان، تاریخ، حجم، مبلغ)'],
+    ['deleteWbsNode', 'حذف این گره و همه زیرمجموعه‌هایش'],
+    ['openAddChildNode', 'افزودن زیرمجموعه'],
+    ['kdToggle', t => /♻|✅/.test(t) ? 'فعال‌سازی دوباره (وارد محاسبات شود)' : 'غیرفعال‌سازی (از محاسبات خارج شود، بدون حذف اطلاعات)'],
+    ['kbEdit', 'ویرایش شماره و نام خط مبنا'],
+    ['kbDelete', 'حذف دائمی خط مبنا'],
+    ['kdSetView', 'نمایش / مقایسه با این خط مبنا در درخت WBS'],
+    ['kdExport', 'خروجی اکسل این خط مبنا'],
+    ['openEditProject', 'ویرایش پروژه'],
+    ['toggleProjectActive', t => /✅/.test(t) ? 'فعال‌سازی پروژه' : 'غیرفعال‌سازی پروژه'],
+    ['deleteProject', 'حذف پروژه و همه داده‌های مرتبط'],
+    ['openWbs', 'مشاهده ساختار شکست کار (WBS)'],
+    ['openProjectDetail', 'جزئیات کامل پروژه'],
+    ['openEditTeam', 'ویرایش عضو تیم'], ['deleteTeam', 'حذف عضو تیم'],
+    ['openEditRisk', 'ویرایش ریسک'], ['deleteRisk', 'حذف ریسک'],
+    ['openEditWeekly', 'ویرایش گزارش هفتگی'], ['deleteWeekly', 'حذف گزارش هفتگی'],
+    ['deleteMonthly', 'حذف گزارش ماهانه'], ['deleteWorklog', 'حذف کارکرد'],
+    ['openEditUnit', 'ویرایش واحد'], ['deleteUnit', 'حذف واحد'],
+    ['openEditCategory', 'ویرایش دسته‌بندی'], ['deleteCategory', 'حذف دسته‌بندی'],
+    ['openAccessManager', 'مدیریت دسترسی به پروژه‌ها'],
+    ['openChangeUserPassword', 'تغییر رمز این کاربر'],
+    ['openEditUser', 'ویرایش کاربر (نام، سمت، نقش)'],
+    ['toggleUserActive', t => /✅/.test(t) ? 'فعال‌سازی کاربر' : 'غیرفعال‌سازی کاربر'],
+    ['deleteUser', 'حذف کاربر'],
+    ['kwDayHours', 'ثبت / ویرایش ساعت کارکرد آن روز'],
+    ['kwMDel', 'حذف درخواست ماموریت / جلسه'],
+    ['kNotifToggle', 'تغییر وضعیت خوانده / ناخوانده'], ['kNotifDel', 'حذف این اعلان'],
+    ['kBell', 'اعلان‌ها'],
+    ['removeFileAttachment', 'حذف فایل ضمیمه'],
+    ['sendChatMessage', 'ارسال پیام'],
+    ['kAsgRows.splice', 'حذف این کارشناس از ارجاع'],
+    ['kDelayHistory', 'سابقه و پیگیری تاخیر'],
+    ['openNewGroupModal', 'ساخت گروه جدید']
+  ];
+  // تایید / رد بر اساس پارامتر
+  const APPROVE_FN = ['kReviewCR', 'kWReview', 'kwMReview', 'reviewWbsRequest'];
+
+  // ۲) بر اساس خود آیکون (وقتی تابع شناخته‌شده نبود)
+  const BY_SYM = [
+    ['✏', 'ویرایش'], ['✎', 'ویرایش'], ['🗑', 'حذف'], ['👁', 'نمایش'], ['🙈', 'پنهان کردن'],
+    ['⬇', 'دریافت خروجی'], ['⬆', 'بارگذاری فایل'], ['×', 'بستن'], ['✕', 'حذف / بستن'], ['✗', 'رد'],
+    ['✓', 'تایید'], ['🔑', 'دسترسی‌ها'], ['🔐', 'تغییر رمز'], ['🚫', 'غیرفعال‌سازی'], ['✅', 'فعال‌سازی / تایید'],
+    ['♻', 'فعال‌سازی دوباره'], ['↩', 'برگرداندن'], ['📎', 'پیوست فایل'], ['📤', 'ارسال'], ['🔄', 'بروزرسانی'],
+    ['➕', 'افزودن'], ['⚖', 'تقسیم مساوی / نرمال‌سازی'], ['🧹', 'پاکسازی'], ['▶', 'شروع'], ['💬', 'کامنت'],
+    ['🏗', 'ساختار WBS'], ['👥', 'ارجاع به کارشناس'], ['📏', 'ثبت حجم'], ['📅', 'ثبت'], ['🔔', 'اعلان‌ها'],
+    ['📜', 'سابقه'], ['⏳', 'تمدید زمان'], ['👤', 'کارشناس'], ['📐', 'خط مبنا']
+  ];
+
+  const HAS_WORD = /[A-Za-z\u0600-\u06FF0-9]/;
+
+  function tipFor(el){
+    const text = (el.textContent || '').trim();
+    if(HAS_WORD.test(text)) return null;              // دکمه متن دارد؛ نیازی به راهنما نیست
+    const oc = el.getAttribute('onclick') || '';
+    // تایید / رد
+    if(APPROVE_FN.some(f => oc.includes(f + '('))){
+      if(/,\s*true\s*\)|'approved'/.test(oc)) return 'تایید';
+      if(/,\s*false\s*\)|'rejected'/.test(oc)) return 'رد';
+    }
+    for(const [fn, lab] of BY_FN){
+      if(oc.includes(fn + '(') || oc.includes(fn)) return typeof lab === 'function' ? lab(text) : lab;
+    }
+    if(el.classList.contains('modal-close')) return 'بستن';
+    if(el.classList.contains('password-toggle')) return text.includes('🙈') ? 'پنهان کردن رمز' : 'نمایش رمز';
+    for(const [s, lab] of BY_SYM){ if(text.includes(s)) return lab; }
+    return null;
+  }
+
+  function apply(root){
+    (root || document).querySelectorAll('button, .password-toggle').forEach(el => {
+      if(el.title && !el.dataset.kt) return;          // title دستی را دست نزن
+      const t = tipFor(el);
+      if(t){ el.title = t; el.dataset.kt = '1'; }
+    });
+    // وقتی سایدبار کوچک شده فقط آیکون دیده می‌شود
+    document.querySelectorAll('.sb-link').forEach(el => {
+      if(el.title) return;
+      const sp = el.querySelectorAll('span'); const lab = sp[1] ? sp[1].textContent.trim() : '';
+      if(lab){ el.title = lab; el.dataset.kt = '1'; }
+    });
+  }
+
+  let pending = false;
+  const obs = new MutationObserver(() => {
+    if(pending) return; pending = true;
+    requestAnimationFrame(() => { pending = false; apply(); });
+  });
+  obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+  apply();
+})();
+</script>
    </body>
 </html>
