@@ -8661,5 +8661,119 @@ window.loadAdminUsers = async function(){
   });
 };
 </script>
+   <script>
+// ============ افزونه KO: «مدیریت» = مدیر پروژه، فقط یک نفر برای هر پروژه ============
+const koMgrRole = u => u && ['manager', 'admin', 'superadmin'].includes(u.role);
+
+// ---------- ۱) ذخیره دسترسی کاربر: همگام‌سازی با مدیر پروژه ----------
+window.saveProjectAccess = async function(){
+  const userId = +$('access-user-id').value; if(!userId) return;
+  const user = allUsers.find(u => u.id === userId);
+  const wanted = [];
+  document.querySelectorAll('.access-project-item').forEach(item => {
+    const cb = item.querySelector('.project-access-check'), sel = item.querySelector('.access-level-select');
+    if(cb.checked) wanted.push({ user_id: userId, project_id: +cb.dataset.projectId, access_level: sel.value });
+  });
+  const oldRows = (await db.from('user_project_access').select('project_id,access_level').eq('user_id', userId)).data || [];
+  const oldManage = new Set(oldRows.filter(r => r.access_level === 'manage').map(r => r.project_id));
+  const newManage = wanted.filter(w => w.access_level === 'manage').map(w => w.project_id);
+  const gained = newManage.filter(p => !oldManage.has(p));
+  const lost = [...oldManage].filter(p => !newManage.includes(p));
+
+  // اعتبارسنجی
+  if(gained.length && !koMgrRole(user)){
+    showMsg('access-msg', 'سطح «مدیریت» فقط برای کاربر با نقش «مدیر پروژه» یا بالاتر مجاز است. ابتدا نقش او را عوض کنید.', 'err'); return;
+  }
+  for(const pid of gained){
+    const p = allProjects.find(x => x.id === pid);
+    if(p && p.manager_id && p.manager_id !== userId){
+      const cur = allUsers.find(u => u.id === p.manager_id);
+      showMsg('access-msg', 'پروژه «' + kesc(p.name) + '» همین حالا مدیر دارد (' + kesc(cur ? (cur.name || cur.email) : '—') + '). ابتدا مدیر فعلی را بردارید (در فرم پروژه «— بدون مدیر —» یا تغییر سطح او از «مدیریت»)، سپس مدیر جدید را انتخاب کنید.', 'err'); return;
+    }
+  }
+  if(newManage.length !== new Set(newManage).size){ showMsg('access-msg', 'خطا در انتخاب‌ها.', 'err'); return; }
+
+  // ذخیره دسترسی‌ها
+  let q = await db.from('user_project_access').delete().eq('user_id', userId); if(q.error){ showMsg('access-msg', 'خطا: ' + q.error.message, 'err'); return; }
+  if(wanted.length){ q = await db.from('user_project_access').insert(wanted); if(q.error){ showMsg('access-msg', 'خطا: ' + q.error.message, 'err'); return; } }
+
+  // همگام‌سازی مدیر پروژه
+  const nm = user ? (user.name || user.email) : null;
+  for(const pid of gained){
+    await db.from('projects').update({ manager_id: userId, manager: nm }).eq('id', pid);
+    const p = allProjects.find(x => x.id === pid);
+    await kNotify([userId], 'assign', 'شما مدیر پروژه شدید', (p ? (p.code ? p.code + ' — ' : '') + p.name : 'پروژه'), 'task:0');
+  }
+  for(const pid of lost){
+    const p = allProjects.find(x => x.id === pid);
+    if(p && p.manager_id === userId){
+      await db.from('projects').update({ manager_id: null, manager: null }).eq('id', pid);
+      await kNotify([userId], 'assign', 'مدیریت پروژه از شما برداشته شد', p.name, 'task:0');
+    }
+  }
+  // اگر خودِ ادمین دسترسی خودش را عوض کرده باشد
+  await loadProjects(); await kLoad(); kRefresh();
+  showMsg('access-msg', '✅ ذخیره شد!' + (gained.length ? ' (مدیر پروژه: ' + gained.length + ' پروژه)' : ''), 'ok');
+  setTimeout(() => closeModal('access-modal'), 1000);
+};
+
+// ---------- ۲) فرم دسترسی: نمایش مدیر فعلی هر پروژه و جلوگیری از تیک مدیریت دوم ----------
+const _koOAM = window.openAccessManager;
+window.openAccessManager = async function(userId){
+  await _koOAM(userId);
+  document.querySelectorAll('.access-project-item').forEach(item => {
+    const cb = item.querySelector('.project-access-check'), sel = item.querySelector('.access-level-select'); if(!cb || !sel) return;
+    const p = allProjects.find(x => x.id === +cb.dataset.projectId); if(!p) return;
+    const other = p.manager_id && p.manager_id !== userId ? allUsers.find(u => u.id === p.manager_id) : null;
+    if(other){
+      const opt = [...sel.options].find(o => o.value === 'manage');
+      if(opt){ opt.disabled = true; opt.textContent = '⚙️ مدیریت (مدیر: ' + (other.name || other.email) + ')'; }
+      if(sel.value === 'manage') sel.value = 'edit';
+    } else if(p.manager_id === userId){
+      item.insertAdjacentHTML('beforeend', '<span class="badge badge-green">مدیر فعلی</span>');
+    }
+  });
+};
+
+// ---------- ۳) فرم پروژه: مدیر دیگری که مدیر فعلی است رد شود ----------
+const _koSP = window.saveProject;
+window.saveProject = async function(){
+  const editId = editingProjectId, old = editId ? allProjects.find(x => x.id === editId) : null;
+  const newMgr = $('f-manager').value ? +$('f-manager').value : null;
+  if(old && old.manager_id && newMgr && old.manager_id !== newMgr){
+    const cur = allUsers.find(u => u.id === old.manager_id);
+    showMsg('add-msg', 'این پروژه مدیر دارد (' + kesc(cur ? (cur.name || cur.email) : '—') + '). ابتدا «— بدون مدیر —» را انتخاب و ذخیره کنید، سپس مدیر جدید را انتخاب کنید.', 'err'); return;
+  }
+  const r = await _koSP();
+  // مدیر قبلی برداشته شد: سطح «مدیریت» او هم برداشته شود تا دو منبع حقیقت نداشته باشیم
+  if(old && old.manager_id && !newMgr){
+    await db.from('user_project_access').update({ access_level: 'edit' }).eq('user_id', old.manager_id).eq('project_id', old.id).eq('access_level', 'manage');
+    await loadProjects(); await kLoad();
+  }
+  return r;
+};
+
+// ---------- ۴) همگام‌سازی: هر پروژه با چند «مدیریت» ----------
+const _koSync = window.kpSync;
+window.kpSync = async function(){
+  if(!isAdmin()) return;
+  const rows = (await db.from('user_project_access').select('user_id,project_id').eq('access_level', 'manage')).data || [], by = {};
+  rows.forEach(r => { (by[r.project_id] = by[r.project_id] || []).push(r.user_id); });
+  const fix = [], conflict = [];
+  Object.keys(by).forEach(pid => {
+    const p = allProjects.find(x => x.id === +pid); if(!p) return;
+    const mgrs = by[pid].filter(uid => koMgrRole(allUsers.find(u => u.id === uid)));
+    if(p.manager_id && mgrs.includes(p.manager_id)){ if(mgrs.length > 1) conflict.push(p.name + ': چند نفر «مدیریت» دارند'); return; }
+    if(!p.manager_id && mgrs.length === 1) fix.push({ p, uid: mgrs[0] });
+    else if(mgrs.length > 1) conflict.push(p.name + ': چند نفر «مدیریت» دارند، دستی تعیین کنید');
+  });
+  if(fix.length && confirm(fix.length + ' پروژه که «مدیریت» دارند ولی مدیر ثبت‌نشده‌اند، مدیرشان تنظیم شود؟\n' + fix.map(x => x.p.name + ' ← ' + kwUN(x.uid)).join('\n'))){
+    for(const x of fix) await db.from('projects').update({ manager_id: x.uid, manager: kwUN(x.uid) }).eq('id', x.p.id);
+    await loadProjects(); await kLoad(); kRefresh();
+  }
+  if(conflict.length) alert('نیاز به بررسی دستی:\n' + conflict.join('\n'));
+  await _koSync();
+};
+</script>
    </body>
 </html>
