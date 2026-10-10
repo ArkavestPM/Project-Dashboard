@@ -8356,5 +8356,34 @@ window.saveWbsNode = async function(){
   return _ksSN();
 };
 </script>
+   <script>
+// ============ افزونه KR: صفر یعنی خالی (حجم انجام‌شده) ============
+const _krPW = window.kParseWbsFile;
+window.kParseWbsFile = async function(f, pid){
+  const b = await _krPW(f, pid); if(!b) return b;
+  let aoa; try{ const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' }); }catch(e){ return b; }
+
+  // ۱) همه خطاهای «حجم انجام‌شده وارد شده ولی حجم کل ندارد» پاک شوند (برای صفر نباید باشند)
+  b.errs = b.errs.filter(e => !e.includes('حجم انجام‌شده وارد شده ولی حجم کل ندارد') && !e.includes('حجم انجام‌شده (') || e.includes('بیشتر از حجم کل'));
+
+  // ۲) فقط اگر حجم انجام‌شده واقعاً بزرگ‌تر از صفر بود و حجم کل صفر/خالی، خطا بده
+  aoa.slice(1).forEach((r, i) => {
+    const code = String(r[0]).trim(); if(!code) return;
+    const row = b.rows.find(x => x.code === code); if(!row || !row.is_leaf) return;
+    const q = kuNum(r[10]), dq = kuNum(r[13]);
+    const ex = wbsNodes.find(n => n.project_id === pid && n.wbs_code === code);
+    const effQ = (r[10] === '' || r[10] == null) ? (ex ? +ex.qty || 0 : 0) : q;
+    if(dq > 0 && !(effQ > 0)){
+      const ln = 'ردیف ' + (i + 2) + ' (کد ' + code + '): ';
+      b.errs.push(ln + 'حجم انجام‌شده (' + dq + ') وارد شده ولی حجم کل صفر یا خالی است؛ ورود ممکن نیست.');
+    }
+    // حجم انجام‌شده صفر = خالی: روی فعالیت بدون حجم کل، تغییری اعمال نشود
+    if(dq === 0 && !(effQ > 0)) row.dq = null;
+    // حجم کل صفر: نگه داشته شود برای ذخیره صریح
+    if(q === 0) row.q0 = true;
+  });
+  return b;
+};
+</script>
    </body>
 </html>
