@@ -8277,5 +8277,84 @@ window.kdManage = async function(pid){
   apply();
 })();
 </script>
+   <script>
+// ============ افزونه KS: حجم کل صفر + مبلغ واحد (برای کار آینده) ============
+
+// ---------- ۱) ورود اکسل ----------
+const _ksPW = window.kParseWbsFile;
+window.kParseWbsFile = async function(f, pid){
+  const b = await _ksPW(f, pid); if(!b) return b;
+  let aoa; try{ const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' }); }catch(e){ return b; }
+
+  // خطای قدیمی «مبلغ واحد وارد شده ولی حجم کل ندارد» دیگر خطا نیست
+  b.errs = b.errs.filter(e => !e.includes('مبلغ واحد وارد شده ولی حجم کل ندارد'));
+
+  aoa.slice(1).forEach((r, i) => {
+    const code = String(r[0]).trim(); if(!code) return;
+    const row = b.rows.find(x => x.code === code); if(!row || !row.is_leaf) return;
+    const ln = 'ردیف ' + (i + 2) + ' (کد ' + code + '): ';
+    const qRaw = r[10], dqRaw = r[13], upRaw = r[12];
+    const q = kuNum(qRaw), dq = kuNum(dqRaw), up = kuNum(upRaw);
+    const ex = wbsNodes.find(n => n.project_id === pid && n.wbs_code === code);
+    // حجم کل مؤثر: اگر در فایل خالی است، مقدار فعلی دیتابیس
+    const effQ = (qRaw === '' || qRaw == null) ? (ex ? +ex.qty || 0 : 0) : q;
+
+    // خطا: حجم انجام‌شده (>0) ولی حجم کل صفر / خالی
+    if(dq != null && !Number.isNaN(dq) && dq > 0 && !(effQ > 0)){
+      b.errs = b.errs.filter(e => !(e.startsWith(ln) && e.includes('حجم انجام‌شده وارد شده ولی حجم کل ندارد')));
+      b.errs.push(ln + 'حجم انجام‌شده (' + dq + ') وارد شده ولی حجم کل صفر یا خالی است؛ ورود ممکن نیست. ابتدا حجم کل را وارد کنید.');
+    }
+    // حجم انجام‌شده صفر مجاز است. مبلغ واحد با حجم کل صفر مجاز است.
+    if(up > 0 && !(effQ > 0) && (qRaw !== '' && qRaw != null)){
+      b.warns.push(ln + 'حجم کل صفر است؛ مبلغ واحد ثبت می‌شود ولی مبلغ فعالیت فعلاً صفر است تا حجم وارد شود');
+    }
+    // برای ثبت حجم کل «۰» صریح
+    if(q === 0) row.q0 = true;
+  });
+  return b;
+};
+
+// ---------- ۲) اعمال: اجازه ذخیره حجم ۰ و مبلغ واحد ----------
+const _ksA = window.kWbsApply;
+window.kWbsApply = async function(pid, rows){
+  const err = await _ksA(pid, rows); if(err) return err;
+  const todo = rows.filter(r => r.is_leaf && r.up != null && r.up > 0);
+  if(!todo.length) return null;
+  await loadWbsForProject(pid);
+  for(const r of todo){
+    const n = wbsNodes.find(x => x.project_id === pid && x.wbs_code === r.code); if(!n) continue;
+    const u = {};
+    if(+n.unit_price !== r.up) u.unit_price = r.up;                 // مبلغ واحد حتماً ذخیره شود
+    if(r.q0 && n.qty !== 0) u.qty = 0;                              // حجم کل صفرِ صریح
+    if(r.u && !n.unit) u.unit = r.u;
+    if(Object.keys(u).length){ const q = await db.from('wbs_nodes').update(u).eq('id', n.id); if(q.error) return q.error; }
+  }
+  await kSyncProject(pid); await loadProjects();
+  return null;
+};
+
+// ---------- ۳) فرم دستی گره ----------
+const _ksSN = window.saveWbsNode;
+window.saveWbsNode = async function(){
+  const leaf = $('wn-type').value === 'leaf';
+  const up = +$('wn-uprice').value || 0, qtyRaw = $('wn-qty').value;
+  // فعالیت با مبلغ واحد ولی حجم صفر/خالی: به‌جای تنظیم خودکار «۱۰۰ درصد»، حجم ۰ بماند
+  if(leaf && up > 0 && !(+qtyRaw > 0)){
+    const id = $('wn-id').value, pid = +$('wn-project-id').value, parentId = $('wn-parent-id').value || null;
+    const title = $('wn-title').value.trim(), unit = $('wn-unit').value.trim() || null;
+    const ps = $('wn-start').value || null, pe = $('wn-end').value || null, weight = +$('wn-weight').value || 0;
+    if(!title){ showMsg('wn-msg', 'عنوان الزامی است.', 'err'); return; }
+    if(ps && pe && pe < ps){ showMsg('wn-msg', 'پایان قبل از شروع است.', 'err'); return; }
+    if(id){ const ex = wbsNodes.find(x => x.id === +id); if(ex && (+ex.done_qty || 0) > 0){ showMsg('wn-msg', 'برای این فعالیت حجم انجام‌شده ثبت شده؛ حجم کل نمی‌تواند صفر باشد.', 'err'); return; } }
+    const row = { title, weight, is_leaf: true, planned_start: ps, planned_end: pe, qty: 0, unit, unit_price: up };
+    const r = id ? await db.from('wbs_nodes').update(row).eq('id', +id) : await db.from('wbs_nodes').insert([{ ...row, project_id: pid, parent_id: parentId }]);
+    if(r.error){ showMsg('wn-msg', 'خطا: ' + r.error.message, 'err'); return; }
+    closeModal('wbs-node-modal');
+    await kEnsureCodes(pid); await kSyncProject(pid); await loadProjects(); await kRefreshTree(pid);
+    return;
+  }
+  return _ksSN();
+};
+</script>
    </body>
 </html>
